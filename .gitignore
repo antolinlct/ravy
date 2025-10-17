@@ -1,0 +1,46 @@
+# --- Environnements ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py,cover
+*.pyc
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# --- Node / Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# --- Docker ---
+*.pid
+*.log
+docker-compose.override.yml
+
+# --- VSCode / IDE ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- Tests / Cache ---
+htmlcov/
+.tox/
+.nox/
+.coverage
+.cache/
+pytest_cache/
+
+# --- Migrations (sauf structure) ---
+backend/migrations/versions/*.pyc

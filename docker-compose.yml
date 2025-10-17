@@ -1,0 +1,28 @@
+
+services:
+  db:
+    image: postgres:15
+    container_name: ravy_db
+    restart: always
+    environment:
+      POSTGRES_USER: ravy
+      POSTGRES_PASSWORD: ravy
+      POSTGRES_DB: ravy_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: ravy_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
