@@ -1,4 +1,4 @@
-import { Button, Card } from "flowbite-react";
+import { Badge, Button, ButtonGroup, Card, createTheme, ThemeProvider} from "flowbite-react";
 import { useState } from "react";
 import api from "../lib/axiosClient";
 
@@ -7,7 +7,7 @@ export default function Home() {
 
   async function testBackend() {
     try {
-      const response = await api.get("/health"); // appel vers ton backend FastAPI (quand il existera)
+      const response = await api.get("/health");
       setMessage(`Réponse backend : ${response.data.message}`);
     } catch (error) {
       console.error("Erreur Axios :", error);
@@ -18,11 +18,17 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <Card className="max-w-md w-full flex flex-col items-center text-center space-y-4">
-        <h1 className="text-3xl font-bold text-gray-800">
-          Bienvenue sur <span className="text-blue-600">RAVY</span> 👋
+        <h1 className="text-3xl font-bold">
+          Bienvenue sur ravy 👋
         </h1>
+
+        <div className="flex items-center justify-center">
+          <Button>Bouton Flowbite</Button>
+        </div>
+
         <p className="text-gray-600">{message}</p>
-        <Button color="blue" className="w-full" onClick={testBackend}>
+
+        <Button className="w-full" onClick={testBackend}>
           Tester la connexion backend
         </Button>
       </Card>
