@@ -1,0 +1,3 @@
+export default function ResetPasswordPage() {
+  return <h1 className="text-2xl font-bold text-center">Reset Password</h1>;
+}

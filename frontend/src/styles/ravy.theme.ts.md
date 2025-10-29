@@ -1,5 +1,4 @@
 // theme.ts
-import { createTheme } from 'flowbite-react'
 //import { colors, fontFamily, fontSize, borderRadius, spacing, animation } from './tokens'
 
 export const customTheme = createTheme({

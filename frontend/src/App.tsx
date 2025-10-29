@@ -1,14 +1,9 @@
-// App.tsx
-import { ThemeProvider } from 'flowbite-react'
-//import { customTheme } from './styles/ravy.theme'
-import Home from './pages/Home'
+// src/App.tsx
+import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { appRoutes } from "./router/app-routes";
 
-function App() {
-  return (
-    //<ThemeProvider theme={customTheme}>
-      <Home />
-    //</ThemeProvider>
-  )
+const router = createBrowserRouter(appRoutes);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
-
-export default App
