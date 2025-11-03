@@ -1,4 +1,8 @@
-from supabase import create_client
-from app.core.config import settings
+# backend/app/core/supabase_client.py
+from supabase import create_client, Client
+import os
 
-supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

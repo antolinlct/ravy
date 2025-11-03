@@ -1,0 +1,35 @@
+from fastapi import APIRouter, HTTPException
+from app.schemas.variations import Variations
+from app.services import variations_service
+
+router = APIRouter(prefix="/variations", tags=["Variations"])
+
+@router.get("/", response_model=list[Variations])
+def list_variations(order_by: str | None = None, direction: str | None = None):
+    filters = {"order_by": order_by, "direction": direction}
+    filters = {k: v for k, v in filters.items() if v is not None}
+    return variations_service.get_all_variations(filters)
+
+@router.get("/{id}", response_model=Variations)
+def get_variations(id: int):
+    item = variations_service.get_variations_by_id(id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Variations not found")
+    return item
+
+@router.post("/", response_model=Variations)
+def create_variations(data: Variations):
+    created = variations_service.create_variations(data.dict())
+    return Variations(**created)
+
+@router.patch("/{id}", response_model=Variations)
+def update_variations(id: int, data: Variations):
+    updated = variations_service.update_variations(id, data.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Variations not found")
+    return Variations(**updated)
+
+@router.delete("/{id}")
+def delete_variations(id: int):
+    variations_service.delete_variations(id)
+    return {"deleted": True}

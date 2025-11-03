@@ -1,28 +1,22 @@
-
 services:
-  db:
-    image: postgres:15
-    container_name: ravy_db
-    restart: always
-    environment:
-      POSTGRES_USER: ravy
-      POSTGRES_PASSWORD: ravy
-      POSTGRES_DB: ravy_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
   backend:
     build: ./backend
     container_name: ravy_backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
-    depends_on:
-      - db
+    env_file:
+      - ./backend/.env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    extra_hosts:
+      - "aws-1-eu-north-1.pooler.supabase.com:13.60.102.132"
+    networks:
+      - ravy_network
 
-volumes:
-  pgdata:
+networks:
+  ravy_network:
+    driver: bridge

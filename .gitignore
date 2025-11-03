@@ -46,4 +46,27 @@ pytest_cache/
 backend/migrations/versions/*.pyc
 
 # Documentation interne non versionnée
-backend/BDD_EXPLICATION.md
+backend/BDD_EXPLICATION.md``
+
+# --- Supabase ---
+supabase/.temp/
+supabase/.env
+supabase/migrations/.temp/
+
+# --- Build / Static ---
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/api/__pycache__/
+backend/app/core/__pycache__/
+backend/app/services/__pycache__/
+backend/app/schemas/__pycache__/
+
+# --- Data / Secrets ---
+*.sqlite3
+*.db
+*.bak
+*.tmp
+*.swp
+*.log
+*.key
+*.pem

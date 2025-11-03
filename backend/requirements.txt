@@ -6,5 +6,5 @@ pydantic
 pydantic-settings
 python-dotenv
 alembic
-psycopg2-binary
+psycopg[binary]
 supabase
