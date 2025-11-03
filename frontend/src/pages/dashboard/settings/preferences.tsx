@@ -1,3 +1,3 @@
 export default function PreferencesSettingsPage() {
-  return <h1 className="text-2xl font-bold text-center">Settings – Preferences</h1>;
+  return <h1 className="text-2xl font-bold text-center rounded-xl">Settings – Preferences</h1>;
 }

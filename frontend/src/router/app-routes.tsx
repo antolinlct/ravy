@@ -44,6 +44,7 @@ import PerformancePurchasesPage from "../pages/dashboard/performance/purchases.t
 import ConsultantPage from "../pages/dashboard/consultant/index.tsx";
 
 // Paramètres
+import SettingsLayout from "../layouts/SettingsLayout.tsx"
 import AccountSettingsPage from "../pages/dashboard/settings/account.tsx";
 import OrganizationSettingsPage from "../pages/dashboard/settings/organization.tsx";
 import SecuritySettingsPage from "../pages/dashboard/settings/security.tsx";
@@ -69,7 +70,7 @@ export const appRoutes: RouteObject[] = [
   // Dashboard principal
 {
   path: "/dashboard",
-  element: <DashboardLayout />, // 👈 Layout global avec Sidebar + Header (bientôt)
+  element: <DashboardLayout />, // 👈 Layout global avec Sidebar
   children: [
     // Accueil Dashboard
     { path: "", element: <DashboardHomePage /> },
@@ -100,14 +101,21 @@ export const appRoutes: RouteObject[] = [
     { path: "consultant", element: <ConsultantPage /> },
 
     // Paramètres
-    { path: "settings/account", element: <AccountSettingsPage /> },
-    { path: "settings/organization", element: <OrganizationSettingsPage /> },
-    { path: "settings/security", element: <SecuritySettingsPage /> },
-    { path: "settings/preferences", element: <PreferencesSettingsPage /> },
-    { path: "settings/emails", element: <EmailSettingsPage /> },
-    { path: "settings/tickets", element: <TicketSupportPage /> },
-    { path: "settings/subscription", element: <SubscriptionPage /> },
-    { path: "settings/help", element: <HelpPage /> },
+    {
+      path: "settings",
+      element: <SettingsLayout/>,
+      children: [
+          { path: "", element: <AccountSettingsPage /> },
+           { path: "account", element: <AccountSettingsPage /> },
+           { path: "organization", element: <OrganizationSettingsPage /> },
+           { path: "security", element: <SecuritySettingsPage /> },
+           { path: "preferences", element: <PreferencesSettingsPage /> },
+           { path: "emails", element: <EmailSettingsPage /> },
+           { path: "tickets", element: <TicketSupportPage /> },
+           { path: "subscription", element: <SubscriptionPage /> },
+           { path: "help", element: <HelpPage /> },
+           ],
+      }           
   ],
 },
 

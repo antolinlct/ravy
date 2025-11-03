@@ -82,7 +82,7 @@ export default function LandingPage() {
   <AvatarFallback>CN</AvatarFallback>
 </Avatar>
 
-<Badge variant="default | outline | secondary | destructive">Badge</Badge>
+<Badge variant="default">Badge</Badge>
 
 
     </div>

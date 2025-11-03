@@ -44,3 +44,6 @@ pytest_cache/
 
 # --- Migrations (sauf structure) ---
 backend/migrations/versions/*.pyc
+
+# Documentation interne non versionnée
+backend/BDD_EXPLICATION.md
