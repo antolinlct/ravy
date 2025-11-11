@@ -1,0 +1,47 @@
+from fastapi import APIRouter, HTTPException
+from app.schemas.billing_item import BillingItem
+from app.services import billing_item_service
+
+router = APIRouter(prefix="/billing_item", tags=["BillingItem"])
+
+@router.get("/", response_model=list[BillingItem])
+def list_billing_item(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
+    filters = {k: v for k, v in filters.items() if v is not None}
+    return billing_item_service.get_all_billing_item(filters)
+
+@router.get("/{id}", response_model=BillingItem)
+def get_billing_item(id: int):
+    item = billing_item_service.get_billing_item_by_id(id)
+    if not item:
+        raise HTTPException(status_code=404, detail="BillingItem not found")
+    return item
+
+@router.post("/", response_model=BillingItem)
+def create_billing_item(data: BillingItem):
+    created = billing_item_service.create_billing_item(data.dict())
+    return BillingItem(**created)
+
+@router.patch("/{id}", response_model=BillingItem)
+def update_billing_item(id: int, data: BillingItem):
+    updated = billing_item_service.update_billing_item(id, data.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="BillingItem not found")
+    return BillingItem(**updated)
+
+@router.delete("/{id}")
+def delete_billing_item(id: int):
+    billing_item_service.delete_billing_item(id)
+    return {"deleted": True}

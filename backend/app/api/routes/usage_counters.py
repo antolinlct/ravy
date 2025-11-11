@@ -5,8 +5,20 @@ from app.services import usage_counters_service
 router = APIRouter(prefix="/usage_counters", tags=["UsageCounters"])
 
 @router.get("/", response_model=list[UsageCounters])
-def list_usage_counters(order_by: str | None = None, direction: str | None = None):
-    filters = {"order_by": order_by, "direction": direction}
+def list_usage_counters(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
     filters = {k: v for k, v in filters.items() if v is not None}
     return usage_counters_service.get_all_usage_counters(filters)
 

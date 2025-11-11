@@ -1,15 +1,38 @@
-# --- Environnements ---
+# ============================================
+# 🔐 ENVIRONNEMENTS & SECRETS
+# ============================================
 .env
 .env.*
+.env.sandbox
 !.env.example
 
-# --- Python ---
+# ============================================
+# 🧠 EXPORTS & FICHIERS GÉNÉRÉS AUTOMATIQUEMENT
+# ============================================
+# Schémas & contrats auto-générés
+schemas_summary.json
+contracts_summary.json
+
+# Dossiers de génération locale (non versionnés)
+backend/scripts/__pycache__/
+backend/scripts/*.pyc
+backend/scripts/*.log
+
+# Exports de data (IA, JSON, tests)
+*.export.json
+*.backup.json
+*.dump.json
+*.csv
+*.xlsx
+
+# ============================================
+# 🐍 PYTHON
+# ============================================
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 *.py,cover
-*.pyc
 .Python
 env/
 venv/
@@ -18,55 +41,111 @@ build/
 dist/
 .eggs/
 *.egg-info/
+pip-wheel-metadata/
+MANIFEST
 
-# --- Node / Frontend ---
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# --- Docker ---
-*.pid
-*.log
-docker-compose.override.yml
-
-# --- VSCode / IDE ---
-.vscode/
-.idea/
-.DS_Store
-
-# --- Tests / Cache ---
+# ============================================
+# 🧪 TESTS / CACHE
+# ============================================
 htmlcov/
 .tox/
 .nox/
 .coverage
 .cache/
 pytest_cache/
+.mypy_cache/
+.dmypy.json
+.pyre/
 
-# --- Migrations (sauf structure) ---
+# ============================================
+# 🧰 MIGRATIONS
+# ============================================
+# On ignore les fichiers compilés ou temporaires, mais on garde les migrations structurelles
 backend/migrations/versions/*.pyc
+backend/migrations/__pycache__/
 
-# Documentation interne non versionnée
-backend/BDD_EXPLICATION.md``
+# ============================================
+# 🧠 DOCUMENTATION INTERNE
+# ============================================
+backend/BDD_EXPLICATION.md
+notion_sync/
+docs_tmp/
+drafts/
 
-# --- Supabase ---
+# ============================================
+# 🐋 DOCKER
+# ============================================
+*.pid
+*.log
+docker-compose.override.yml
+docker-data/
+tmp/
+
+# ============================================
+# ⚙️ SUPABASE
+# ============================================
 supabase/.temp/
 supabase/.env
 supabase/migrations/.temp/
+supabase/.cache/
+supabase/.backup/
+supabase/functions/.temp/
 
-# --- Build / Static ---
+# ============================================
+# 🧱 BACKEND BUILD / STATIC
+# ============================================
 backend/__pycache__/
 backend/app/__pycache__/
 backend/app/api/__pycache__/
 backend/app/core/__pycache__/
 backend/app/services/__pycache__/
 backend/app/schemas/__pycache__/
+backend/app/logic/__pycache__/
+backend/app/internal/__pycache__/
+backend/app/market/__pycache__/
+backend/app/ia/__pycache__/
 
-# --- Data / Secrets ---
+# ============================================
+# 🌐 FRONTEND (React / Vite)
+# ============================================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/.DS_Store
+frontend/.env.local
+
+# ============================================
+# 🧑‍💻 IDE / OS SPECIFIQUES
+# ============================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ============================================
+# 💾 DONNÉES / SECRETS
+# ============================================
 *.sqlite3
 *.db
 *.bak
 *.tmp
-*.swp
 *.log
 *.key
 *.pem
+*.crt
+*.csr
+*.tar
+*.zip
+*.gz
+
+# ============================================
+# 🧠 SCRIPTS & EXPORTS RAVY (IA / AGENTS)
+# ============================================
+# Tous les scripts d’entraînement ou exports IA
+/backend/agents/
+backend/app/data_contracts/
+backend/contracts_summary.json
+backend/schemas_summary.json

@@ -1,0 +1,24 @@
+from pydantic import BaseModel
+from datetime import datetime, date
+from typing import List, Optional, Any, Literal
+from uuid import UUID
+
+
+
+class FinancialIngredients(BaseModel):
+    id: Optional[UUID] = None
+    financial_report_id: Optional[UUID] = None
+    master_article_id: Optional[UUID] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    created_by: Optional[UUID] = None
+    updated_by: Optional[UUID] = None
+    establishment_id: Optional[UUID] = None
+    financial_recipe_id: Optional[UUID] = None
+    ingredient_id: Optional[UUID] = None
+    quantity: Optional[float] = None
+    consumed_value: Optional[float] = None
+    accumulated_loss: Optional[float] = None
+    market_gap: Optional[float] = None
+    market_savings: Optional[float] = None
+    balanced_value: Optional[float] = None

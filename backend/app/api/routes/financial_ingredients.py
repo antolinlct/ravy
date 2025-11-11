@@ -5,8 +5,20 @@ from app.services import financial_ingredients_service
 router = APIRouter(prefix="/financial_ingredients", tags=["FinancialIngredients"])
 
 @router.get("/", response_model=list[FinancialIngredients])
-def list_financial_ingredients(order_by: str | None = None, direction: str | None = None):
-    filters = {"order_by": order_by, "direction": direction}
+def list_financial_ingredients(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
     filters = {k: v for k, v in filters.items() if v is not None}
     return financial_ingredients_service.get_all_financial_ingredients(filters)
 

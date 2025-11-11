@@ -5,8 +5,20 @@ from app.services import user_establishment_service
 router = APIRouter(prefix="/user_establishment", tags=["UserEstablishment"])
 
 @router.get("/", response_model=list[UserEstablishment])
-def list_user_establishment(order_by: str | None = None, direction: str | None = None):
-    filters = {"order_by": order_by, "direction": direction}
+def list_user_establishment(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
     filters = {k: v for k, v in filters.items() if v is not None}
     return user_establishment_service.get_all_user_establishment(filters)
 

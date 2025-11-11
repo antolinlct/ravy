@@ -5,8 +5,20 @@ from app.services import suppliers_service
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 
 @router.get("/", response_model=list[Suppliers])
-def list_suppliers(order_by: str | None = None, direction: str | None = None):
-    filters = {"order_by": order_by, "direction": direction}
+def list_suppliers(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
     filters = {k: v for k, v in filters.items() if v is not None}
     return suppliers_service.get_all_suppliers(filters)
 

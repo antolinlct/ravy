@@ -4,16 +4,16 @@ import psycopg
 from pathlib import Path
 from pydantic import BaseModel
 
-# --- Connexion directe à Supabase via DSN complet ---
+# --- Connexion directe à Supabase ---
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("❌ Variable DATABASE_URL manquante dans le .env")
 
 # --- Dossier de sortie ---
-output_dir = Path("/app/schemas")
+output_dir = Path("/app/app/schemas")
 output_dir.mkdir(parents=True, exist_ok=True)
 
-# --- Fichier de référence pour comparaison ---
+# --- Fichier de référence ---
 schema_snapshot = output_dir / "_last_schema.json"
 
 # --- Nettoyage du dossier avant régénération ---
@@ -27,24 +27,26 @@ print("Connexion à la base PostgreSQL…")
 try:
     with psycopg.connect(DATABASE_URL) as conn:
         cur = conn.cursor()
+
+        # --- Récupération des colonnes ---
         cur.execute("""
-            SELECT table_name, column_name, data_type, udt_name
+            SELECT table_schema, table_name, column_name, data_type, udt_name
             FROM information_schema.columns
-            WHERE table_schema = 'public'
-            ORDER BY table_name, ordinal_position;
+            WHERE table_schema IN ('public', 'market', 'internal', 'ia')
+            ORDER BY table_schema, table_name, ordinal_position;
         """)
         rows = cur.fetchall()
 
-        # Récupérer les ENUM définis
+        # --- Récupération des ENUM ---
         cur.execute("""
-            SELECT t.typname, array_agg(e.enumlabel ORDER BY e.enumsortorder)
+            SELECT n.nspname AS schema_name, t.typname, array_agg(e.enumlabel ORDER BY e.enumsortorder)
             FROM pg_type t
             JOIN pg_enum e ON t.oid = e.enumtypid
             JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
-            WHERE n.nspname = 'public'
-            GROUP BY t.typname;
+            WHERE n.nspname IN ('public', 'market', 'internal', 'ia')
+            GROUP BY n.nspname, t.typname;
         """)
-        enums = {r[0]: r[1] for r in cur.fetchall()}
+        enums = {r[1]: r[2] for r in cur.fetchall()}  # <<--- plus de préfixe de schéma
 
 except Exception as e:
     print("❌ Erreur de connexion à la base PostgreSQL :")
@@ -53,46 +55,29 @@ except Exception as e:
 
 # --- Regrouper les colonnes par table ---
 tables = {}
-for table_name, column_name, data_type, udt_name in rows:
+for schema_name, table_name, column_name, data_type, udt_name in rows:
+    # on ne garde que le nom de table (sans le schema)
     tables.setdefault(table_name, []).append(
         {"column": column_name, "data_type": data_type, "udt_name": udt_name}
     )
 
-# --- Mapping PostgreSQL → Python (complet) ---
+# --- Mapping PostgreSQL → Python ---
 type_mapping = {
-    "integer": "int",
-    "int4": "int",
-    "bigint": "int",
-    "int8": "int",
-    "smallint": "int",
-    "int2": "int",
-    "serial": "int",
-    "bigserial": "int",
-    "numeric": "float",
-    "decimal": "float",
-    "money": "float",
-    "double precision": "float",
-    "float8": "float",
-    "real": "float",
-    "float4": "float",
-    "boolean": "bool",
-    "bool": "bool",
-    "text": "str",
-    "varchar": "str",
-    "character varying": "str",
-    "character": "str",
-    "uuid": "str",
+    "integer": "int", "int4": "int", "bigint": "int", "int8": "int",
+    "smallint": "int", "int2": "int", "serial": "int", "bigserial": "int",
+    "numeric": "float", "decimal": "float", "money": "float",
+    "double precision": "float", "float8": "float", "real": "float", "float4": "float",
+    "boolean": "bool", "bool": "bool",
+    "text": "str", "varchar": "str", "character varying": "str", "character": "str",
+    "uuid": "UUID",
     "bytea": "bytes",
-    "json": "dict",
-    "jsonb": "dict",
-    "timestamp without time zone": "datetime",
-    "timestamp with time zone": "datetime",
-    "timestamptz": "datetime",
-    "time without time zone": "datetime",
+    "json": "dict", "jsonb": "dict",
+    "timestamp without time zone": "datetime", "timestamp with time zone": "datetime",
+    "timestamptz": "datetime", "time without time zone": "datetime",
     "date": "date",
 }
 
-# --- Chargement du dernier schéma connu ---
+# --- Charger le dernier snapshot ---
 previous_schema = {}
 if schema_snapshot.exists():
     with open(schema_snapshot, "r") as f:
@@ -101,7 +86,7 @@ if schema_snapshot.exists():
 # --- Génération des modèles ---
 for table, columns in tables.items():
     if table == "alembic_version":
-        continue  # ignorer la table système Alembic
+        continue
 
     class_name = "".join(word.capitalize() for word in table.split("_"))
     file_path = output_dir / f"{table}.py"
@@ -109,18 +94,19 @@ for table, columns in tables.items():
     with open(file_path, "w") as f:
         f.write("from pydantic import BaseModel\n")
         f.write("from datetime import datetime, date\n")
-        f.write("from typing import List, Optional, Any, Literal\n\n\n")
+        f.write("from typing import List, Optional, Any, Literal\n")
+        f.write("from uuid import UUID\n\n\n")
 
-        # Créer les enums spécifiques si nécessaires
+        # --- Énumérations ---
         for col in columns:
             udt = col["udt_name"]
             if udt in enums:
                 enum_name = udt.capitalize()
-                values = ", ".join([f'"{v}"' for v in enums[udt]])
+                values = ", ".join([f'\"{v}\"' for v in enums[udt]])
                 f.write(f"{enum_name} = Literal[{values}]\n")
         f.write("\n")
 
-        # Définition du modèle
+        # --- Modèle principal ---
         f.write(f"class {class_name}(BaseModel):\n")
 
         for col_info in columns:
@@ -128,21 +114,14 @@ for table, columns in tables.items():
             dtype = col_info["data_type"]
             udt = col_info["udt_name"]
 
-            # ENUM
             if udt in enums:
                 py_type = udt.capitalize()
-
-            # ARRAY (ex: _int4, _text, etc.)
             elif udt.startswith("_"):
                 base = udt[1:]
-                base_type = type_mapping.get(base, "Any")
+                base_type = type_mapping.get(base, type_mapping.get(dtype, "Any"))
                 py_type = f"List[{base_type}]"
-
-            # Domain custom → fallback sur son type de base
             elif dtype == "USER-DEFINED" and udt not in enums:
                 py_type = "Any"
-
-            # Standard
             else:
                 py_type = type_mapping.get(dtype, type_mapping.get(udt, "Any"))
 
@@ -150,11 +129,10 @@ for table, columns in tables.items():
 
     print(f"✅ Modèle généré : {file_path.name}")
 
-# --- Sauvegarde du nouveau schéma pour comparaison future ---
+# --- Snapshot et comparaison ---
 with open(schema_snapshot, "w") as f:
     json.dump(tables, f, indent=2)
 
-# --- Comparaison avec le précédent ---
 if previous_schema:
     added = [t for t in tables if t not in previous_schema]
     removed = [t for t in previous_schema if t not in tables]
@@ -162,7 +140,6 @@ if previous_schema:
         t for t in tables
         if t in previous_schema and tables[t] != previous_schema[t]
     ]
-
     print("\n🔍 Résumé des changements :")
     if added:
         print(f"🟢 Nouvelles tables : {', '.join(added)}")

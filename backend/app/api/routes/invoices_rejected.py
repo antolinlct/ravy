@@ -1,0 +1,47 @@
+from fastapi import APIRouter, HTTPException
+from app.schemas.invoices_rejected import InvoicesRejected
+from app.services import invoices_rejected_service
+
+router = APIRouter(prefix="/invoices_rejected", tags=["InvoicesRejected"])
+
+@router.get("/", response_model=list[InvoicesRejected])
+def list_invoices_rejected(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = None,
+    establishment_id: str | None = None,
+    supplier_id: str | None = None,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+    }
+    filters = {k: v for k, v in filters.items() if v is not None}
+    return invoices_rejected_service.get_all_invoices_rejected(filters)
+
+@router.get("/{id}", response_model=InvoicesRejected)
+def get_invoices_rejected(id: int):
+    item = invoices_rejected_service.get_invoices_rejected_by_id(id)
+    if not item:
+        raise HTTPException(status_code=404, detail="InvoicesRejected not found")
+    return item
+
+@router.post("/", response_model=InvoicesRejected)
+def create_invoices_rejected(data: InvoicesRejected):
+    created = invoices_rejected_service.create_invoices_rejected(data.dict())
+    return InvoicesRejected(**created)
+
+@router.patch("/{id}", response_model=InvoicesRejected)
+def update_invoices_rejected(id: int, data: InvoicesRejected):
+    updated = invoices_rejected_service.update_invoices_rejected(id, data.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="InvoicesRejected not found")
+    return InvoicesRejected(**updated)
+
+@router.delete("/{id}")
+def delete_invoices_rejected(id: int):
+    invoices_rejected_service.delete_invoices_rejected(id)
+    return {"deleted": True}

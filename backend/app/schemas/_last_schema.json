@@ -1,0 +1,2831 @@
+{
+  "logs_ia": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "session_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "action",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "input",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "output",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "success",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "error_message",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "messages_ia": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "session_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "sender",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "content",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "metadata",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "sessions_ia": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "context",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "ended_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "import_job": [
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "import_job_status"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "file_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "ocr_result_json",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "logs": [
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "logs_type"
+    },
+    {
+      "column": "action",
+      "data_type": "USER-DEFINED",
+      "udt_name": "logs_action"
+    },
+    {
+      "column": "text",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "json",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "element_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "element_type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "logs_element_type"
+    },
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "maintenance": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "coutdown_hour",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "message",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "start_date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "regex_patterns": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "regex_type"
+    },
+    {
+      "column": "regex",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "score_matrix": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "purchase_result",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "financial_result",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "score",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "market_articles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "market_master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "file_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "discounts",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "duties_and_taxes",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "invoice_path",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "market_master_articles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unformatted_name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "current_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "market_supplier_alias": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "supplier_market_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "alias",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "market_suppliers": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "label",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_label"
+    }
+  ],
+  "alert_logs": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "content",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "payload",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "sent_to_number",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "sent_to_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "articles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "invoice_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "date",
+      "data_type": "date",
+      "udt_name": "date"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "discounts",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "duties_and_taxes",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "billing_account": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "stripe_customer_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_customer_id_live",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "billing_cycle",
+      "data_type": "USER-DEFINED",
+      "udt_name": "billing_cycle"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "free_mode",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "stripe_subscription_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_subscription_id_live",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "billing_item": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "billling_acount_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "product_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "price_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "current_period_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "current_period_end",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "countries": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "currency_iso_code",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "currency_symbol",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "stripe_tax_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_tax_id_live",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "establishment_email_alias": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "custom_email",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "enabled",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "custom_email_prefix",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "establishments": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "slug",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "country_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "recommended_retail_price_method",
+      "data_type": "USER-DEFINED",
+      "udt_name": "recommended_retail_price"
+    },
+    {
+      "column": "recommended_retail_price_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "logo_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "plan_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "average_daily_covers",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "average_annual_revenue",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "email",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "phone",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "intern_notes",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "financial_ingredients": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "financial_report_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "financial_recipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "ingredient_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "consumed_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "accumulated_loss",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "market_gap",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "market_savings",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "balanced_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "financial_recipes": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "financial_report_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "recipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "sales_number",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total_revenue",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "balanced_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "financial_reports": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "month",
+      "data_type": "date",
+      "udt_name": "date"
+    },
+    {
+      "column": "ca_solid_ht",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_liquid_ht",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_total_ht",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_tracked_recipes_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_tracked_recipes_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_untracked_recipes_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ca_untracked_recipes_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_liquid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_ratio_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "material_cost_ratio_liquid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "labor_cost_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "labor_cost_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "fte_count",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "fixed_charges_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "fixed_charges_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "variable_charges_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "variable_charges_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_liquid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_solid_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_liquid_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "commercial_margin_total_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "production_cost_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "production_cost_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ebitda",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "ebitda_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "break_even_point",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "safety_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "safety_margin_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "revenue_per_employee",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "result_per_employee",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "charges_per_employee",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "salary_per_employee",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "avg_revenue_per_dish",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "avg_cost_per_dish",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "avg_margin_per_dish",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "theoretical_sales_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "theoretical_material_cost_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "multiplier_global",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "multiplier_solid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "multiplier_liquid",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "notes",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "history_ingredients": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "ingredient_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "recipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "subrecipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "unit_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "version_number",
+      "data_type": "integer",
+      "udt_name": "int4"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "gross_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "percentage_loss",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "loss_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "history_recipes": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "recipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "version_number",
+      "data_type": "integer",
+      "udt_name": "int4"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "purchase_cost_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "purchase_cost_per_portion",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "portion",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "invoice_affected",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "vat_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "price_excl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_incl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "impersonations_padrino": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "actor_user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "target_establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "reason",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "started_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "ended_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "ingredients": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "recipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "ingredient_type"
+    },
+    {
+      "column": "master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "subrecipe_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "unit_cost",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "percentage_loss",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "gross_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "loss_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "invoices": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "invoice_number",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "date",
+      "data_type": "date",
+      "udt_name": "date"
+    },
+    {
+      "column": "total_excl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "total_incl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "file_storage_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "import_mode",
+      "data_type": "USER-DEFINED",
+      "udt_name": "import_mode"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "invoices_rejected": [
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "file_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "rejection_reason",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "label_supplier": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "label",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_label"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "live_score": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "type",
+      "data_type": "USER-DEFINED",
+      "udt_name": "score_type"
+    },
+    {
+      "column": "value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    }
+  ],
+  "master_articles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "unformatted_name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "market_master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "current_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "mercuriale_articles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "mercuriale_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "market_master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "price_standard",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_plus",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_premium",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "vat_rate",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "mercuriales": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "effective_from",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "effective_to",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "price": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "product_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "billing_cycle",
+      "data_type": "USER-DEFINED",
+      "udt_name": "billing_cycle"
+    },
+    {
+      "column": "stripe_price_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_price_id_live",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unit_amount",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "product": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "internal_code",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "marketing_name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "plan_or_addon",
+      "data_type": "USER-DEFINED",
+      "udt_name": "product_type"
+    },
+    {
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_product_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_product_id_live",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "included_seats",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "included_invoices",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "included_recipes",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "addon_category",
+      "data_type": "USER-DEFINED",
+      "udt_name": "addon_category"
+    },
+    {
+      "column": "addon_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "recipe_categories": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recipe_margin": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "average_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "responsible_recipe",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recipe_margin_category": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "average_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "responsible_recipe",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "cagtegory_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recipe_margin_subcategory": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "average_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "responsible_recipe",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "subcagtegory_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recipes": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "vat_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "recommanded_retail_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "saleable",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "contains_sub_recipe",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "purchase_cost_total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "portion",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "purchase_cost_per_portion",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "instruction",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "current_margin",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "portion_weight",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_excl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_incl_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "price_tax",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "category_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "subcategory_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recipes_subcategories": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "category_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "recommendations_ai": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "context",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "suggestion",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "estimated_impact",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "accepted",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "supplier_alias": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "alias",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "supplier_merge_suggestions": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "reviewed_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "source_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "target_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "similarity_score",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_merge_suggestions_status"
+    }
+  ],
+  "suppliers": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "contact_email",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "contact_phone",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "label_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "active_analyses",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    }
+  ],
+  "support_ticket": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "user_profile_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "invoice_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "ticket_status"
+    },
+    {
+      "column": "object",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "intern_notes",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "resolution_notes",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "resolved_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "usage_counters": [
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "period_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "period_end",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "used_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "limit_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "value_category",
+      "data_type": "USER-DEFINED",
+      "udt_name": "addon_category"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "user_establishment": [
+    {
+      "column": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "role",
+      "data_type": "USER-DEFINED",
+      "udt_name": "user_role"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "user_mercuriale_access": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "user_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "mercuriale_level",
+      "data_type": "USER-DEFINED",
+      "udt_name": "mercuriale_level"
+    },
+    {
+      "column": "assigned_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
+  "user_profiles": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "first_name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "last_name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "intern_notes",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "variations": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "master_article_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "date",
+      "data_type": "date",
+      "udt_name": "date"
+    },
+    {
+      "column": "old_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "new_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "percentage",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "alert_logs_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "vat_rates": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "country_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "percentage_rate",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "absolute_rate",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "updated_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ]
+}

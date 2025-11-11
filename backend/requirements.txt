@@ -8,3 +8,6 @@ python-dotenv
 alembic
 psycopg[binary]
 supabase
+python-dateutil
+rapidfuzz
+unidecode
