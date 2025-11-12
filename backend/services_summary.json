@@ -1,0 +1,2238 @@
+{
+  "alert_logs_service": {
+    "table_name": "alert_logs",
+    "functions": [
+      {
+        "name": "get_all_alert_logs",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_alert_logs_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_alert_logs",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_alert_logs",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_alert_logs",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "variations_service": {
+    "table_name": "variations",
+    "functions": [
+      {
+        "name": "get_all_variations",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_variations_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_variations",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_variations",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_variations",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "billing_item_service": {
+    "table_name": "billing_item",
+    "functions": [
+      {
+        "name": "get_all_billing_item",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_billing_item_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_billing_item",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_billing_item",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_billing_item",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "market_supplier_alias_service": {
+    "table_name": "market_supplier_alias",
+    "functions": [
+      {
+        "name": "get_all_market_supplier_alias",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_market_supplier_alias_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_market_supplier_alias",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_market_supplier_alias",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_market_supplier_alias",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercuriales_service": {
+    "table_name": "mercuriales",
+    "functions": [
+      {
+        "name": "get_all_mercuriales",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriales_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriales",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriales",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriales",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recommendations_ai_service": {
+    "table_name": "recommendations_ai",
+    "functions": [
+      {
+        "name": "get_all_recommendations_ai",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recommendations_ai_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recommendations_ai",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recommendations_ai",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recommendations_ai",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "maintenance_service": {
+    "table_name": "maintenance",
+    "functions": [
+      {
+        "name": "get_all_maintenance",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_maintenance_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_maintenance",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_maintenance",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_maintenance",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "history_recipes_service": {
+    "table_name": "history_recipes",
+    "functions": [
+      {
+        "name": "get_all_history_recipes",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_history_recipes_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_history_recipes",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_history_recipes",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_history_recipes",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "market_master_articles_service": {
+    "table_name": "market_master_articles",
+    "functions": [
+      {
+        "name": "get_all_market_master_articles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_market_master_articles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_market_master_articles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_market_master_articles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_market_master_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipe_categories_service": {
+    "table_name": "recipe_categories",
+    "functions": [
+      {
+        "name": "get_all_recipe_categories",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipe_categories_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipe_categories",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipe_categories",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipe_categories",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "impersonations_padrino_service": {
+    "table_name": "impersonations_padrino",
+    "functions": [
+      {
+        "name": "get_all_impersonations_padrino",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_impersonations_padrino_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_impersonations_padrino",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_impersonations_padrino",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_impersonations_padrino",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "countries_service": {
+    "table_name": "countries",
+    "functions": [
+      {
+        "name": "get_all_countries",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_countries_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_countries",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_countries",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_countries",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "regex_patterns_service": {
+    "table_name": "regex_patterns",
+    "functions": [
+      {
+        "name": "get_all_regex_patterns",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_regex_patterns_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_regex_patterns",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_regex_patterns",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_regex_patterns",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "live_score_service": {
+    "table_name": "live_score",
+    "functions": [
+      {
+        "name": "get_all_live_score",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_live_score_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_live_score",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_live_score",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_live_score",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "history_ingredients_service": {
+    "table_name": "history_ingredients",
+    "functions": [
+      {
+        "name": "get_all_history_ingredients",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_history_ingredients_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_history_ingredients",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_history_ingredients",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_history_ingredients",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "price_service": {
+    "table_name": "price",
+    "functions": [
+      {
+        "name": "get_all_price",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_price_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_price",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_price",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_price",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "market_articles_service": {
+    "table_name": "market_articles",
+    "functions": [
+      {
+        "name": "get_all_market_articles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_market_articles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_market_articles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_market_articles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_market_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "messages_ia_service": {
+    "table_name": "messages_ia",
+    "functions": [
+      {
+        "name": "get_all_messages_ia",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_messages_ia_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_messages_ia",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_messages_ia",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_messages_ia",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipes_service": {
+    "table_name": "recipes",
+    "functions": [
+      {
+        "name": "get_all_recipes",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipes_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipes",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipes",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipes",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "suppliers_service": {
+    "table_name": "suppliers",
+    "functions": [
+      {
+        "name": "get_all_suppliers",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_suppliers_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_suppliers",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_suppliers",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_suppliers",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "establishment_email_alias_service": {
+    "table_name": "establishment_email_alias",
+    "functions": [
+      {
+        "name": "get_all_establishment_email_alias",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_establishment_email_alias_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_establishment_email_alias",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_establishment_email_alias",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_establishment_email_alias",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipe_margin_service": {
+    "table_name": "recipe_margin",
+    "functions": [
+      {
+        "name": "get_all_recipe_margin",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipe_margin_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipe_margin",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipe_margin",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipe_margin",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "master_articles_service": {
+    "table_name": "master_articles",
+    "functions": [
+      {
+        "name": "get_all_master_articles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_master_articles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_master_articles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_master_articles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_master_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "user_establishment_service": {
+    "table_name": "user_establishment",
+    "functions": [
+      {
+        "name": "get_all_user_establishment",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_user_establishment_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_user_establishment",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_user_establishment",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_user_establishment",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipes_subcategories_service": {
+    "table_name": "recipes_subcategories",
+    "functions": [
+      {
+        "name": "get_all_recipes_subcategories",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipes_subcategories_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipes_subcategories",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipes_subcategories",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipes_subcategories",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "support_ticket_service": {
+    "table_name": "support_ticket",
+    "functions": [
+      {
+        "name": "get_all_support_ticket",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_support_ticket_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_support_ticket",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_support_ticket",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_support_ticket",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "logs_ia_service": {
+    "table_name": "logs_ia",
+    "functions": [
+      {
+        "name": "get_all_logs_ia",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_logs_ia_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_logs_ia",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_logs_ia",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_logs_ia",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "user_profiles_service": {
+    "table_name": "user_profiles",
+    "functions": [
+      {
+        "name": "get_all_user_profiles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_user_profiles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_user_profiles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_user_profiles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_user_profiles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "billing_account_service": {
+    "table_name": "billing_account",
+    "functions": [
+      {
+        "name": "get_all_billing_account",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_billing_account_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_billing_account",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_billing_account",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_billing_account",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "label_supplier_service": {
+    "table_name": "label_supplier",
+    "functions": [
+      {
+        "name": "get_all_label_supplier",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_label_supplier_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_label_supplier",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_label_supplier",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_label_supplier",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipe_margin_subcategory_service": {
+    "table_name": "recipe_margin_subcategory",
+    "functions": [
+      {
+        "name": "get_all_recipe_margin_subcategory",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipe_margin_subcategory_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipe_margin_subcategory",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipe_margin_subcategory",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipe_margin_subcategory",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "logs_service": {
+    "table_name": "logs",
+    "functions": [
+      {
+        "name": "get_all_logs",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_logs_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_logs",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_logs",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_logs",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "score_matrix_service": {
+    "table_name": "score_matrix",
+    "functions": [
+      {
+        "name": "get_all_score_matrix",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_score_matrix_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_score_matrix",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_score_matrix",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_score_matrix",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercuriale_articles_service": {
+    "table_name": "mercuriale_articles",
+    "functions": [
+      {
+        "name": "get_all_mercuriale_articles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriale_articles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriale_articles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriale_articles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriale_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "vat_rates_service": {
+    "table_name": "vat_rates",
+    "functions": [
+      {
+        "name": "get_all_vat_rates",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_vat_rates_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_vat_rates",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_vat_rates",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_vat_rates",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "financial_recipes_service": {
+    "table_name": "financial_recipes",
+    "functions": [
+      {
+        "name": "get_all_financial_recipes",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_financial_recipes_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_financial_recipes",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_financial_recipes",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_financial_recipes",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "supplier_merge_suggestions_service": {
+    "table_name": "supplier_merge_suggestions",
+    "functions": [
+      {
+        "name": "get_all_supplier_merge_suggestions",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_supplier_merge_suggestions_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_supplier_merge_suggestions",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_supplier_merge_suggestions",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_supplier_merge_suggestions",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "supplier_alias_service": {
+    "table_name": "supplier_alias",
+    "functions": [
+      {
+        "name": "get_all_supplier_alias",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_supplier_alias_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_supplier_alias",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_supplier_alias",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_supplier_alias",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "usage_counters_service": {
+    "table_name": "usage_counters",
+    "functions": [
+      {
+        "name": "get_all_usage_counters",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_usage_counters_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_usage_counters",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_usage_counters",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_usage_counters",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "sessions_ia_service": {
+    "table_name": "sessions_ia",
+    "functions": [
+      {
+        "name": "get_all_sessions_ia",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_sessions_ia_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_sessions_ia",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_sessions_ia",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_sessions_ia",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "ingredients_service": {
+    "table_name": "ingredients",
+    "functions": [
+      {
+        "name": "get_all_ingredients",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_ingredients_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_ingredients",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_ingredients",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_ingredients",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "product_service": {
+    "table_name": "product",
+    "functions": [
+      {
+        "name": "get_all_product",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_product_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_product",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_product",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_product",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "financial_ingredients_service": {
+    "table_name": "financial_ingredients",
+    "functions": [
+      {
+        "name": "get_all_financial_ingredients",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_financial_ingredients_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_financial_ingredients",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_financial_ingredients",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_financial_ingredients",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "recipe_margin_category_service": {
+    "table_name": "recipe_margin_category",
+    "functions": [
+      {
+        "name": "get_all_recipe_margin_category",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_recipe_margin_category_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_recipe_margin_category",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_recipe_margin_category",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_recipe_margin_category",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "market_suppliers_service": {
+    "table_name": "market_suppliers",
+    "functions": [
+      {
+        "name": "get_all_market_suppliers",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_market_suppliers_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_market_suppliers",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_market_suppliers",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_market_suppliers",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "articles_service": {
+    "table_name": "articles",
+    "functions": [
+      {
+        "name": "get_all_articles",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_articles_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_articles",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_articles",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "establishments_service": {
+    "table_name": "establishments",
+    "functions": [
+      {
+        "name": "get_all_establishments",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_establishments_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_establishments",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_establishments",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_establishments",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "user_mercuriale_access_service": {
+    "table_name": "user_mercuriale_access",
+    "functions": [
+      {
+        "name": "get_all_user_mercuriale_access",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_user_mercuriale_access_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_user_mercuriale_access",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_user_mercuriale_access",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_user_mercuriale_access",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "invoices_rejected_service": {
+    "table_name": "invoices_rejected",
+    "functions": [
+      {
+        "name": "get_all_invoices_rejected",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_invoices_rejected_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_invoices_rejected",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_invoices_rejected",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_invoices_rejected",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "import_job_service": {
+    "table_name": "import_job",
+    "functions": [
+      {
+        "name": "get_all_import_job",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_import_job_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_import_job",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_import_job",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_import_job",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "invoices_service": {
+    "table_name": "invoices",
+    "functions": [
+      {
+        "name": "get_all_invoices",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_invoices_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_invoices",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_invoices",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_invoices",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "financial_reports_service": {
+    "table_name": "financial_reports",
+    "functions": [
+      {
+        "name": "get_all_financial_reports",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_financial_reports_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_financial_reports",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_financial_reports",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_financial_reports",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  }
+}

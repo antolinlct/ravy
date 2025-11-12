@@ -1,20 +1,18 @@
 from app.core.supabase_client import supabase
 from app.schemas.user_mercuriale_access import UserMercurialeAccess
 
-def get_all_user_mercuriale_access(filters: dict | None = None):
+def get_all_user_mercuriale_access(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("user_mercuriale_access").select("*")
     if not filters:
         filters = {}
 
-    # --- 1️⃣ Filtres structurels
-    if "establishment_id" in filters:
-        query = query.eq("establishment_id", filters["establishment_id"])
-    if "supplier_id" in filters:
-        query = query.eq("supplier_id", filters["supplier_id"])
+    # --- Filtres dynamiques (structurels ou contextuels) ---
+    # Aucun filtre structurel spécifique
 
-    # --- 2️⃣ Filtres dynamiques
+
+    # --- Filtres additionnels (_gte, _lte, etc.) ---
     for key, value in filters.items():
-        if key in ("order_by", "direction", "limit", "establishment_id", "supplier_id"):
+        if key in ("order_by", "direction", "limit", "page", ):
             continue
         if key.endswith("_gte"):
             query = query.gte(key[:-4], value)
@@ -27,14 +25,13 @@ def get_all_user_mercuriale_access(filters: dict | None = None):
         else:
             query = query.eq(key, value)
 
-    # --- 3️⃣ Tri et limite
+    # --- Tri & Pagination ---
     if "order_by" in filters:
         query = query.order(filters["order_by"], desc=filters.get("direction") == "desc")
-    if "limit" in filters:
-        try:
-            query = query.limit(int(filters["limit"]))
-        except ValueError:
-            pass
+
+    start = (page - 1) * limit
+    end = start + limit - 1
+    query = query.range(start, end)
 
     response = query.execute()
     return [UserMercurialeAccess(**r) for r in (response.data or [])]

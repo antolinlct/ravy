@@ -8,19 +8,18 @@ router = APIRouter(prefix="/financial_recipes", tags=["FinancialRecipes"])
 def list_financial_recipes(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
+    establishment_id: str | None = None
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page, "establishment_id": establishment_id
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return financial_recipes_service.get_all_financial_recipes(filters)
+    return financial_recipes_service.get_all_financial_recipes(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=FinancialRecipes)
 def get_financial_recipes(id: int):

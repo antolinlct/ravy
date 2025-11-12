@@ -8,19 +8,17 @@ router = APIRouter(prefix="/market_supplier_alias", tags=["MarketSupplierAlias"]
 def list_market_supplier_alias(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return market_supplier_alias_service.get_all_market_supplier_alias(filters)
+    return market_supplier_alias_service.get_all_market_supplier_alias(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MarketSupplierAlias)
 def get_market_supplier_alias(id: int):

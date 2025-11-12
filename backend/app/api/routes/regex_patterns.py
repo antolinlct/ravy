@@ -8,19 +8,17 @@ router = APIRouter(prefix="/regex_patterns", tags=["RegexPatterns"])
 def list_regex_patterns(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return regex_patterns_service.get_all_regex_patterns(filters)
+    return regex_patterns_service.get_all_regex_patterns(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=RegexPatterns)
 def get_regex_patterns(id: int):

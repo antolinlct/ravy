@@ -8,19 +8,17 @@ router = APIRouter(prefix="/label_supplier", tags=["LabelSupplier"])
 def list_label_supplier(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return label_supplier_service.get_all_label_supplier(filters)
+    return label_supplier_service.get_all_label_supplier(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=LabelSupplier)
 def get_label_supplier(id: int):

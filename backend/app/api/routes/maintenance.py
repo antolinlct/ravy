@@ -8,19 +8,17 @@ router = APIRouter(prefix="/maintenance", tags=["Maintenance"])
 def list_maintenance(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return maintenance_service.get_all_maintenance(filters)
+    return maintenance_service.get_all_maintenance(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Maintenance)
 def get_maintenance(id: int):

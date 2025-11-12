@@ -2259,7 +2259,7 @@
       "udt_name": "numeric"
     },
     {
-      "column": "instruction",
+      "column": "technical_data_sheet_instructions",
       "data_type": "text",
       "udt_name": "text"
     },
@@ -2312,6 +2312,11 @@
       "column": "updated_by",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "technical_data_sheet_image_path",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "recipes_subcategories": [

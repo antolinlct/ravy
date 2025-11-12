@@ -8,19 +8,17 @@ router = APIRouter(prefix="/billing_item", tags=["BillingItem"])
 def list_billing_item(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page
     }
     filters = {k: v for k, v in filters.items() if v is not None}
-    return billing_item_service.get_all_billing_item(filters)
+    return billing_item_service.get_all_billing_item(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=BillingItem)
 def get_billing_item(id: int):

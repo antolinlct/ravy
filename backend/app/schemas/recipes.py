@@ -18,7 +18,7 @@ class Recipes(BaseModel):
     purchase_cost_total: Optional[float] = None
     portion: Optional[float] = None
     purchase_cost_per_portion: Optional[float] = None
-    instruction: Optional[str] = None
+    technical_data_sheet_instructions: Optional[str] = None
     current_margin: Optional[float] = None
     portion_weight: Optional[float] = None
     price_excl_tax: Optional[float] = None
@@ -29,3 +29,4 @@ class Recipes(BaseModel):
     updated_at: Optional[datetime] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
+    technical_data_sheet_image_path: Optional[str] = None

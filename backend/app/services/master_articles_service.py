@@ -1,20 +1,21 @@
 from app.core.supabase_client import supabase
 from app.schemas.master_articles import MasterArticles
 
-def get_all_master_articles(filters: dict | None = None):
+def get_all_master_articles(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("master_articles").select("*")
     if not filters:
         filters = {}
 
-    # --- 1️⃣ Filtres structurels
+    # --- Filtres dynamiques (structurels ou contextuels) ---
     if "establishment_id" in filters:
         query = query.eq("establishment_id", filters["establishment_id"])
     if "supplier_id" in filters:
         query = query.eq("supplier_id", filters["supplier_id"])
 
-    # --- 2️⃣ Filtres dynamiques
+
+    # --- Filtres additionnels (_gte, _lte, etc.) ---
     for key, value in filters.items():
-        if key in ("order_by", "direction", "limit", "establishment_id", "supplier_id"):
+        if key in ("order_by", "direction", "limit", "page", "establishment_id", "supplier_id"):
             continue
         if key.endswith("_gte"):
             query = query.gte(key[:-4], value)
@@ -27,14 +28,13 @@ def get_all_master_articles(filters: dict | None = None):
         else:
             query = query.eq(key, value)
 
-    # --- 3️⃣ Tri et limite
+    # --- Tri & Pagination ---
     if "order_by" in filters:
         query = query.order(filters["order_by"], desc=filters.get("direction") == "desc")
-    if "limit" in filters:
-        try:
-            query = query.limit(int(filters["limit"]))
-        except ValueError:
-            pass
+
+    start = (page - 1) * limit
+    end = start + limit - 1
+    query = query.range(start, end)
 
     response = query.execute()
     return [MasterArticles(**r) for r in (response.data or [])]

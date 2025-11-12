@@ -1,7 +1,8 @@
 from pathlib import Path
+import json
 import shutil
 
-# --- Chemins corrects ---
+# === Chemins corrects ===
 base_dir = Path("/app")
 app_dir = base_dir / "app"
 schemas_dir = app_dir / "schemas"
@@ -20,34 +21,37 @@ print(f"  main_file   = {main_file}")
 services_dir.mkdir(parents=True, exist_ok=True)
 routes_dir.mkdir(parents=True, exist_ok=True)
 
-# === 🔥 Nettoyage des anciennes routes sauf /read et /write ===
+# === Charger schemas_summary.json ===
+schemas_summary_path = Path("/app/schemas_summary.json")
+if not schemas_summary_path.exists():
+    raise SystemExit("❌ schemas_summary.json introuvable. Exécute d'abord export_schemas_to_json.py")
+
+with open(schemas_summary_path, "r") as f:
+    schema_summary = json.load(f)
+
+# === Nettoyage des anciennes routes (hors /read et /write) ===
 print("\n🧹 Nettoyage du dossier routes...")
 for route_file in routes_dir.glob("*.py"):
     if route_file.name not in {"__init__.py"}:
         route_file.unlink()
         print(f"  ❌ Supprimé : {route_file.name}")
-
-# On garde les sous-dossiers intacts
 print("  ✅ Dossiers 'read/' et 'write/' conservés.\n")
 
 # === TEMPLATE SERVICE avec filtres intelligents ===
 service_template = """from app.core.supabase_client import supabase
 from app.schemas.{name} import {class_name}
 
-def get_all_{name}(filters: dict | None = None):
+def get_all_{name}(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("{name}").select("*")
     if not filters:
         filters = {{}}
 
-    # --- 1️⃣ Filtres structurels
-    if "establishment_id" in filters:
-        query = query.eq("establishment_id", filters["establishment_id"])
-    if "supplier_id" in filters:
-        query = query.eq("supplier_id", filters["supplier_id"])
+    # --- Filtres dynamiques (structurels ou contextuels) ---
+{filter_block}
 
-    # --- 2️⃣ Filtres dynamiques
+    # --- Filtres additionnels (_gte, _lte, etc.) ---
     for key, value in filters.items():
-        if key in ("order_by", "direction", "limit", "establishment_id", "supplier_id"):
+        if key in ("order_by", "direction", "limit", "page", {ignored_fields}):
             continue
         if key.endswith("_gte"):
             query = query.gte(key[:-4], value)
@@ -60,14 +64,13 @@ def get_all_{name}(filters: dict | None = None):
         else:
             query = query.eq(key, value)
 
-    # --- 3️⃣ Tri et limite
+    # --- Tri & Pagination ---
     if "order_by" in filters:
         query = query.order(filters["order_by"], desc=filters.get("direction") == "desc")
-    if "limit" in filters:
-        try:
-            query = query.limit(int(filters["limit"]))
-        except ValueError:
-            pass
+
+    start = (page - 1) * limit
+    end = start + limit - 1
+    query = query.range(start, end)
 
     response = query.execute()
     return [{class_name}(**r) for r in (response.data or [])]
@@ -93,7 +96,7 @@ def delete_{name}(id: int):
     return {{"deleted": True}}
 """
 
-# === TEMPLATE ROUTE (avec filtres structurels inclus) ===
+# === TEMPLATE ROUTE (avec filtres dynamiques détectés) ===
 route_template = """from fastapi import APIRouter, HTTPException
 from app.schemas.{name} import {class_name}
 from app.services import {name}_service
@@ -104,19 +107,17 @@ router = APIRouter(prefix="/{name}", tags=["{class_name}"])
 def list_{name}(
     order_by: str | None = None,
     direction: str | None = None,
-    limit: int | None = None,
-    establishment_id: str | None = None,
-    supplier_id: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,{dynamic_filters}
 ):
     filters = {{
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "establishment_id": establishment_id,
-        "supplier_id": supplier_id,
+        "page": page{filters_mapping}
     }}
     filters = {{k: v for k, v in filters.items() if v is not None}}
-    return {name}_service.get_all_{name}(filters)
+    return {name}_service.get_all_{name}(filters, limit=limit, page=page)
 
 @router.get("/{{id}}", response_model={class_name})
 def get_{name}(id: int):
@@ -149,21 +150,57 @@ created_routes = []
 
 schema_files = [p for p in schemas_dir.glob("*.py") if p.stem not in {"__init__", "_last_schema"}]
 print(f"📂 Schémas trouvés ({len(schema_files)}) :", [p.name for p in schema_files])
-if not schema_files:
-    raise SystemExit("❌ Aucun schéma trouvé. Vérifie que /app/app/schemas contient bien tes fichiers .py")
 
 for schema_file in schema_files:
     name = schema_file.stem
     class_name = "".join(word.capitalize() for word in name.split("_"))
 
+    # 🔍 Détection des colonnes existantes
+    table_info = schema_summary.get(name)
+    available_fields = []
+    if table_info:
+        for _, model in table_info.items():
+            if isinstance(model, dict) and "fields" in model:
+                available_fields = list(model["fields"].keys())
+                break
+
+    # 🔧 Construction du bloc de filtres structurels (service)
+    filter_lines = []
+    ignored_fields = []
+    dynamic_filters = []
+    filters_mapping = ""
+
+    for col in ["establishment_id", "supplier_id"]:
+        if col in available_fields:
+            filter_lines.append(f'    if "{col}" in filters:\n        query = query.eq("{col}", filters["{col}"])\n')
+            dynamic_filters.append(f"\n    {col}: str | None = None")
+            filters_mapping += f', "{col}": {col}'
+            ignored_fields.append(f'"{col}"')
+
+    filter_block = "".join(filter_lines) if filter_lines else "    # Aucun filtre structurel spécifique\n"
+    ignored_fields_str = ", ".join(ignored_fields) if ignored_fields else ""
+
+    # 📄 Écriture du service
     service_path = services_dir / f"{name}_service.py"
-    route_path   = routes_dir   / f"{name}.py"
+    service_code = service_template.format(
+        name=name,
+        class_name=class_name,
+        filter_block=filter_block,
+        ignored_fields=ignored_fields_str
+    )
+    service_path.write_text(service_code)
+    print(f"✅ Service régénéré : {service_path.name}")
 
-    service_path.write_text(service_template.format(name=name, class_name=class_name))
-    print(f"🔁 Service régénéré : {service_path.name}")
-
-    route_path.write_text(route_template.format(name=name, class_name=class_name))
-    print(f"🔁 Route régénérée : {route_path.name}")
+    # 📄 Écriture de la route
+    route_path = routes_dir / f"{name}.py"
+    route_code = route_template.format(
+        name=name,
+        class_name=class_name,
+        dynamic_filters="".join(dynamic_filters),
+        filters_mapping=filters_mapping
+    )
+    route_path.write_text(route_code)
+    print(f"✅ Route régénérée : {route_path.name}")
 
     routes_to_include.append(name)
     created_routes.append((name, f"/{name}"))
@@ -188,4 +225,4 @@ print("🔄 main.py mis à jour avec toutes les routes.")
 print("\n📊 Récapitulatif :")
 for name, route in created_routes:
     print(f"• {name:20s} → {route}")
-print("🎉 Génération complète terminée.")
+print("🎉 Génération complète terminée (routes /read et /write préservées, filtres dynamiques conditionnels).")
