@@ -16,6 +16,7 @@ from app.services import (
     import_job_service as import_jobs_service,
     ingredients_service,
     invoices_service,
+    label_supplier_service,
     market_articles_service,
     market_master_articles_service,
     market_supplier_alias_service,
@@ -217,6 +218,17 @@ def _recommended_price(cost_per_portion: Decimal, establishment: Any) -> Optiona
     return None
 
 
+def _resolve_supplier_label(supplier: Any, market_supplier: Any) -> Optional[str]:
+    label = _safe_get(market_supplier, "label")
+    if label:
+        return label
+    label_id = _safe_get(supplier, "label_id") if supplier else None
+    if not label_id:
+        return None
+    label_entry = label_supplier_service.get_label_supplier_by_id(label_id)
+    return _safe_get(label_entry, "label") if label_entry else None
+
+
 def _history_reference_for_ingredient(ingredient_id: UUID, target_date: date) -> Tuple[Optional[Any], Optional[Any]]:
     histories = history_ingredients_service.get_all_history_ingredients(
         filters={
@@ -310,13 +322,14 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     cleaned_supplier_name = _apply_regex(regex_supplier, raw_supplier_name) or raw_supplier_name or "Fournisseur"
 
     market_supplier: Optional[Any] = None
+    market_supplier_id: Optional[UUID] = None
     alias = market_supplier_alias_service.get_all_market_supplier_alias(
         filters={"alias": cleaned_supplier_name},
         limit=1,
     )
 
     if alias:
-        market_supplier_id = _safe_get(alias[0], "market_supplier_id")
+        market_supplier_id = _safe_get(alias[0], "supplier_market_id")
         if not market_supplier_id:
             raise LogicError("Alias fournisseur sans market_supplier_id")
         market_supplier = market_suppliers_service.get_market_suppliers_by_id(market_supplier_id)
@@ -325,14 +338,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     else:
         payload_market_supplier = {
             "name": cleaned_supplier_name,
-            "vat_number": supplier_block.get("vat_number"),
-            "siret": supplier_block.get("siret"),
-            "contact_email": supplier_block.get("contact_email"),
-            "contact_phone": supplier_block.get("contact_phone"),
-            "street": supplier_block.get("street"),
-            "postcode": supplier_block.get("postcode"),
-            "city": supplier_block.get("city"),
-            "country_code": supplier_block.get("country_code"),
             "label": "BEVERAGES" if _safe_get(import_job, "is_beverage") else None,
         }
         market_supplier = market_suppliers_service.create_market_suppliers(payload_market_supplier)
@@ -343,7 +348,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             raise LogicError("Fournisseur marché sans identifiant")
         market_supplier_alias_service.create_market_supplier_alias(
             {
-                "market_supplier_id": market_supplier_id,
+                "supplier_market_id": market_supplier_id,
                 "alias": cleaned_supplier_name,
             }
         )
@@ -362,7 +367,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     if suppliers:
         supplier = suppliers[0]
         supplier_id = _safe_get(supplier, "id")
-        supplier_label = _safe_get(supplier, "label")
         if not supplier_id:
             raise LogicError("Supplier existant sans identifiant")
     else:
@@ -372,11 +376,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             "name": cleaned_supplier_name,
             "contact_email": supplier_block.get("contact_email"),
             "contact_phone": supplier_block.get("contact_phone"),
-            "street": supplier_block.get("street"),
-            "postcode": supplier_block.get("postcode"),
-            "city": supplier_block.get("city"),
-            "country_code": supplier_block.get("country_code"),
-            "label": "BEVERAGES" if _safe_get(import_job, "is_beverage") else None,
         }
         supplier = suppliers_service.create_suppliers(supplier_payload)
         if not supplier:
@@ -384,19 +383,18 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         supplier_id = _safe_get(supplier, "id")
         if not supplier_id:
             raise LogicError("Supplier sans identifiant")
-        supplier_label = supplier_payload["label"]
 
+    total_tax_value = _as_decimal(invoice_block.get("total_vat"))
+    if total_tax_value is None:
+        total_tax_value = _as_decimal(invoice_block.get("total_tax"))
     invoice_payload = {
         "establishment_id": establishment_id,
         "supplier_id": supplier_id,
         "invoice_number": invoice_block.get("invoice_number"),
         "date": invoice_date,
-        "due_date": _as_date(invoice_block.get("due_date")),
-        "currency": invoice_block.get("currency"),
         "total_excl_tax": _decimal_to_float(_as_decimal(invoice_block.get("total_excl_tax"))),
         "total_incl_tax": _decimal_to_float(_as_decimal(invoice_block.get("total_incl_tax"))),
-        "total_vat": _decimal_to_float(_as_decimal(invoice_block.get("total_vat"))),
-        "vat_breakdown": invoice_block.get("vat_breakdown") if isinstance(invoice_block.get("vat_breakdown"), list) else [],
+        "total_tax": _decimal_to_float(total_tax_value),
     }
     invoice = invoices_service.create_invoices(invoice_payload)
     invoice_id = _safe_get(invoice, "id")
@@ -810,17 +808,22 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     for entry in articles_created:
         if entry.unit_price is None or entry.master_article_id is None:
             continue
-        previous_articles = articles_service.get_all_articles(
+        previous_candidates = articles_service.get_all_articles(
             filters={
                 "establishment_id": establishment_id,
                 "master_article_id": entry.master_article_id,
-                "date__lt": invoice_date.isoformat(),
+                "date_lte": invoice_date.isoformat(),
                 "order_by": "date",
                 "direction": "desc",
             },
-            limit=1,
+            limit=5,
         )
-        previous_article = previous_articles[0] if previous_articles else None
+        previous_article = None
+        for candidate in previous_candidates:
+            candidate_date = _as_date(_safe_get(candidate, "date"))
+            if candidate_date and candidate_date < invoice_date:
+                previous_article = candidate
+                break
         if not previous_article:
             continue
         old_price = _as_decimal(_safe_get(previous_article, "unit_price"))
@@ -833,8 +836,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             {
                 "establishment_id": establishment_id,
                 "master_article_id": entry.master_article_id,
-                "article_id": entry.article_id,
-                "previous_article_id": _safe_get(previous_article, "id"),
                 "invoice_id": invoice_id,
                 "old_unit_price": _decimal_to_float(old_price),
                 "new_unit_price": _decimal_to_float(entry.unit_price),
@@ -842,11 +843,12 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 "date": invoice_date,
             }
         )
-        variations_created.append(variation)
+        if variation:
+            variations_created.append(variation)
 
     can_send_sms = bool(variations_created) and _safe_get(establishment, "active_sms")
+    supplier_label_effective = _resolve_supplier_label(supplier, market_supplier)
     if can_send_sms:
-        supplier_label_effective = supplier_label or _safe_get(market_supplier, "label")
         type_sms = _safe_get(establishment, "type_sms") or "FOOD"
         if not supplier_label_effective:
             can_send_sms = False
@@ -916,7 +918,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 alert = alert_logs_service.create_alert_logs(
                     {
                         "establishment_id": establishment_id,
-                        "type": "SMS_VARIATION",
                         "content": sms_text,
                         "sent_to_number": ",".join(recipient_numbers),
                         "payload": {
