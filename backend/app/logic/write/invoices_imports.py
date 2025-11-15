@@ -1,808 +1,940 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
-from decimal import Decimal
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
 
 from app.services import (
-    import_jobs_service,
-    regex_patterns_service,
-    market_suppliers_service,
-    market_supplier_alias_service,
-    suppliers_service,
-    invoices_service,
-    market_master_articles_service,
-    market_articles_service,
-    master_articles_service,
-    articles_service,
-    ingredients_service,
-    history_ingredients_service,
-    recipes_service,
-    history_recipes_service,
-    variations_service,
     alert_logs_service,
+    articles_service,
     establishments_service,
+    history_ingredients_service,
+    history_recipes_service,
+    import_job_service as import_jobs_service,
+    ingredients_service,
+    invoices_service,
+    label_supplier_service,
+    market_articles_service,
+    market_master_articles_service,
+    market_supplier_alias_service,
+    market_suppliers_service,
+    master_articles_service,
+    recipe_margin_category_service,
+    recipe_margin_service,
+    recipe_margin_subcategory_service,
+    recipes_service,
+    regex_patterns_service,
+    suppliers_service,
+    user_establishment_service,
+    user_profiles_service,
+    variations_service,
 )
-
-# ---------------------------------------------------------------------------
-#  Exception métier locale
-# ---------------------------------------------------------------------------
 
 
 class LogicError(Exception):
-    """Erreur métier pour les logics WRITE (import, etc.)."""
-    pass
+    """Erreur métier dédiée aux logiques WRITE."""
 
 
-# ---------------------------------------------------------------------------
-#  Helpers de calcul – volontairement simples et centralisés
-# ---------------------------------------------------------------------------
+INVOICE_OCR_TEMPLATE: Dict[str, Any] = {
+    "invoice": {
+        "invoice_number": None,
+        "invoice_date": None,
+        "due_date": None,
+        "currency": "EUR",
+        "total_excl_tax": None,
+        "total_incl_tax": None,
+        "total_vat": None,
+        "vat_breakdown": [],
+    },
+    "supplier": {
+        "raw_name": None,
+        "vat_number": None,
+        "siret": None,
+        "contact_email": None,
+        "contact_phone": None,
+        "street": None,
+        "postcode": None,
+        "city": None,
+        "country_code": None,
+    },
+    "lines": [],
+    "file": {
+        "original_filename": None,
+        "mime_type": None,
+        "page_count": None,
+    },
+}
+
 
 @dataclass
-class ArticleCost:
-    """Coût d'achat consolidé pour un master_article à une date donnée."""
-    gross_unit_price: Decimal       # prix brut unitaire (après remise, avec taxes éventuelles)
-    unit_cost: Decimal              # coût net unitaire (matière) pour l’ingrédient
-    unit_cost_per_portion: Decimal  # coût matière par portion d’ingrédient
-    loss_value: Decimal             # valeur des pertes pour 1 unité d’ingrédient
+class ArticleEntry:
+    article_id: Optional[UUID]
+    master_article_id: UUID
+    unit_price: Optional[Decimal]
+    quantity: Optional[Decimal]
+    line_total: Optional[Decimal]
+    discounts: Optional[Decimal]
+    duties: Optional[Decimal]
+    date: date
 
 
-def _decimal(v: Any) -> Decimal:
-    if v is None:
-        return Decimal("0")
-    if isinstance(v, Decimal):
-        return v
-    return Decimal(str(v))
+# ---------------------------------------------------------------------------
+# Helpers génériques
+# ---------------------------------------------------------------------------
+
+def _safe_get(obj: Any, key: str) -> Any:
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 
-def compute_article_cost_from_lines(
-    lines: List[Dict[str, Any]],
-) -> Dict[UUID, ArticleCost]:
-    """
-    Agrège les lignes OCR par master_article_id pour calculer un coût moyen.
+def _apply_regex(pattern: Optional[str], value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    if not pattern:
+        return value.strip()
+    import re
 
-    Hypothèse : chaque line dict contient :
-      - master_article_id (déjà résolu)
-      - quantity
-      - unit_price_excl_tax
-      - line_total_excl_tax
-      - discounts
-      - duties_and_taxes
-
-    Le but est d’obtenir pour chaque master_article_id un ArticleCost
-    utilisable pour les INGREDIENTS ARTICLE (étape 9).
-    """
-    by_master: Dict[UUID, List[Dict[str, Any]]] = {}
-    for line in lines:
-        ma_id = line.get("master_article_id")
-        if not ma_id:
-            continue
-        by_master.setdefault(ma_id, []).append(line)
-
-    results: Dict[UUID, ArticleCost] = {}
-    for ma_id, ma_lines in by_master.items():
-        total_qty = Decimal("0")
-        total_excl = Decimal("0")
-        total_discounts = Decimal("0")
-        total_duties = Decimal("0")
-
-        for l in ma_lines:
-            total_qty += _decimal(l.get("quantity"))
-            total_excl += _decimal(l.get("line_total_excl_tax"))
-            total_discounts += _decimal(l.get("discounts"))
-            total_duties += _decimal(l.get("duties_and_taxes"))
-
-        if total_qty <= 0:
-            # Sécurité : évite une division par zéro ; on passe l’article.
-            continue
-
-        # Coût matière net = total HT – remises + droits/taxes
-        net_excl = total_excl - total_discounts + total_duties
-        gross_unit_price = net_excl / total_qty
-        unit_cost = gross_unit_price  # ici, matière brute = prix unitaire net
-        # Pour simplifier : on considère 1 unité d’ingrédient = 1 unité article
-        unit_cost_per_portion = unit_cost
-        loss_value = Decimal("0")  # les pertes seront gérées via percentage_loss sur l’ingrédient
-
-        results[ma_id] = ArticleCost(
-            gross_unit_price=gross_unit_price,
-            unit_cost=unit_cost,
-            unit_cost_per_portion=unit_cost_per_portion,
-            loss_value=loss_value,
-        )
-
-    return results
+    try:
+        compiled = re.compile(pattern, flags=re.IGNORECASE)
+    except re.error as exc:  # pragma: no cover - defensive
+        raise LogicError(f"Regex invalide: {pattern}") from exc
+    match = compiled.search(value)
+    return match.group(0).strip() if match else value.strip()
 
 
-def compute_recipe_cost_from_ingredients(
-    ingredients: Iterable[Any],
-) -> Decimal:
-    """
-    Recalcule le coût de production d’une recette à partir de ses ingrédients.
+def _extract_regex(pattern_type: str) -> Optional[str]:
+    patterns = regex_patterns_service.get_all_regex_patterns(
+        filters={"type": pattern_type},
+        limit=1,
+    )
+    if not patterns:
+        return None
+    return _safe_get(patterns[0], "regex")
 
-    Hypothèse : chaque ingredient possède :
-      - unit_cost
-      - quantity
-      - unit_cost_per_portion_recipe (optionnel selon votre modèle)
-    """
+
+def _as_decimal(value: Any) -> Optional[Decimal]:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return Decimal(raw)
+        except InvalidOperation:
+            return None
+    return None
+
+
+def _decimal_or_zero(value: Optional[Decimal]) -> Decimal:
+    return value if value is not None else Decimal("0")
+
+
+def _decimal_to_float(value: Optional[Decimal]) -> Optional[float]:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _as_date(value: Any) -> Optional[date]:
+    if value is None:
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return date.fromisoformat(raw[:10])
+        except ValueError:
+            return None
+    return None
+
+
+def _ensure_portion(recipe_id: UUID, portion: Optional[Decimal]) -> Decimal:
+    if portion is None or portion == 0:
+        raise LogicError(f"Portion nulle pour recipe_id={recipe_id}")
+    return portion
+
+
+def _compute_recipe_cost(ingredients: Iterable[Any]) -> Decimal:
     total = Decimal("0")
-    for ing in ingredients:
-        qty = _decimal(getattr(ing, "quantity", 1))
-        unit_cost = _decimal(getattr(ing, "unit_cost", 0))
-        total += qty * unit_cost
+    for ingredient in ingredients:
+        total += _decimal_or_zero(_as_decimal(_safe_get(ingredient, "unit_cost")))
     return total
 
 
-def compute_recommended_prices(
-    material_cost: Decimal,
-    establishment: Any,
-) -> Tuple[Decimal, Decimal, Decimal]:
-    """
-    Calcule prix TTC conseillé + HT + TVA à partir du coût matière et
-    de la politique de marge de l’établissement.
+def _compute_weighted_unit_price(entries: List[ArticleEntry]) -> Optional[Decimal]:
+    if not entries:
+        return None
+    total_qty = Decimal("0")
+    total_value = Decimal("0")
+    for entry in entries:
+        qty = _decimal_or_zero(entry.quantity)
+        line_total = entry.line_total
+        if line_total is None and entry.unit_price is not None and qty:
+            line_total = entry.unit_price * qty
+        discounts = _decimal_or_zero(entry.discounts)
+        duties = _decimal_or_zero(entry.duties)
+        if line_total is not None:
+            total_value += line_total - discounts + duties
+        total_qty += qty
+    if total_qty <= 0:
+        return entries[0].unit_price
+    return total_value / total_qty
 
-    Hypothèse simple :
-      - établissement possède des champs de marge cibles, ex :
-        establishment.target_food_cost_ratio (0.25 → 25%)
-    """
-    if material_cost <= 0:
-        return Decimal("0"), Decimal("0"), Decimal("0")
 
-    # Hypothèse : ratio cible stocké sur l’établissement
-    ratio = _decimal(getattr(establishment, "target_food_cost_ratio", Decimal("0.3")))
-    if ratio <= 0:
-        ratio = Decimal("0.3")
+def _mean(values: Sequence[Decimal]) -> Optional[Decimal]:
+    usable = [value for value in values if value is not None]
+    if not usable:
+        return None
+    return sum(usable) / Decimal(len(usable))
 
-    # Prix conseillé TTC = coût / ratio
-    recommended_incl_tax = (material_cost / ratio).quantize(Decimal("0.01"))
-    vat_rate = _decimal(getattr(establishment, "default_vat_rate", Decimal("10")))
-    vat_ratio = vat_rate / Decimal("100")
 
-    price_excl = (recommended_incl_tax / (Decimal("1") + vat_ratio)).quantize(
-        Decimal("0.01")
+def _recommended_price(cost_per_portion: Decimal, establishment: Any) -> Optional[Decimal]:
+    method = _safe_get(establishment, "recommended_retail_price_method")
+    value = _as_decimal(_safe_get(establishment, "recommended_retail_price_value"))
+    if method is None or value is None:
+        return None
+    if method == "MULTIPLIER":
+        return cost_per_portion * value
+    if method == "PERCENTAGE":
+        return cost_per_portion * (Decimal("1") - (value / Decimal("100")))
+    if method == "VALUE":
+        return cost_per_portion + value
+    return None
+
+
+def _resolve_supplier_label(supplier: Any, market_supplier: Any) -> Optional[str]:
+    label = _safe_get(market_supplier, "label")
+    if label:
+        return label
+    label_id = _safe_get(supplier, "label_id") if supplier else None
+    if not label_id:
+        return None
+    label_entry = label_supplier_service.get_label_supplier_by_id(label_id)
+    return _safe_get(label_entry, "label") if label_entry else None
+
+
+def _history_reference_for_ingredient(ingredient_id: UUID, target_date: date) -> Tuple[Optional[Any], Optional[Any]]:
+    histories = history_ingredients_service.get_all_history_ingredients(
+        filters={
+            "ingredient_id": ingredient_id,
+            "order_by": "date",
+            "direction": "asc",
+        },
+        limit=1000,
     )
-    price_tax = recommended_incl_tax - price_excl
-    return recommended_incl_tax, price_excl, price_tax
+    h_prev = None
+    h_next = None
+    for history in histories:
+        history_date = _as_date(_safe_get(history, "date"))
+        if history_date is None:
+            continue
+        if history_date <= target_date:
+            h_prev = history
+        elif history_date > target_date and h_next is None:
+            h_next = history
+    return h_prev, h_next
+
+
+def _future_history_recipe(recipe_id: UUID, target_date: date) -> Tuple[Optional[Any], List[Any]]:
+    histories = history_recipes_service.get_all_history_recipes(
+        filters={
+            "recipe_id": recipe_id,
+            "order_by": "date",
+            "direction": "asc",
+        },
+        limit=1000,
+    )
+    future = [hist for hist in histories if (_as_date(_safe_get(hist, "date")) or date.min) > target_date]
+    return (future[-1] if future else None), histories
+
+
+def _unique(sequence: Iterable[UUID]) -> List[UUID]:
+    seen: set[UUID] = set()
+    ordered: List[UUID] = []
+    for item in sequence:
+        if item and item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
 
 
 # ---------------------------------------------------------------------------
-#  LOGIC PRINCIPALE : import_invoice_from_import_job
+# Logique principale
 # ---------------------------------------------------------------------------
 
 def import_invoice_from_import_job(import_job_id: UUID) -> None:
-    """
-    Logic WRITE : impact complet d’un import_jobs (une facture OCR)
-    sur l’écosystème RAVY.
+    try:
+        _import_invoice_from_import_job(import_job_id)
+    except Exception:
+        import_jobs_service.update_import_job(import_job_id, {"status": "ERROR"})
+        raise
 
-    Étapes métier (cf. doc logic_import_facture_full_v_2) :
-      1. Contexte / préconditions
-      2. Récupération import_job + contrôles
-      3. Extraction OCR (invoice / supplier / lines)
-      4. Gestion supplier (market + privé)
-      5. Création / mise à jour facture
-      6. Gestion market_master_articles + market_articles
-      7. Gestion master_articles privés + articles
-      8. INGREDIENTS + HISTORY_INGREDIENTS (ARTICLE)
-      9. RECIPES + HISTORY_RECIPES (ARTICLE)
-     10. INGREDIENTS SUBRECIPES + HISTORY_INGREDIENTS SUBRECIPES
-     11. RECIPES SUBRECIPES + HISTORY_RECIPES SUBRECIPES
-     12. Variations + Alertes SMS
-     13. Finalisation du job (COMPLETED / ERROR)
 
-    NB : traitement strictement séquentiel, non concurrent,
-    une seule exécution par import_job.
-    """
+def _import_invoice_from_import_job(import_job_id: UUID) -> None:
+    import_job = import_jobs_service.get_import_job_by_id(import_job_id)
+    if not import_job:
+        raise LogicError("Import job introuvable")
 
-    # ------------------------------------------------------------------
-    # 2. RÉCUPÉRATION IMPORT_JOB + PRÉCONDITIONS
-    # ------------------------------------------------------------------
-    import_job = import_jobs_service.get_import_jobs_by_id(import_job_id)
-
-    if import_job.status in ["COMPLETED", "ERROR"]:
+    status = (_safe_get(import_job, "status") or "").upper()
+    if status in {"COMPLETED", "ERROR"}:
         raise LogicError("Job déjà traité ou en erreur définitive")
 
-    if import_job.ocr_result_json is None:
+    ocr_payload = _safe_get(import_job, "ocr_result_json")
+    if not ocr_payload:
         raise LogicError("OCR absent")
 
-    est_id: UUID = import_job.establishment_id
+    establishment_id = _safe_get(import_job, "establishment_id")
+    if not establishment_id:
+        raise LogicError("Import job sans établissement")
 
-    # ------------------------------------------------------------------
-    # 3. EXTRACTION DES BLOCS OCR
-    # ------------------------------------------------------------------
-    i_ocr = import_job.ocr_result_json["invoice"]
-    s_ocr = import_job.ocr_result_json["supplier"]
-    l_ocr = import_job.ocr_result_json["lines"]
+    establishment = establishments_service.get_establishments_by_id(establishment_id)
+    if not establishment:
+        raise LogicError("Établissement introuvable")
 
-    invoice_date: date = i_ocr["invoice_date"]
+    invoice_block = ocr_payload.get("invoice") or {}
+    supplier_block = ocr_payload.get("supplier") or {}
+    lines_block = ocr_payload.get("lines") or []
 
-    # ------------------------------------------------------------------
-    # 4. RÉCUPÉRATION DES REGEX (supplier + master_article)
-    # ------------------------------------------------------------------
-    regex_supplier = regex_patterns_service.get_all_regex_patterns(
-        filters={"type": "supplier_name"}, limit=1
-    )[0]
-    regex_master_article = regex_patterns_service.get_all_regex_patterns(
-        filters={"type": "market_master_article_name"}, limit=1
-    )[0]
+    invoice_date = _as_date(invoice_block.get("invoice_date"))
+    if not invoice_date:
+        raise LogicError("Date de facture manquante")
 
-    # ------------------------------------------------------------------
-    # 5. GESTION SUPPLIER (market + privé)
-    # ------------------------------------------------------------------
-    # 5.1 Nettoyage nom fournisseur via regex
-    cleaned_supplier_name = regex_supplier.apply(s_ocr["name"])
+    regex_supplier = _extract_regex("supplier_name")
+    regex_master_article = _extract_regex("market_master_article_name")
 
-    # 5.2 Supplier marché global (market_suppliers + market_supplier_alias)
-    # Recherche d’un supplier marché existant via alias
-    existing_alias = market_supplier_alias_service.get_all_market_supplier_alias(
-        filters={"alias": cleaned_supplier_name}, limit=1
+    raw_supplier_name = supplier_block.get("raw_name")
+    cleaned_supplier_name = _apply_regex(regex_supplier, raw_supplier_name) or raw_supplier_name or "Fournisseur"
+
+    market_supplier: Optional[Any] = None
+    market_supplier_id: Optional[UUID] = None
+    alias = market_supplier_alias_service.get_all_market_supplier_alias(
+        filters={"alias": cleaned_supplier_name},
+        limit=1,
     )
-    if existing_alias:
-        market_supplier_id = existing_alias[0].market_supplier_id
-    else:
-        # Création du market_supplier
-        payload_market_sup = {
-            "name": cleaned_supplier_name,
-            "siret": s_ocr["siret"],
-            "vat_number": s_ocr["vat_number"],
-            "emails": s_ocr["emails"],
-            "phone_numbers": s_ocr["phone_numbers"],
-            "street": s_ocr["street"],
-            "postcode": s_ocr["postcode"],
-            "city": s_ocr["city"],
-            "country_code": s_ocr["country_code"],
-            "label": "BEVERAGES" if import_job.is_beverage else None,
-        }
-        market_supplier = market_suppliers_service.create_market_suppliers(
-            payload_market_sup
-        )
-        market_supplier_id = market_supplier.id
 
+    if alias:
+        market_supplier_id = _safe_get(alias[0], "supplier_market_id")
+        if not market_supplier_id:
+            raise LogicError("Alias fournisseur sans market_supplier_id")
+        market_supplier = market_suppliers_service.get_market_suppliers_by_id(market_supplier_id)
+        if not market_supplier:
+            raise LogicError("Fournisseur marché introuvable pour l'alias fourni")
+    else:
+        payload_market_supplier = {
+            "name": cleaned_supplier_name,
+            "label": "BEVERAGES" if _safe_get(import_job, "is_beverage") else None,
+        }
+        market_supplier = market_suppliers_service.create_market_suppliers(payload_market_supplier)
+        if not market_supplier:
+            raise LogicError("Création du fournisseur marché impossible")
+        market_supplier_id = _safe_get(market_supplier, "id")
+        if not market_supplier_id:
+            raise LogicError("Fournisseur marché sans identifiant")
         market_supplier_alias_service.create_market_supplier_alias(
             {
-                "market_supplier_id": market_supplier_id,
+                "supplier_market_id": market_supplier_id,
                 "alias": cleaned_supplier_name,
             }
         )
 
-    # 5.3 Supplier privé lié à l’établissement
-    supplier = suppliers_service.get_all_suppliers(
+    if not market_supplier_id:
+        raise LogicError("Impossible de déterminer le fournisseur marché")
+
+    suppliers = suppliers_service.get_all_suppliers(
         filters={
-            "establishment_id": est_id,
+            "establishment_id": establishment_id,
             "market_supplier_id": market_supplier_id,
         },
         limit=1,
     )
-    if supplier:
-        supplier_id = supplier[0].id
+
+    if suppliers:
+        supplier = suppliers[0]
+        supplier_id = _safe_get(supplier, "id")
+        if not supplier_id:
+            raise LogicError("Supplier existant sans identifiant")
     else:
-        payload_supplier = {
-            "establishment_id": est_id,
+        supplier_payload = {
+            "establishment_id": establishment_id,
             "market_supplier_id": market_supplier_id,
-            "internal_name": cleaned_supplier_name,
+            "name": cleaned_supplier_name,
+            "contact_email": supplier_block.get("contact_email"),
+            "contact_phone": supplier_block.get("contact_phone"),
         }
-        new_supplier = suppliers_service.create_suppliers(payload_supplier)
-        supplier_id = new_supplier.id
+        supplier = suppliers_service.create_suppliers(supplier_payload)
+        if not supplier:
+            raise LogicError("Création du supplier impossible")
+        supplier_id = _safe_get(supplier, "id")
+        if not supplier_id:
+            raise LogicError("Supplier sans identifiant")
 
-    # ------------------------------------------------------------------
-    # 6. FACTURE (invoices)
-    # ------------------------------------------------------------------
-    invoice = invoices_service.get_all_invoices(
-        filters={
-            "establishment_id": est_id,
-            "supplier_id": supplier_id,
-            "invoice_number": i_ocr["invoice_number"],
-        },
-        limit=1,
-    )
+    total_tax_value = _as_decimal(invoice_block.get("total_vat"))
+    if total_tax_value is None:
+        total_tax_value = _as_decimal(invoice_block.get("total_tax"))
+    invoice_payload = {
+        "establishment_id": establishment_id,
+        "supplier_id": supplier_id,
+        "invoice_number": invoice_block.get("invoice_number"),
+        "date": invoice_date,
+        "total_excl_tax": _decimal_to_float(_as_decimal(invoice_block.get("total_excl_tax"))),
+        "total_incl_tax": _decimal_to_float(_as_decimal(invoice_block.get("total_incl_tax"))),
+        "total_tax": _decimal_to_float(total_tax_value),
+    }
+    invoice = invoices_service.create_invoices(invoice_payload)
+    invoice_id = _safe_get(invoice, "id")
+    if not invoice or not invoice_id:
+        raise LogicError("Création de la facture impossible")
 
-    if invoice:
-        # Facture existante → mise à jour
-        invoice = invoice[0]
-        invoice_id = invoice.id
-        payload_invoice_update = {
-            "date": i_ocr["invoice_date"],
-            "due_date": i_ocr.get("due_date"),
-            "currency": i_ocr["currency"],
-            "total_excl_tax": i_ocr["total_excl_tax"],
-            "total_incl_tax": i_ocr["total_incl_tax"],
-            "total_vat": i_ocr["total_vat"],
-            "vat_breakdown": i_ocr["vat_breakdown"],
-        }
-        invoices_service.update_invoices(invoice_id, payload_invoice_update)
-    else:
-        payload_invoice_create = {
-            "establishment_id": est_id,
-            "supplier_id": supplier_id,
-            "invoice_number": i_ocr["invoice_number"],
-            "date": i_ocr["invoice_date"],
-            "due_date": i_ocr.get("due_date"),
-            "currency": i_ocr["currency"],
-            "total_excl_tax": i_ocr["total_excl_tax"],
-            "total_incl_tax": i_ocr["total_incl_tax"],
-            "total_vat": i_ocr["total_vat"],
-            "vat_breakdown": i_ocr["vat_breakdown"],
-        }
-        invoice = invoices_service.create_invoices(payload_invoice_create)
-        invoice_id = invoice.id
-
-    # ------------------------------------------------------------------
-    # 7. LIGNES FACTURE → MARKET_MASTER_ARTICLES / MARKET_ARTICLES
-    #    + MASTER_ARTICLES PRIVÉS + ARTICLES
-    # ------------------------------------------------------------------
-    # 7.1 Préparation des lignes avec master_article_id résolu
+    master_articles_cache: Dict[UUID, Any] = {}
+    articles_by_master: Dict[UUID, List[ArticleEntry]] = defaultdict(list)
     master_article_ids: List[UUID] = []
-    lines_with_master: List[Dict[str, Any]] = []
-    article_ids_by_master: Dict[UUID, List[UUID]] = {}
+    articles_created: List[ArticleEntry] = []
 
-    for line in l_ocr:
-        # a) Résolution du market_master_article par regex/nom
-        cleaned_name = regex_master_article.apply(line["description"])
+    for line in lines_block:
+        if not isinstance(line, dict):
+            continue
+        cleaned_name = _apply_regex(regex_master_article, line.get("description_raw")) or line.get("description_raw")
         mma = market_master_articles_service.get_all_market_master_articles(
-            filters={"clean_name": cleaned_name}, limit=1
+            filters={
+                "market_supplier_id": market_supplier_id,
+                "unformatted_name": cleaned_name,
+            },
+            limit=1,
         )
         if mma:
-            market_master_article_id = mma[0].id
+            market_master_article = mma[0]
         else:
-            # Création d’un nouveau market_master_article
-            payload_mma = {
-                "name": line["description"],
-                "clean_name": cleaned_name,
-                "family": line["family"],
-                "subfamily": line["subfamily"],
-            }
-            mma_obj = market_master_articles_service.create_market_master_articles(
-                payload_mma
+            market_master_article = market_master_articles_service.create_market_master_articles(
+                {
+                    "market_supplier_id": market_supplier_id,
+                    "name": line.get("description_raw"),
+                    "unformatted_name": cleaned_name,
+                    "unit": line.get("unit"),
+                }
             )
-            market_master_article_id = mma_obj.id
+        if not market_master_article:
+            raise LogicError("Création du market_master_article impossible")
+        market_master_article_id = _safe_get(market_master_article, "id")
+        if not market_master_article_id:
+            raise LogicError("Market master article sans identifiant")
 
-        # b) MARKET_ARTICLE lié au supplier marché
-        ma = market_articles_service.get_all_market_articles(
-            filters={
-                "market_master_article_id": market_master_article_id,
-                "market_supplier_id": market_supplier_id,
-            },
-            limit=1,
-        )
-        if ma:
-            market_article_id = ma[0].id
-            # mise à jour des prix
-            payload_ma_update = {
-                "last_unit_price_excl_tax": line["unit_price_excl_tax"],
-                "last_total_excl_tax": line["line_total_excl_tax"],
-                "last_invoice_date": invoice_date,
-            }
-            market_articles_service.update_market_articles(
-                market_article_id, payload_ma_update
+        master_article = None
+        if market_master_article_id:
+            found_master = master_articles_service.get_all_master_articles(
+                filters={
+                    "establishment_id": establishment_id,
+                    "market_master_article_id": market_master_article_id,
+                },
+                limit=1,
             )
-        else:
-            payload_ma_create = {
-                "market_master_article_id": market_master_article_id,
-                "market_supplier_id": market_supplier_id,
-                "unit": line["unit"],
-                "barcode": line["barcode"],
-                "supplier_sku": line["supplier_sku"],
-                "last_unit_price_excl_tax": line["unit_price_excl_tax"],
-                "last_total_excl_tax": line["line_total_excl_tax"],
-                "last_invoice_date": invoice_date,
-            }
-            ma_obj = market_articles_service.create_market_articles(payload_ma_create)
-            market_article_id = ma_obj.id
-
-        # c) MASTER_ARTICLE privé (lié à l’établissement)
-        master_article = master_articles_service.get_all_master_articles(
-            filters={
-                "establishment_id": est_id,
-                "market_master_article_id": market_master_article_id,
-            },
-            limit=1,
-        )
-        if master_article:
-            master_article_id = master_article[0].id
-        else:
-            payload_master_article_create = {
-                "establishment_id": est_id,
-                "market_master_article_id": market_master_article_id,
-                "unit": line["unit"],
-                "barcode": line["barcode"],
-                "supplier_sku": line["supplier_sku"],
-            }
-            new_ma = master_articles_service.create_master_articles(
-                payload_master_article_create
+            master_article = found_master[0] if found_master else None
+        if not master_article:
+            master_article = master_articles_service.create_master_articles(
+                {
+                    "establishment_id": establishment_id,
+                    "supplier_id": supplier_id,
+                    "market_master_article_id": market_master_article_id,
+                    "unit": line.get("unit"),
+                    "unformatted_name": cleaned_name,
+                }
             )
-            master_article_id = new_ma.id
-
+        if not master_article:
+            raise LogicError("Création du master_article impossible")
+        master_article_id = _safe_get(master_article, "id")
+        if not master_article_id:
+            raise LogicError("Master article sans identifiant")
+        master_articles_cache[master_article_id] = master_article
         master_article_ids.append(master_article_id)
 
-        # d) ARTICLE de facture
-        payload_article = {
-            "establishment_id": est_id,
-            "master_article_id": master_article_id,
-            "invoice_id": invoice_id,
-            "quantity": line["quantity"],
-            "unit": line["unit"],
-            "unit_price": line["unit_price_excl_tax"],
-            "total_excl_tax": line["line_total_excl_tax"],
-            "vat_rate": line["vat_rate"],
-            "discounts": line["discounts"],
-            "duties_and_taxes": line["duties_and_taxes"],
-        }
-        article = articles_service.create_articles(payload_article)
-        article_id = article.id
+        quantity = _as_decimal(line.get("quantity"))
+        unit_price = _as_decimal(line.get("unit_price_excl_tax"))
+        line_total = _as_decimal(line.get("line_total_excl_tax"))
+        discounts = _as_decimal(line.get("discounts"))
+        duties = _as_decimal(line.get("duties_and_taxes"))
 
-        article_ids_by_master.setdefault(master_article_id, []).append(article_id)
+        market_articles_service.create_market_articles(
+            {
+                "market_master_article_id": market_master_article_id,
+                "market_supplier_id": market_supplier_id,
+                "date": invoice_date,
+                "unit": line.get("unit"),
+                "unit_price": _decimal_to_float(unit_price),
+                "discounts": _decimal_to_float(discounts),
+                "duties_and_taxes": _decimal_to_float(duties),
+            }
+        )
 
-        # On enrichit la ligne pour la suite (INGREDIENTS)
-        line_with_master = dict(line)
-        line_with_master["master_article_id"] = master_article_id
-        lines_with_master.append(line_with_master)
+        article = articles_service.create_articles(
+            {
+                "establishment_id": establishment_id,
+                "supplier_id": supplier_id,
+                "master_article_id": master_article_id,
+                "invoice_id": invoice_id,
+                "date": invoice_date,
+                "quantity": _decimal_to_float(quantity),
+                "unit": line.get("unit"),
+                "unit_price": _decimal_to_float(unit_price),
+                "total": _decimal_to_float(line_total),
+                "discounts": _decimal_to_float(discounts),
+                "duties_and_taxes": _decimal_to_float(duties),
+            }
+        )
+        article_id = _safe_get(article, "id")
+        if not article or not article_id:
+            raise LogicError("Création de l'article impossible")
 
-    # Liste unique des master_article impactés
-    master_article_ids = list(set(master_article_ids))
+        entry = ArticleEntry(
+            article_id=article_id,
+            master_article_id=master_article_id,
+            unit_price=unit_price,
+            quantity=quantity,
+            line_total=line_total,
+            discounts=discounts,
+            duties=duties,
+            date=invoice_date,
+        )
+        articles_by_master[master_article_id].append(entry)
+        articles_created.append(entry)
 
-    # Calcul pré-agrégé des coûts par master_article (pour INGREDIENTS)
-    article_costs_by_master = compute_article_cost_from_lines(lines_with_master)
+    master_article_ids = _unique(master_article_ids)
 
-    # ------------------------------------------------------------------
-    # 8. INGREDIENTS (ARTICLE) + HISTORY_INGREDIENTS (ARTICLE)
-    # ------------------------------------------------------------------
-    ingredients_article = ingredients_service.get_all_ingredients(
-        filters={
-            "establishment_id": est_id,
-            "type": "ARTICLE",
-            "master_article_id__in": master_article_ids,
-        }
+    ingredients_all = ingredients_service.get_all_ingredients(
+        filters={"establishment_id": establishment_id},
+        limit=10000,
     )
+    recipes_all = recipes_service.get_all_recipes(
+        filters={"establishment_id": establishment_id},
+        limit=5000,
+    )
+    recipes_cache: Dict[UUID, Any] = {}
+    for recipe in recipes_all:
+        recipe_id = _safe_get(recipe, "id")
+        if recipe_id:
+            recipes_cache[recipe_id] = recipe
 
-    recipes_article_impacted: List[UUID] = []
+    ingredients_by_recipe: Dict[UUID, List[Any]] = defaultdict(list)
+    recipes_by_master: Dict[UUID, Set[UUID]] = defaultdict(set)
+    for ingredient in ingredients_all:
+        recipe_id = _safe_get(ingredient, "recipe_id")
+        if recipe_id:
+            ingredients_by_recipe[recipe_id].append(ingredient)
+        master_id = _safe_get(ingredient, "master_article_id")
+        if (
+            _safe_get(ingredient, "type") == "ARTICLE"
+            and master_id
+            and recipe_id
+        ):
+            recipes_by_master[master_id].add(recipe_id)
 
-    if ingredients_article:
-        for ingredient in ingredients_article:
-            master_article_id = ingredient.master_article_id
-            article_cost = article_costs_by_master.get(master_article_id)
-            if not article_cost:
-                # Aucun coût calculé pour ce master_article → on skippe
-                continue
+    impacted_recipes_article: set[UUID] = set()
 
-            # 8.1 Récupération des history_ingredients existants (triés par date)
-            hist_list = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ingredient.id},
-                order_by=["date"],
-            )
-
-            # 8.2 Recherche de l’historique de référence (antériorité stricte)
-            h_prev = None
-            h_next = None
-            for h in hist_list:
-                if h.date <= invoice_date:
-                    h_prev = h
-                elif h.date >= invoice_date and h_next is None:
-                    h_next = h
-
-            # 8.3 Construction du nouveau history_ingredient à la date de facture
-            # Utilisation du ArticleCost comme base, en respectant percentage_loss
-            percentage_loss = _decimal(getattr(ingredient, "percentage_loss", 0))
-            # coût matière unitaire “brut” (sans perte)
-            base_unit_cost = article_cost.unit_cost
-            loss_value = (base_unit_cost * percentage_loss / Decimal("100")).quantize(
-                Decimal("0.0001")
-            )
-            unit_cost_after_loss = base_unit_cost + loss_value
-
-            payload_history_new = {
-                "ingredient_id": ingredient.id,
-                "date": invoice_date,
-                "gross_unit_price": article_cost.gross_unit_price,
-                "unit_cost": unit_cost_after_loss,
-                "unit_cost_per_portion_recipe": article_cost.unit_cost_per_portion,
-                "loss_value": loss_value,
-            }
-            new_hist = history_ingredients_service.create_history_ingredients(
-                payload_history_new
-            )
-
-            # 8.4 Si un h_next existait, on l’insère après (l’historique reste trié)
-            # → pas besoin d’action spécifique si le service respecte l’ordre par date.
-            # Mais si vous avez une logique métier particulière, c’est ici.
-
-            # 8.5 Mise à jour de l’INGREDIENT courant avec le dernier historique
-            all_histories = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ingredient.id},
-                order_by=["date"],
-            )
-            latest = all_histories[-1]
-            payload_update_ing = {
-                "gross_unit_price": latest.gross_unit_price,
-                "unit_cost": latest.unit_cost,
-                "unit_cost_per_portion_recipe": latest.unit_cost_per_portion_recipe,
-                "loss_value": latest.loss_value,
-            }
-            ingredients_service.update_ingredients(ingredient.id, payload_update_ing)
-
-            # On mémorise les recettes impactées par cet ingrédient ARTICLE
-            if ingredient.recipe_id:
-                recipes_article_impacted.append(ingredient.recipe_id)
-
-    # ------------------------------------------------------------------
-    # 9. RECIPES + HISTORY_RECIPES (ARTICLE)
-    # ------------------------------------------------------------------
-    recipes_article_impacted = list(set(recipes_article_impacted))
-    recipes_article = []
-    if recipes_article_impacted:
-        recipes_article = recipes_service.get_all_recipes(
-            filters={"id__in": recipes_article_impacted}
-        )
-
-    if recipes_article:
-        establishment = establishments_service.get_establishments_by_id(est_id)
-
-        for recipe in recipes_article:
-            # 9.1 Récupérer tous les ingrédients de cette recette
-            recipe_ingredients = ingredients_service.get_all_ingredients(
-                filters={"recipe_id": recipe.id}
-            )
-
-            # 9.2 Recalcul du coût matière de la recette
-            material_cost = compute_recipe_cost_from_ingredients(recipe_ingredients)
-
-            # 9.3 History_recipes existants (triés)
-            hist_list = history_recipes_service.get_all_history_recipes(
-                filters={"recipe_id": recipe.id},
-                order_by=["date"],
-            )
-
-            h_prev = None
-            h_next = None
-            for h in hist_list:
-                if h.date <= invoice_date:
-                    h_prev = h
-                elif h.date >= invoice_date and h_next is None:
-                    h_next = h
-
-            # 9.4 Calcul prix recommandé (selon politique marge établissement)
-            (
-                recommended_price_incl_tax,
-                recommended_price_excl_tax,
-                recommended_price_tax,
-            ) = compute_recommended_prices(material_cost, establishment)
-
-            # 9.5 Création d’un history_recipes à la date de la facture
-            payload_hist_rec = {
-                "recipe_id": recipe.id,
-                "date": invoice_date,
-                "material_cost": material_cost,
-                "price_incl_tax": recommended_price_incl_tax,
-                "price_excl_tax": recommended_price_excl_tax,
-                "price_tax": recommended_price_tax,
-            }
-            history_recipes_service.create_history_recipes(payload_hist_rec)
-
-            # 9.6 Mise à jour de la recette courante (état actuel)
-            payload_recipe_update = {
-                "material_cost": material_cost,
-                "recommended_price_incl_tax": recommended_price_incl_tax,
-                "recommended_price_excl_tax": recommended_price_excl_tax,
-                "recommended_price_tax": recommended_price_tax,
-            }
-            recipes_service.update_recipes(recipe.id, payload_recipe_update)
-
-    # ------------------------------------------------------------------
-    # 10. INGREDIENTS SUBRECIPES + HISTORY_INGREDIENTS SUBRECIPES
-    # ------------------------------------------------------------------
-    # On part des recettes ARTICLE impactées (recipes_article_impacted)
-    ingredients_sub = []
-    if recipes_article_impacted:
-        ingredients_sub = ingredients_service.get_all_ingredients(
-            filters={
-                "establishment_id": est_id,
-                "type": "SUBRECIPES",
-                "subrecipe_id__in": recipes_article_impacted,
-            }
-        )
-
-    recipes_sub_impacted: List[UUID] = []
-
-    if ingredients_sub:
-        for ingredient in ingredients_sub:
-            # Rappel métier : pas de percentage_loss, pas de loss_value pour SUBRECIPES
-            hist_list = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ingredient.id},
-                order_by=["date"],
-            )
-            # On cherche seulement un historique futur
-            h_future = None
-            for h in hist_list:
-                if h.date > invoice_date:
-                    h_future = h
-                    break
-
-            # Récupération de la sous-recette (subrecipe)
-            subrecipe = recipes_service.get_recipes_by_id(ingredient.subrecipe_id)
-            # Le coût vient directement de la sous-recette : purchase_cost_per_portion
-            purchase_cost_per_portion = _decimal(
-                getattr(subrecipe, "purchase_cost_per_portion", 0)
-            )
-
-            # Création d’un history_ingredient à la date de la facture
-            payload_hist_sub = {
-                "ingredient_id": ingredient.id,
-                "date": invoice_date,
-                "gross_unit_price": purchase_cost_per_portion,
-                "unit_cost": purchase_cost_per_portion,
-                "unit_cost_per_portion_recipe": purchase_cost_per_portion,
-            }
-            history_ingredients_service.create_history_ingredients(payload_hist_sub)
-
-            # Mise à jour de l’ingredient SUBRECIPES avec le dernier historique
-            all_histories = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ingredient.id},
-                order_by=["date"],
-            )
-            latest = all_histories[-1]
-            payload_update_ing = {
-                "gross_unit_price": latest.gross_unit_price,
-                "unit_cost": latest.unit_cost,
-            }
-            ingredients_service.update_ingredients(ingredient.id, payload_update_ing)
-
-            # On mémorise les recettes parent impactées
-            if ingredient.recipe_id:
-                recipes_sub_impacted.append(ingredient.recipe_id)
-
-    # ------------------------------------------------------------------
-    # 11. RECIPES SUBRECIPES + HISTORY_RECIPES SUBRECIPES
-    # ------------------------------------------------------------------
-    recipes_sub_impacted = list(set(recipes_sub_impacted))
-    recipes_sub = []
-    if recipes_sub_impacted:
-        recipes_sub = recipes_service.get_all_recipes(
-            filters={"id__in": recipes_sub_impacted}
-        )
-
-    if recipes_sub:
-        establishment = establishments_service.get_establishments_by_id(est_id)
-
-        for recipe in recipes_sub:
-            rec_ingredients = ingredients_service.get_all_ingredients(
-                filters={"recipe_id": recipe.id}
-            )
-            material_cost = compute_recipe_cost_from_ingredients(rec_ingredients)
-
-            hist_list = history_recipes_service.get_all_history_recipes(
-                filters={"recipe_id": recipe.id},
-                order_by=["date"],
-            )
-
-            # SUBRECIPES : on applique la même mécanique que pour ARTICLE
-            (
-                recommended_price_incl_tax,
-                recommended_price_excl_tax,
-                recommended_price_tax,
-            ) = compute_recommended_prices(material_cost, establishment)
-
-            payload_hist = {
-                "recipe_id": recipe.id,
-                "date": invoice_date,
-                "material_cost": material_cost,
-                "price_incl_tax": recommended_price_incl_tax,
-                "price_excl_tax": recommended_price_excl_tax,
-                "price_tax": recommended_price_tax,
-            }
-            history_recipes_service.create_history_recipes(payload_hist)
-
-            payload_recipe_update = {
-                "material_cost": material_cost,
-                "recommended_price_incl_tax": recommended_price_incl_tax,
-                "recommended_price_excl_tax": recommended_price_excl_tax,
-                "recommended_price_tax": recommended_price_tax,
-            }
-            recipes_service.update_recipes(recipe.id, payload_recipe_update)
-
-    # ------------------------------------------------------------------
-    # 12. VARIATIONS + ALERTES SMS
-    # ------------------------------------------------------------------
-    # Cette partie est volontairement compacte :
-    # - On compare les nouveaux coûts d’achat (market_articles / article_costs_by_master)
-    #   aux anciens costs (via history_ingredients + history_recipes si besoin)
-    # - On enregistre les Variations
-    # - On déclenche éventuellement des SMS selon la config établissement.
-    #
-    # Vous pouvez affiner la granularité ici si vous avez une logique
-    # plus détaillée dans votre doc.
-
-    # Ex : on boucle sur chaque master_article impacté, on compare le coût
-    # actuel vs le dernier coût avant invoice_date, et on stocke delta %
-    for master_article_id, article_cost in article_costs_by_master.items():
-        # Récupère un éventuel dernier history_ingredient “ancien” pour un ingrédient ARTICLE lié
-        ingredients_for_ma = [
-            ing
-            for ing in ingredients_article
-            if ing.master_article_id == master_article_id
-        ]
-        if not ingredients_for_ma:
+    for ingredient in ingredients_all:
+        if _safe_get(ingredient, "type") != "ARTICLE":
             continue
-
-        # On prend le premier ingrédient comme référence pour la variation
-        ing_ref = ingredients_for_ma[0]
-        old_hist_list = history_ingredients_service.get_all_history_ingredients(
-            filters={"ingredient_id": ing_ref.id, "date__lt": invoice_date},
-            order_by=["date"],
-        )
-        if not old_hist_list:
-            # Pas d’historique ancien -> impossible de calculer une variation pertinente
+        master_article_id = _safe_get(ingredient, "master_article_id")
+        if master_article_id not in master_article_ids:
             continue
-
-        last_old = old_hist_list[-1]
-        old_cost = _decimal(last_old.unit_cost)
-        new_cost = article_cost.unit_cost
-
-        if old_cost <= 0:
+        article_entries = articles_by_master.get(master_article_id)
+        if not article_entries:
             continue
+        gross_unit_price = _compute_weighted_unit_price(article_entries)
+        if gross_unit_price is None:
+            continue
+        history_prev, history_next = _history_reference_for_ingredient(_safe_get(ingredient, "id"), invoice_date)
+        base_history = history_prev or history_next
+        quantity_reference = _as_decimal(_safe_get(base_history, "quantity")) or _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
+        percentage_loss = _as_decimal(_safe_get(base_history, "percentage_loss")) or _as_decimal(_safe_get(ingredient, "percentage_loss")) or Decimal("0")
+        loss_multiplier = Decimal("1") + (percentage_loss / Decimal("100"))
+        gross_total = gross_unit_price * quantity_reference
+        unit_cost = gross_total * loss_multiplier
+        loss_value = unit_cost - gross_total if percentage_loss else None
 
-        delta_abs = new_cost - old_cost
-        delta_pct = (delta_abs / old_cost * Decimal("100")).quantize(
-            Decimal("0.01")
-        )
+        recipe_id = _safe_get(ingredient, "recipe_id")
+        recipe = recipes_cache.get(recipe_id) if recipe_id else None
+        if not recipe:
+            continue
+        portion = _ensure_portion(recipe_id, _as_decimal(_safe_get(recipe, "portion")))
+        unit_cost_per_portion = unit_cost / portion
 
-        # Enregistrement de la variation
-        payload_variation = {
-            "establishment_id": est_id,
-            "invoice_id": invoice_id,
+        history_payload = {
+            "ingredient_id": _safe_get(ingredient, "id"),
+            "establishment_id": establishment_id,
+            "recipe_id": recipe_id,
             "master_article_id": master_article_id,
-            "old_unit_cost": old_cost,
-            "new_unit_cost": new_cost,
-            "variation_percent": delta_pct,
+            "unit": _safe_get(base_history, "unit") or _safe_get(ingredient, "unit"),
+            "quantity": _decimal_to_float(quantity_reference),
+            "percentage_loss": _decimal_to_float(percentage_loss),
+            "gross_unit_price": _decimal_to_float(gross_unit_price),
+            "unit_cost": _decimal_to_float(unit_cost),
+            "unit_cost_per_portion_recipe": _decimal_to_float(unit_cost_per_portion),
+            "loss_value": _decimal_to_float(loss_value),
+            "date": invoice_date,
         }
-        variations_service.create_variations(payload_variation)
-
-        # Gestion SMS éventuel
-        # (rappel : la config SMS est portée par l’établissement : active_sms, type_sms, sms_variation_trigger)
-        establishment = establishments_service.get_establishments_by_id(est_id)
-        if not getattr(establishment, "active_sms", False):
-            continue
-
-        # Filtre FOOD / FOOD & BEVERAGES
-        type_sms = getattr(establishment, "type_sms", "FOOD")
-        if type_sms == "FOOD" and import_job.is_beverage:
-            # On ignore les variations provenant d’un supplier BEVERAGES si
-            # la conf est FOOD uniquement.
-            continue
-
-        trigger = getattr(establishment, "sms_variation_trigger", "ALL")
-        threshold_map = {
-            "ALL": Decimal("0"),
-            "±5%": Decimal("5"),
-            "±10%": Decimal("10"),
-        }
-        threshold = threshold_map.get(trigger, Decimal("0"))
-        if abs(delta_pct) < threshold:
-            continue
-
-        # Ici : variation jugée significative → on crée un alert_log
-        message = (
-            f"Variation de prix détectée sur un produit : {delta_pct}% "
-            f"(ancien coût {old_cost}€, nouveau coût {new_cost}€)."
-        )
-        payload_alert = {
-            "establishment_id": est_id,
-            "type": "SMS_VARIATION",
-            "content": message,
-            "sent_to_number": getattr(establishment, "sms_phone_number", None),
-            "payload": {
-                "invoice_id": str(invoice_id),
-                "master_article_id": str(master_article_id),
-                "delta_percent": str(delta_pct),
-                "old_unit_cost": str(old_cost),
-                "new_unit_cost": str(new_cost),
+        history_ingredients_service.create_history_ingredients(history_payload)
+        ingredients_service.update_ingredients(
+            _safe_get(ingredient, "id"),
+            {
+                "gross_unit_price": history_payload["gross_unit_price"],
+                "unit_cost": history_payload["unit_cost"],
+                "unit_cost_per_portion_recipe": history_payload["unit_cost_per_portion_recipe"],
+                "percentage_loss": history_payload["percentage_loss"],
+                "loss_value": history_payload["loss_value"],
             },
-        }
-        alert_logs_service.create_alert_logs(payload_alert)
+        )
+        ingredient.gross_unit_price = history_payload["gross_unit_price"]
+        ingredient.unit_cost = history_payload["unit_cost"]
+        ingredient.unit_cost_per_portion_recipe = history_payload["unit_cost_per_portion_recipe"]
+        ingredient.percentage_loss = history_payload["percentage_loss"]
+        ingredient.loss_value = history_payload["loss_value"]
+        impacted_recipes_article.add(recipe_id)
 
-    # ------------------------------------------------------------------
-    # 13. FINALISATION DU JOB
-    # ------------------------------------------------------------------
-    import_jobs_service.update_import_jobs(
-        import_job_id,
-        {"status": "COMPLETED"},
-    )
+    def _recompute_recipes(recipe_ids: Iterable[UUID]) -> List[UUID]:
+        impacted: List[UUID] = []
+        for recipe_id in _unique(recipe_ids):
+            recipe = recipes_cache.get(recipe_id)
+            if not recipe:
+                continue
+            ingredients_of_recipe = ingredients_by_recipe.get(recipe_id, [])
+            purchase_cost_total = _compute_recipe_cost(ingredients_of_recipe)
+            portion = _ensure_portion(recipe_id, _as_decimal(_safe_get(recipe, "portion")))
+            purchase_cost_per_portion = purchase_cost_total / portion
+            future_history, _ = _future_history_recipe(recipe_id, invoice_date)
+            history_payload = {
+                "purchase_cost_total": _decimal_to_float(purchase_cost_total),
+                "purchase_cost_per_portion": _decimal_to_float(purchase_cost_per_portion),
+            }
+            if future_history is None:
+                payload = {
+                    "recipe_id": recipe_id,
+                    "establishment_id": establishment_id,
+                    "date": invoice_date,
+                    "portion": _safe_get(recipe, "portion"),
+                    "vat_id": _safe_get(recipe, "vat_id"),
+                    "price_excl_tax": _safe_get(recipe, "price_excl_tax"),
+                    "price_incl_tax": _safe_get(recipe, "price_incl_tax"),
+                    "price_tax": _safe_get(recipe, "price_tax"),
+                    **history_payload,
+                }
+                history_recipes_service.create_history_recipes(payload)
+            else:
+                history_recipes_service.update_history_recipes(_safe_get(future_history, "id"), history_payload)
+            latest_histories = history_recipes_service.get_all_history_recipes(
+                filters={
+                    "recipe_id": recipe_id,
+                    "order_by": "date",
+                    "direction": "asc",
+                },
+                limit=1000,
+            )
+            latest_entry = latest_histories[-1] if latest_histories else None
+            recipe_update = {
+                "purchase_cost_total": history_payload["purchase_cost_total"],
+                "purchase_cost_per_portion": history_payload["purchase_cost_per_portion"],
+            }
+            if _safe_get(recipe, "saleable"):
+                recommended = _recommended_price(purchase_cost_per_portion, establishment)
+                if recommended is not None:
+                    recipe_update["recommanded_retail_price"] = float(recommended)
+            recipes_service.update_recipes(recipe_id, recipe_update)
+            recipe.purchase_cost_total = recipe_update["purchase_cost_total"]
+            recipe.purchase_cost_per_portion = recipe_update["purchase_cost_per_portion"]
+            recipe.recommanded_retail_price = recipe_update.get("recommanded_retail_price")
+            impacted.append(recipe_id)
+        return impacted
+
+    impacted_article_recipes = _recompute_recipes(impacted_recipes_article)
+    impacted_article_recipes_set = set(impacted_article_recipes)
+
+    ingredients_sub = [
+        ingredient
+        for ingredient in ingredients_all
+        if (_safe_get(ingredient, "type") or "").upper() in {"SUBRECIPE", "SUBRECIPES"}
+        and _safe_get(ingredient, "subrecipe_id") in impacted_article_recipes_set
+    ]
+
+    impacted_recipes_sub: set[UUID] = set()
+
+    for ingredient in ingredients_sub:
+        subrecipe_id = _safe_get(ingredient, "subrecipe_id")
+        subrecipe = recipes_cache.get(subrecipe_id)
+        if not subrecipe:
+            continue
+        purchase_cost_per_portion = _as_decimal(_safe_get(subrecipe, "purchase_cost_per_portion"))
+        if purchase_cost_per_portion is None:
+            continue
+        quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("0")
+        gross_unit_price = purchase_cost_per_portion
+        unit_cost = gross_unit_price * quantity
+        histories = history_ingredients_service.get_all_history_ingredients(
+            filters={
+                "ingredient_id": _safe_get(ingredient, "id"),
+                "order_by": "date",
+                "direction": "asc",
+            },
+            limit=500,
+        )
+        future_histories = [hist for hist in histories if (_as_date(_safe_get(hist, "date")) or date.min) > invoice_date]
+        payload = {
+            "ingredient_id": _safe_get(ingredient, "id"),
+            "establishment_id": establishment_id,
+            "recipe_id": _safe_get(ingredient, "recipe_id"),
+            "subrecipe_id": subrecipe_id,
+            "unit": _safe_get(ingredient, "unit"),
+            "quantity": _decimal_to_float(quantity),
+            "gross_unit_price": _decimal_to_float(gross_unit_price),
+            "unit_cost": _decimal_to_float(unit_cost),
+            "percentage_loss": 0,
+            "loss_value": None,
+            "date": invoice_date,
+        }
+        if not future_histories:
+            history_ingredients_service.create_history_ingredients(payload)
+        else:
+            latest = future_histories[-1]
+            history_ingredients_service.update_history_ingredients(_safe_get(latest, "id"), payload)
+        ingredients_service.update_ingredients(
+            _safe_get(ingredient, "id"),
+            {
+                "gross_unit_price": payload["gross_unit_price"],
+                "unit_cost": payload["unit_cost"],
+                "loss_value": payload["loss_value"],
+                "percentage_loss": 0,
+            },
+        )
+        ingredient.gross_unit_price = payload["gross_unit_price"]
+        ingredient.unit_cost = payload["unit_cost"]
+        impacted_recipes_sub.add(_safe_get(ingredient, "recipe_id"))
+
+    impacted_sub_recipes = _recompute_recipes(impacted_recipes_sub)
+
+    impacted_for_margins = set(impacted_article_recipes) | set(impacted_sub_recipes)
+    impacted_recipes_saleable = [
+        recipes_cache[rid]
+        for rid in impacted_for_margins
+        if rid in recipes_cache
+        and _safe_get(recipes_cache[rid], "saleable")
+        and _safe_get(recipes_cache[rid], "active")
+    ]
+
+    if impacted_recipes_saleable:
+        all_saleable_recipes = [
+            recipe
+            for recipe in recipes_cache.values()
+            if _safe_get(recipe, "saleable") and _safe_get(recipe, "active")
+        ]
+
+        def _upsert_margin(service_get, service_create, service_update, base_filters: Dict[str, Any], avg_margin: Optional[Decimal]) -> None:
+            if avg_margin is None:
+                return
+            payload = {
+                **base_filters,
+                "average_margin": float(avg_margin),
+                "date": invoice_date,
+            }
+            filters = {**base_filters, "order_by": "date", "direction": "desc"}
+            existing = service_get(filters=filters, limit=1)
+            if existing:
+                existing_date = _as_date(_safe_get(existing[0], "date"))
+                if existing_date and existing_date >= invoice_date:
+                    service_update(_safe_get(existing[0], "id"), payload)
+                    return
+            service_create(payload)
+
+        avg_global = _mean([
+            _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
+            for recipe in all_saleable_recipes
+        ])
+        _upsert_margin(
+            recipe_margin_service.get_all_recipe_margin,
+            recipe_margin_service.create_recipe_margin,
+            recipe_margin_service.update_recipe_margin,
+            {"establishment_id": establishment_id},
+            avg_global,
+        )
+
+        category_ids = _unique(
+            _safe_get(recipe, "category_id") for recipe in impacted_recipes_saleable if _safe_get(recipe, "category_id")
+        )
+        for category_id in category_ids:
+            avg = _mean([
+                _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
+                for recipe in impacted_recipes_saleable
+                if _safe_get(recipe, "category_id") == category_id
+            ])
+            _upsert_margin(
+                recipe_margin_category_service.get_all_recipe_margin_category,
+                recipe_margin_category_service.create_recipe_margin_category,
+                recipe_margin_category_service.update_recipe_margin_category,
+                {"establishment_id": establishment_id, "category_id": category_id},
+                avg,
+            )
+
+        subcategory_ids = _unique(
+            _safe_get(recipe, "subcategory_id")
+            for recipe in impacted_recipes_saleable
+            if _safe_get(recipe, "subcategory_id")
+        )
+        for subcategory_id in subcategory_ids:
+            avg = _mean([
+                _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
+                for recipe in impacted_recipes_saleable
+                if _safe_get(recipe, "subcategory_id") == subcategory_id
+            ])
+            _upsert_margin(
+                recipe_margin_subcategory_service.get_all_recipe_margin_subcategory,
+                recipe_margin_subcategory_service.create_recipe_margin_subcategory,
+                recipe_margin_subcategory_service.update_recipe_margin_subcategory,
+                {"establishment_id": establishment_id, "subcategory_id": subcategory_id},
+                avg,
+            )
+
+    variations_created = []
+    for entry in articles_created:
+        if entry.unit_price is None or entry.master_article_id is None:
+            continue
+        previous_candidates = articles_service.get_all_articles(
+            filters={
+                "establishment_id": establishment_id,
+                "master_article_id": entry.master_article_id,
+                "date_lte": invoice_date.isoformat(),
+                "order_by": "date",
+                "direction": "desc",
+            },
+            limit=5,
+        )
+        previous_article = None
+        for candidate in previous_candidates:
+            candidate_date = _as_date(_safe_get(candidate, "date"))
+            if candidate_date and candidate_date < invoice_date:
+                previous_article = candidate
+                break
+        if not previous_article:
+            continue
+        old_price = _as_decimal(_safe_get(previous_article, "unit_price"))
+        if not old_price or old_price == 0:
+            continue
+        percentage = ((entry.unit_price - old_price) / old_price) * Decimal("100")
+        if percentage == 0:
+            continue
+        variation = variations_service.create_variations(
+            {
+                "establishment_id": establishment_id,
+                "master_article_id": entry.master_article_id,
+                "invoice_id": invoice_id,
+                "old_unit_price": _decimal_to_float(old_price),
+                "new_unit_price": _decimal_to_float(entry.unit_price),
+                "percentage": _decimal_to_float(percentage),
+                "date": invoice_date,
+            }
+        )
+        if variation:
+            variations_created.append(variation)
+
+    can_send_sms = bool(variations_created) and _safe_get(establishment, "active_sms")
+    supplier_label_effective = _resolve_supplier_label(supplier, market_supplier)
+    if can_send_sms:
+        type_sms = _safe_get(establishment, "type_sms") or "FOOD"
+        if not supplier_label_effective:
+            can_send_sms = False
+        elif type_sms == "FOOD" and supplier_label_effective != "FOOD":
+            can_send_sms = False
+        elif type_sms == "FOOD & BEVERAGES" and supplier_label_effective not in {"FOOD", "BEVERAGES"}:
+            can_send_sms = False
+
+    alert_id = None
+    if can_send_sms:
+        trigger = _safe_get(establishment, "sms_variation_trigger") or "ALL"
+        threshold = Decimal(str({"ALL": 0, "±5%": 5, "±10%": 10}.get(trigger, 0)))
+        filtered_variations = []
+        for variation in variations_created:
+            pct_value = _as_decimal(_safe_get(variation, "percentage")) or Decimal("0")
+            if abs(pct_value) >= threshold:
+                filtered_variations.append(variation)
+        if filtered_variations:
+            user_links = user_establishment_service.get_all_user_establishment(
+                filters={"establishment_id": establishment_id}
+            )
+            recipient_numbers: List[str] = []
+            for link in user_links:
+                if _safe_get(link, "role") not in {"owner", "admin"}:
+                    continue
+                profile = user_profiles_service.get_user_profiles_by_id(_safe_get(link, "user_id"))
+                phone = _safe_get(profile, "phone_sms") if profile else None
+                if phone:
+                    recipient_numbers.append(phone)
+            if recipient_numbers:
+                filtered_variations.sort(
+                    key=lambda item: float(_safe_get(item, "percentage") or 0),
+                    reverse=True,
+                )
+                top_variations = filtered_variations[:5]
+                extra_count = max(0, len(filtered_variations) - len(top_variations))
+                variation_lines = []
+                for variation in top_variations:
+                    master_article = master_articles_cache.get(_safe_get(variation, "master_article_id"))
+                    article_name = _safe_get(master_article, "unformatted_name") or _safe_get(master_article, "name") or "Article"
+                    pct_decimal = _as_decimal(_safe_get(variation, "percentage")) or Decimal("0")
+                    pct_value = float(pct_decimal)
+                    sign = "+" if pct_decimal > 0 else ""
+                    variation_lines.append(f"- {article_name} : {sign}{pct_value:.1f}%")
+                block_variations = "\n".join(variation_lines)
+                block_extra = f"+{extra_count} autres variations" if extra_count else ""
+                impacted_recipes_from_variations = set()
+                for variation in filtered_variations:
+                    impacted_recipes_from_variations.update(recipes_by_master.get(_safe_get(variation, "master_article_id"), set()))
+                recipes_impacted_count = len(
+                    {
+                        rid
+                        for rid in impacted_recipes_from_variations
+                        if rid in recipes_cache
+                        and _safe_get(recipes_cache[rid], "saleable")
+                        and _safe_get(recipes_cache[rid], "active")
+                    }
+                )
+                supplier_name_for_sms = _safe_get(supplier, "name") or cleaned_supplier_name
+                sms_lines = [f"{supplier_name_for_sms} du {invoice_date}:", "", block_variations]
+                if block_extra:
+                    sms_lines.append(block_extra)
+                if recipes_impacted_count:
+                    sms_lines.extend(["", f"Impact sur {recipes_impacted_count} recettes."])
+                sms_text = "\n".join(line for line in sms_lines if line.strip())
+                recipient_numbers = list(dict.fromkeys(recipient_numbers))
+                alert = alert_logs_service.create_alert_logs(
+                    {
+                        "establishment_id": establishment_id,
+                        "content": sms_text,
+                        "sent_to_number": ",".join(recipient_numbers),
+                        "payload": {
+                            "invoice_id": str(invoice_id),
+                            "variation_count": len(filtered_variations),
+                            "trigger": trigger,
+                        },
+                    }
+                )
+                if not alert:
+                    raise LogicError("Création de l'alerte SMS impossible")
+                alert_id = _safe_get(alert, "id")
+                if alert_id:
+                    for variation in filtered_variations:
+                        variations_service.update_variations(
+                            _safe_get(variation, "id"),
+                            {"alert_logs_id": alert_id},
+                        )
+
+    import_jobs_service.update_import_job(import_job_id, {"status": "COMPLETED"})
