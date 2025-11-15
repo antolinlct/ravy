@@ -5,6 +5,8 @@ from uuid import UUID
 
 
 Recommended_retail_price = Literal["MULTIPLIER", "PERCENTAGE", "VALUE"]
+Sms_type = Literal["FOOD", "FOOD & BEVERAGES"]
+Sms_variation_trigger = Literal["ALL", "±5%", "±10%"]
 
 class Establishments(BaseModel):
     id: Optional[UUID] = None
@@ -24,3 +26,6 @@ class Establishments(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     intern_notes: Optional[str] = None
+    active_sms: Optional[bool] = None
+    type_sms: Optional[Sms_type] = None
+    sms_variation_trigger: Optional[Sms_variation_trigger] = None

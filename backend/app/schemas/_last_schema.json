@@ -140,6 +140,11 @@
       "column": "updated_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
+    },
+    {
+      "column": "is_beverage",
+      "data_type": "boolean",
+      "udt_name": "bool"
     }
   ],
   "logs": [
@@ -850,6 +855,21 @@
       "column": "intern_notes",
       "data_type": "text",
       "udt_name": "text"
+    },
+    {
+      "column": "active_sms",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "type_sms",
+      "data_type": "USER-DEFINED",
+      "udt_name": "sms_type"
+    },
+    {
+      "column": "sms_variation_trigger",
+      "data_type": "USER-DEFINED",
+      "udt_name": "sms_variation_trigger"
     }
   ],
   "financial_ingredients": [
@@ -1358,6 +1378,11 @@
       "column": "loss_value",
       "data_type": "numeric",
       "udt_name": "numeric"
+    },
+    {
+      "column": "unit_cost_per_portion_recipe",
+      "data_type": "numeric",
+      "udt_name": "numeric"
     }
   ],
   "history_recipes": [
@@ -1562,6 +1587,11 @@
     },
     {
       "column": "loss_value",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "unit_cost_per_portion_recipe",
       "data_type": "numeric",
       "udt_name": "numeric"
     }
@@ -2742,6 +2772,11 @@
       "column": "intern_notes",
       "data_type": "text",
       "udt_name": "text"
+    },
+    {
+      "column": "phone_sms",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "variations": [
@@ -2792,6 +2827,16 @@
     },
     {
       "column": "alert_logs_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "is_viewed",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "invoice_id",
       "data_type": "uuid",
       "udt_name": "uuid"
     }

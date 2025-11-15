@@ -4,7 +4,7 @@ from typing import List, Optional, Any, Literal
 from uuid import UUID
 
 
-Regex_type = Literal["supplier_name", "master_article_name", "master_article_alternative"]
+Regex_type = Literal["supplier_name", "market_master_article_name", "master_article_alternative"]
 
 class RegexPatterns(BaseModel):
     id: Optional[UUID] = None

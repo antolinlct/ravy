@@ -14,3 +14,4 @@ class ImportJob(BaseModel):
     file_path: Optional[str] = None
     ocr_result_json: Optional[dict] = None
     updated_at: Optional[datetime] = None
+    is_beverage: Optional[bool] = None

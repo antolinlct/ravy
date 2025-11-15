@@ -149,3 +149,6 @@ Thumbs.db
 backend/app/data_contracts/
 backend/contracts_summary.json
 backend/schemas_summary.json
+
+
+/app/manufacturers/config.py

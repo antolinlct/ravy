@@ -16,3 +16,5 @@ class Variations(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     alert_logs_id: Optional[UUID] = None
+    is_viewed: Optional[bool] = None
+    invoice_id: Optional[UUID] = None

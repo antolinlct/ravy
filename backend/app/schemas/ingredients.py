@@ -23,3 +23,4 @@ class Ingredients(BaseModel):
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
     loss_value: Optional[float] = None
+    unit_cost_per_portion_recipe: Optional[float] = None

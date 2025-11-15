@@ -12,3 +12,4 @@ class UserProfiles(BaseModel):
     updated_at: Optional[datetime] = None
     last_name: Optional[str] = None
     intern_notes: Optional[str] = None
+    phone_sms: Optional[str] = None
