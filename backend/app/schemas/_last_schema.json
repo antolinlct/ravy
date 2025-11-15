@@ -302,11 +302,6 @@
       "udt_name": "numeric"
     },
     {
-      "column": "file_path",
-      "data_type": "text",
-      "udt_name": "text"
-    },
-    {
       "column": "unit",
       "data_type": "text",
       "udt_name": "text"
@@ -355,6 +350,16 @@
       "column": "invoice_path",
       "data_type": "text",
       "udt_name": "text"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "invoice_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
     }
   ],
   "market_master_articles": [
@@ -1705,33 +1710,6 @@
       "udt_name": "text"
     }
   ],
-  "label_supplier": [
-    {
-      "column": "id",
-      "data_type": "uuid",
-      "udt_name": "uuid"
-    },
-    {
-      "column": "name",
-      "data_type": "text",
-      "udt_name": "text"
-    },
-    {
-      "column": "label",
-      "data_type": "USER-DEFINED",
-      "udt_name": "supplier_label"
-    },
-    {
-      "column": "created_at",
-      "data_type": "timestamp with time zone",
-      "udt_name": "timestamptz"
-    },
-    {
-      "column": "updated_at",
-      "data_type": "timestamp with time zone",
-      "udt_name": "timestamptz"
-    }
-  ],
   "live_score": [
     {
       "column": "id",
@@ -2544,11 +2522,6 @@
       "udt_name": "timestamptz"
     },
     {
-      "column": "label_id",
-      "data_type": "uuid",
-      "udt_name": "uuid"
-    },
-    {
       "column": "updated_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
@@ -2567,6 +2540,11 @@
       "column": "active_analyses",
       "data_type": "boolean",
       "udt_name": "bool"
+    },
+    {
+      "column": "label",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_label"
     }
   ],
   "support_ticket": [

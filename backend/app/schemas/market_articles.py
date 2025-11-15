@@ -10,7 +10,6 @@ class MarketArticles(BaseModel):
     market_master_article_id: Optional[UUID] = None
     date: Optional[datetime] = None
     unit_price: Optional[float] = None
-    file_path: Optional[str] = None
     unit: Optional[str] = None
     market_supplier_id: Optional[UUID] = None
     created_at: Optional[datetime] = None
@@ -21,3 +20,5 @@ class MarketArticles(BaseModel):
     duties_and_taxes: Optional[float] = None
     establishment_id: Optional[UUID] = None
     invoice_path: Optional[str] = None
+    quantity: Optional[float] = None
+    invoice_id: Optional[UUID] = None
