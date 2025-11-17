@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
@@ -18,7 +18,6 @@ from app.services import (
     import_job_service as import_jobs_service,
     ingredients_service,
     invoices_service,
-    label_supplier_service,
     market_articles_service,
     market_master_articles_service,
     market_supplier_alias_service,
@@ -90,6 +89,15 @@ class ArticleEntry:
 # Helpers génériques
 # ---------------------------------------------------------------------------
 
+# FONCTION POUR FORMATTAGE DATE POUR SMS
+def _format_sms_date(d: date) -> str:
+    months = {
+        1: "janv.", 2: "fevr.", 3: "mars", 4: "avr.",
+        5: "mai", 6: "juin", 7: "juil.", 8: "aoUt",
+        9: "sept.", 10: "oct.", 11: "nov.", 12: "dec."
+    }
+    return f"{d.day} {months[d.month]}"
+
 # FONCTION REGEX
 def _safe_get(obj: Any, key: str) -> Any:
     if obj is None:
@@ -148,10 +156,10 @@ def _decimal_or_zero(value: Optional[Decimal]) -> Decimal:
     return value if value is not None else Decimal("0")
 
 
-def _decimal_to_float(value: Optional[Decimal]) -> Optional[float]:
-    if value is None:
-        return None
-    return float(value)
+# def _decimal_to_float(value: Optional[Decimal]) -> Optional[float]:
+ #   if value is None:
+  #      return None
+ #   return float(value)
 
 
 def _as_date(value: Any) -> Optional[date]:
@@ -307,7 +315,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         raise LogicError("Import job introuvable")
 
     status = (_safe_get(import_job, "status") or "").upper()
-    if status in {"completed", "error" "ocr_failed"}:
+    if status in {"completed", "error", "ocr_failed"}:
         raise LogicError("Job déjà traité ou en erreur définitive")
 
     ocr_payload = _safe_get(import_job, "ocr_result_json")
@@ -559,6 +567,8 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
 
     master_article_ids = _unique(master_article_ids)
 
+#REMONTE TOUS LES INGREDIENTS & RECETTES D'UN RESTAURANT (LIMIT 10000)
+
     ingredients_all = ingredients_service.get_all_ingredients(
         filters={"establishment_id": establishment_id},
         limit=10000,
@@ -567,18 +577,25 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         filters={"establishment_id": establishment_id},
         limit=5000,
     )
+
+# CREATION DU CACHE O(1) POUR UNE RECHERCHE (TRÈS) RAPIDE
     recipes_cache: Dict[UUID, Any] = {}
     for recipe in recipes_all:
         recipe_id = _safe_get(recipe, "id")
         if recipe_id:
             recipes_cache[recipe_id] = recipe
 
+# CRÉATION DE FILTRES POUR POUVOIR A)TROUVER TOUS LES INGREDIENTS D'UNE RECETTE B) SAVOIR QUELS RECETTES UTILISENTS QUELS MASTER_ARTICLES
     ingredients_by_recipe: Dict[UUID, List[Any]] = defaultdict(list)
     recipes_by_master: Dict[UUID, Set[UUID]] = defaultdict(set)
+
     for ingredient in ingredients_all:
+
+        # REMPLIS LE FILTRE INGREDIENT PAR RECETTE
         recipe_id = _safe_get(ingredient, "recipe_id")
         if recipe_id:
             ingredients_by_recipe[recipe_id].append(ingredient)
+        # REMPLIS LE FILTRE RECIPES MASTER
         master_id = _safe_get(ingredient, "master_article_id")
         if (
             _safe_get(ingredient, "type") == "ARTICLE"
@@ -587,29 +604,35 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         ):
             recipes_by_master[master_id].add(recipe_id)
 
+# LISTE VIDE POUR STOCKER LES RECETTES IMPACTÉS
     impacted_recipes_article: set[UUID] = set()
 
     for ingredient in ingredients_all:
-        if _safe_get(ingredient, "type") != "ARTICLE":
+        if _safe_get(ingredient, "type") != "ARTICLE": # Passe a l'ingredient suivant si il n'est pas de type ARTICLE
             continue
-        master_article_id = _safe_get(ingredient, "master_article_id")
+        master_article_id = _safe_get(ingredient, "master_article_id") # On recuper le master_article correspondant a cet ingrédient et si c'est vide (pas dans la facture) on passe au suivant
         if master_article_id not in master_article_ids:
             continue
-        article_entries = articles_by_master.get(master_article_id)
+        article_entries = articles_by_master.get(master_article_id) # On récupère la ligne d'article correspondant a ce master article et si c'est vide (pas dans la facture) on passe au suivant
         if not article_entries:
             continue
-        gross_unit_price = _compute_weighted_unit_price(article_entries)
+        entry = article_entries[0]
+        gross_unit_price = entry.unit_price # On recupere le prix unitaire de l'article et on passe a l'ingredient suivant si il est vide
         if gross_unit_price is None:
             continue
-        history_prev, history_next = _history_reference_for_ingredient(_safe_get(ingredient, "id"), invoice_date)
+
+        history_prev, history_next = _history_reference_for_ingredient(_safe_get(ingredient, "id"), invoice_date) 
         base_history = history_prev or history_next
+
+        # VA CHERCHER LES INFOS POUR LES CALCULS AVEC FALLBACK SUR INGREDIENT SI RIEN PUIS FALLBACK SUR VALEUR PRECISE SI RIEN DANS L'INGR.
         quantity_reference = _as_decimal(_safe_get(base_history, "quantity")) or _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
-        percentage_loss = _as_decimal(_safe_get(base_history, "percentage_loss")) or _as_decimal(_safe_get(ingredient, "percentage_loss")) or Decimal("0")
+        percentage_loss = _as_decimal(_safe_get(base_history, "percentage_loss")) or Decimal("0")
         loss_multiplier = Decimal("1") + (percentage_loss / Decimal("100"))
         gross_total = gross_unit_price * quantity_reference
         unit_cost = gross_total * loss_multiplier
         loss_value = unit_cost - gross_total if percentage_loss else None
 
+        # VA CHERCHER LE NOMBRE DE PORTION DE LA RECETTE VIA UNE DEF. POUR CALCULER LE COUT PAR PORTION
         recipe_id = _safe_get(ingredient, "recipe_id")
         recipe = recipes_cache.get(recipe_id) if recipe_id else None
         if not recipe:
@@ -617,53 +640,119 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         portion = _ensure_portion(recipe_id, _as_decimal(_safe_get(recipe, "portion")))
         unit_cost_per_portion = unit_cost / portion
 
+        history_date = datetime.combine(invoice_date, time(0, 0)) # CONVERTI LA DATE DE FACTURE EN HEURE+MINUTE POUR RESPECTER LE FORMAT DE LA BDD (TIMESTAMPZ VS DATE)
+        
+        #  CALCUL DU NUMÉRO DE VERSION (+0.01 OU -0.01)
+        prev_version = _as_decimal(_safe_get(history_prev, "version_number")) if history_prev else None
+        next_version = _as_decimal(_safe_get(history_next, "version_number")) if history_next else None
+
+        if prev_version is not None and next_version is None:
+            version_number = prev_version + Decimal("0.01")
+        elif prev_version is None and next_version is not None:
+            version_number = next_version - Decimal("0.01")
+        elif prev_version is not None and next_version is not None:
+            version_number = prev_version + Decimal("0.01")
+        else:
+            raise LogicError("Aucun historique ingredient trouvé alors qu'il devrait exister")
+        
         history_payload = {
             "ingredient_id": _safe_get(ingredient, "id"),
             "establishment_id": establishment_id,
             "recipe_id": recipe_id,
             "master_article_id": master_article_id,
             "unit": _safe_get(base_history, "unit") or _safe_get(ingredient, "unit"),
-            "quantity": _decimal_to_float(quantity_reference),
-            "percentage_loss": _decimal_to_float(percentage_loss),
-            "gross_unit_price": _decimal_to_float(gross_unit_price),
-            "unit_cost": _decimal_to_float(unit_cost),
-            "unit_cost_per_portion_recipe": _decimal_to_float(unit_cost_per_portion),
-            "loss_value": _decimal_to_float(loss_value),
-            "date": invoice_date,
+            "quantity": quantity_reference,
+            "percentage_loss": percentage_loss,
+            "gross_unit_price": gross_unit_price,
+            "unit_cost": unit_cost,
+            "unit_cost_per_portion_recipe": unit_cost_per_portion,
+            "loss_value":loss_value,
+            "date": history_date,
+            "version_number": version_number,
         }
-        history_ingredients_service.create_history_ingredients(history_payload)
-        ingredients_service.update_ingredients(
-            _safe_get(ingredient, "id"),
-            {
-                "gross_unit_price": history_payload["gross_unit_price"],
-                "unit_cost": history_payload["unit_cost"],
-                "unit_cost_per_portion_recipe": history_payload["unit_cost_per_portion_recipe"],
-                "percentage_loss": history_payload["percentage_loss"],
-                "loss_value": history_payload["loss_value"],
-            },
-        )
-        ingredient.gross_unit_price = history_payload["gross_unit_price"]
-        ingredient.unit_cost = history_payload["unit_cost"]
-        ingredient.unit_cost_per_portion_recipe = history_payload["unit_cost_per_portion_recipe"]
-        ingredient.percentage_loss = history_payload["percentage_loss"]
-        ingredient.loss_value = history_payload["loss_value"]
-        impacted_recipes_article.add(recipe_id)
+        history_ingredients_service.create_history_ingredients(history_payload) # <- CREATION DE L'HISTORIQUE INGREDIENT
 
-    def _recompute_recipes(recipe_ids: Iterable[UUID]) -> List[UUID]:
+        # MISE À JOUR DE L'INGREDIENT AVEC LE HISTORY_INGREDIENT LE PLUS RECENT
+        
+        ingredient_id = _safe_get(ingredient, "id")
+
+        latest_histories = history_ingredients_service.get_all_history_ingredients(
+            filters={
+                "ingredient_id": ingredient_id,
+                "order_by": "date",
+                "direction": "asc",
+            },
+            limit=1000,
+)
+        latest_history = latest_histories[-1] if latest_histories else None # PREND L'HISTORIQUE LE PLUS RECENT
+        if not latest_history:
+            raise LogicError("Impossible de récupérer l'historique le plus récent pour l'ingrédient")
+
+        update_payload = {
+            "gross_unit_price": _safe_get(latest_history, "gross_unit_price"),
+            "unit_cost": _safe_get(latest_history, "unit_cost"),
+            "unit_cost_per_portion_recipe": _safe_get(latest_history, "unit_cost_per_portion_recipe"),
+            "percentage_loss": _safe_get(latest_history, "percentage_loss"),
+            "loss_value": _safe_get(latest_history, "loss_value"),
+        }
+
+        ingredients_service.update_ingredients(
+            ingredient_id,
+            update_payload,
+        ) # MISE À JOUR DE L'INGREDIENT VIA LE SERVICE
+
+        ingredient.gross_unit_price = update_payload["gross_unit_price"]
+        ingredient.unit_cost = update_payload["unit_cost"]
+        ingredient.unit_cost_per_portion_recipe = update_payload["unit_cost_per_portion_recipe"]
+        ingredient.percentage_loss = update_payload["percentage_loss"]
+        ingredient.loss_value = update_payload["loss_value"]
+
+        impacted_recipes_article.add(recipe_id)
+        
+    # DEF DE MISE À JOUR DES RECETTE BASÉ SUR LES NOUVEAU INGREDIENTS
+
+    def _recompute_recipes(recipe_ids: Iterable[UUID]) -> List[UUID]: 
         impacted: List[UUID] = []
+
         for recipe_id in _unique(recipe_ids):
             recipe = recipes_cache.get(recipe_id)
             if not recipe:
-                continue
+                continue # PREND LES RECETTE FILTRED BY UNIQUE ELEMENT (POUR PAS EN MODIFIER UNE PLUSIEURS FOIS)
+
             ingredients_of_recipe = ingredients_by_recipe.get(recipe_id, [])
             purchase_cost_total = _compute_recipe_cost(ingredients_of_recipe)
             portion = _ensure_portion(recipe_id, _as_decimal(_safe_get(recipe, "portion")))
             purchase_cost_per_portion = purchase_cost_total / portion
-            future_history, _ = _future_history_recipe(recipe_id, invoice_date)
+            #CALCUL DE MARGE UNIQUEMENT SI SALEABLE:TRUE
+            margin = None
+            if _safe_get(recipe, "saleable"):
+                price_excl_tax = _as_decimal(_safe_get(recipe, "price_excl_tax"))
+                if price_excl_tax and price_excl_tax != 0:
+                    margin = ((price_excl_tax - purchase_cost_per_portion) / price_excl_tax) * Decimal("100")
+
+            # CONSTRUCTION DU PAYLOAD POUR UPDATE LE PLUS RECENT DES HISTORIQUE RECETTE
+            future_history, _ = _future_history_recipe(recipe_id, invoice_date) #VA CHERCHER LE PLUS RECENT DES HISTORY_RECIPE (LE DERNIER QUI A ÉTÉ CRÉER)
             history_payload = {
-                "purchase_cost_total": _decimal_to_float(purchase_cost_total),
-                "purchase_cost_per_portion": _decimal_to_float(purchase_cost_per_portion),
+                "purchase_cost_total": purchase_cost_total,
+                "purchase_cost_per_portion": purchase_cost_per_portion,
             }
+            # AJOUT DE LA MARGE AU PAYLOAD SI ELLE EST VENDABLE
+            if margin is not None:
+                history_payload["margin"] = margin
+
+
+            # --- CALCUL DU VERSION_NUMBER ---
+            all_histories = history_recipes_service.get_all_history_recipes(
+                filters={"recipe_id": recipe_id, "order_by": "date", "direction": "asc"},
+                limit=1000,
+            )
+            if all_histories:
+                last_version = _as_decimal(_safe_get(all_histories[-1], "version_number")) or Decimal("1")
+                version_number = last_version + Decimal("0.01")
+            else:
+                version_number = Decimal("0.01")
+            
+            # CONSTRUCTRION DU PAYLOAD POUR LA CREATION L'HISTORIQUE RECETTE
             if future_history is None:
                 payload = {
                     "recipe_id": recipe_id,
@@ -674,47 +763,68 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                     "price_excl_tax": _safe_get(recipe, "price_excl_tax"),
                     "price_incl_tax": _safe_get(recipe, "price_incl_tax"),
                     "price_tax": _safe_get(recipe, "price_tax"),
+                    "margin": margin if margin is not None else None,
+                    "version_number": version_number,
                     **history_payload,
                 }
-                history_recipes_service.create_history_recipes(payload)
+                history_recipes_service.create_history_recipes(payload) # CRÉER UN HISTORY_RECIPE SI I LN'EN EXISTE AUCUN DE PLUS RECENT QUE LA DATE DE FACTURE SINON ON UPDATE LE PLUS RECENT
+
             else:
-                history_recipes_service.update_history_recipes(_safe_get(future_history, "id"), history_payload)
+                update_payload = {
+                    **history_payload,  # updates cost_total + cost_per_portion
+                }
+                if margin is not None:
+                    update_payload["margin"] = margin
+
+                history_recipes_service.update_history_recipes(_safe_get(future_history, "id"), update_payload)
+            
+            # MISE À JOUR DE LA RECETTE BASÉ SUR LE HISTORIQUE RECETTE LE PLUS RECENT
             latest_histories = history_recipes_service.get_all_history_recipes(
-                filters={
-                    "recipe_id": recipe_id,
-                    "order_by": "date",
-                    "direction": "asc",
-                },
+                filters={ "recipe_id": recipe_id, "order_by": "date", "direction": "asc" },
                 limit=1000,
             )
             latest_entry = latest_histories[-1] if latest_histories else None
+
             recipe_update = {
-                "purchase_cost_total": history_payload["purchase_cost_total"],
-                "purchase_cost_per_portion": history_payload["purchase_cost_per_portion"],
+                "purchase_cost_total": _safe_get(latest_entry, "purchase_cost_total"),
+                "purchase_cost_per_portion": _safe_get(latest_entry, "purchase_cost_per_portion"),
             }
+            # MODIFIER L'UPDATE SI LA RECETTE EST VENDABLE
             if _safe_get(recipe, "saleable"):
-                recommended = _recommended_price(purchase_cost_per_portion, establishment)
+                recommended = _recommended_price(
+                    _as_decimal(_safe_get(latest_entry, "purchase_cost_per_portion")),
+                    establishment
+                )
                 if recommended is not None:
-                    recipe_update["recommanded_retail_price"] = float(recommended)
-            recipes_service.update_recipes(recipe_id, recipe_update)
-            recipe.purchase_cost_total = recipe_update["purchase_cost_total"]
-            recipe.purchase_cost_per_portion = recipe_update["purchase_cost_per_portion"]
-            recipe.recommanded_retail_price = recipe_update.get("recommanded_retail_price")
+                    recipe_update["recommanded_retail_price"] = recommended
+
+                margin_latest = _safe_get(latest_entry, "margin")
+                if margin_latest is not None:
+                    recipe_update["current_margin"] = margin_latest
+
+            recipes_service.update_recipes(recipe_id, recipe_update) #MISE À JOUR DE LA RECETTE
+
             impacted.append(recipe_id)
         return impacted
+    
+    # APPEL A LA FONCTION AU DESSUS POUR CALCULER HISTORIQUE + RECETTE DIRECTEMENT IMPACTÉS
+    impacted_article_recipes = _recompute_recipes(impacted_recipes_article) 
+    
+    
+    # TRAITEMENT DES INGREDIENTS ISSUS DE RECETTE (SOUS-RECETTES)
 
-    impacted_article_recipes = _recompute_recipes(impacted_recipes_article)
-    impacted_article_recipes_set = set(impacted_article_recipes)
+    impacted_article_recipes_set = set(impacted_article_recipes) # CONVERSION EN SET POUR FACILITER LES VERIFICATIONS
 
     ingredients_sub = [
         ingredient
         for ingredient in ingredients_all
         if (_safe_get(ingredient, "type") or "").upper() in {"SUBRECIPE", "SUBRECIPES"}
         and _safe_get(ingredient, "subrecipe_id") in impacted_article_recipes_set
-    ]
+    ] # FAIS UNE LISTE DE TOUS LES INGRDIENT AYANT UNE SOUS-RECETTE COMPRIS DANS LA LSITE DU DESSUS.
 
     impacted_recipes_sub: set[UUID] = set()
 
+    # LOGIQUE POUR TRAITER LES INGREDIENTS DE TYPE SOUS-RECETTES
     for ingredient in ingredients_sub:
         subrecipe_id = _safe_get(ingredient, "subrecipe_id")
         subrecipe = recipes_cache.get(subrecipe_id)
@@ -723,7 +833,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         purchase_cost_per_portion = _as_decimal(_safe_get(subrecipe, "purchase_cost_per_portion"))
         if purchase_cost_per_portion is None:
             continue
-        quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("0")
+        quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
         gross_unit_price = purchase_cost_per_portion
         unit_cost = gross_unit_price * quantity
         histories = history_ingredients_service.get_all_history_ingredients(
@@ -732,43 +842,59 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 "order_by": "date",
                 "direction": "asc",
             },
-            limit=500,
+            limit=1000,
         )
+
+        # ON REGAGARDE LES HISTORIQUE REMONTÉ POUR NE PRENDRE QUE CEUX SUPERIEUR A DATE DE FACTURE
         future_histories = [hist for hist in histories if (_as_date(_safe_get(hist, "date")) or date.min) > invoice_date]
+        
+        #  CALCUL DU VERSION NUMBER
+        if histories:
+            last_version = _as_decimal(_safe_get(histories[-1], "version_number")) or Decimal("1")
+            version_number = last_version + Decimal("0.01")
+        else:
+            raise LogicError("Aucun historique ingrédient trouvé alors qu'il devrait exister")
+
         payload = {
             "ingredient_id": _safe_get(ingredient, "id"),
             "establishment_id": establishment_id,
             "recipe_id": _safe_get(ingredient, "recipe_id"),
             "subrecipe_id": subrecipe_id,
-            "unit": _safe_get(ingredient, "unit"),
-            "quantity": _decimal_to_float(quantity),
-            "gross_unit_price": _decimal_to_float(gross_unit_price),
-            "unit_cost": _decimal_to_float(unit_cost),
-            "percentage_loss": 0,
-            "loss_value": None,
+            "quantity": quantity,
+            "gross_unit_price": gross_unit_price,
+            "unit_cost": unit_cost,
             "date": invoice_date,
+            "version_number": version_number,
         }
         if not future_histories:
-            history_ingredients_service.create_history_ingredients(payload)
+            history_ingredients_service.create_history_ingredients(payload) #CREATION D'UN HISTORIQUE
         else:
             latest = future_histories[-1]
-            history_ingredients_service.update_history_ingredients(_safe_get(latest, "id"), payload)
+            history_ingredients_service.update_history_ingredients(_safe_get(latest, "id"), {
+            "gross_unit_price": gross_unit_price,
+            "unit_cost": unit_cost,
+        },
+        ) # UPDATE DU PLUS RECENT
+
+        # UPDATE DE L'INGREDIENT BASÉ SUR L'HISTORIQUE LE PLUS RECENT (QUI EST FORCEMENT SUR LES DONÉNES QU'ON A CAR CE SONT CELLE DE LA RECETTE ISSU A JOUR)
         ingredients_service.update_ingredients(
             _safe_get(ingredient, "id"),
             {
                 "gross_unit_price": payload["gross_unit_price"],
                 "unit_cost": payload["unit_cost"],
-                "loss_value": payload["loss_value"],
-                "percentage_loss": 0,
             },
         )
+
         ingredient.gross_unit_price = payload["gross_unit_price"]
         ingredient.unit_cost = payload["unit_cost"]
         impacted_recipes_sub.add(_safe_get(ingredient, "recipe_id"))
 
+    # FONCTION MISE À JOUR HISORIQUE+RECETTE
     impacted_sub_recipes = _recompute_recipes(impacted_recipes_sub)
 
-    impacted_for_margins = set(impacted_article_recipes) | set(impacted_sub_recipes)
+
+    # CALCULES DES MARGES
+    impacted_for_margins = set(impacted_article_recipes) | set(impacted_sub_recipes) #FUSIONNE LES 2 TYÊS DE RECETTES IMPACTÉS
     impacted_recipes_saleable = [
         recipes_cache[rid]
         for rid in impacted_for_margins
@@ -789,7 +915,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 return
             payload = {
                 **base_filters,
-                "average_margin": float(avg_margin),
+                "average_margin": avg_margin,
                 "date": invoice_date,
             }
             filters = {**base_filters, "order_by": "date", "direction": "desc"}
@@ -801,6 +927,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                     return
             service_create(payload)
 
+        # MISE A JOUR DE LA MARGE MOYENNE
         avg_global = _mean([
             _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
             for recipe in all_saleable_recipes
@@ -813,6 +940,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             avg_global,
         )
 
+        # MISE A JOUR DE LA MARGE MOYENNE PAR CATEGORIE
         category_ids = _unique(
             _safe_get(recipe, "category_id") for recipe in impacted_recipes_saleable if _safe_get(recipe, "category_id")
         )
@@ -830,6 +958,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 avg,
             )
 
+        # MISE A JOUR DE LA MARGE MOYENNE PAR SOUS-CATEGORIE
         subcategory_ids = _unique(
             _safe_get(recipe, "subcategory_id")
             for recipe in impacted_recipes_saleable
@@ -849,6 +978,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 avg,
             )
 
+    # CREATION DES VARIATIONS POUR LES SMS
     variations_created = []
     for entry in articles_created:
         if entry.unit_price is None or entry.master_article_id is None:
@@ -882,17 +1012,18 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 "establishment_id": establishment_id,
                 "master_article_id": entry.master_article_id,
                 "invoice_id": invoice_id,
-                "old_unit_price": _decimal_to_float(old_price),
-                "new_unit_price": _decimal_to_float(entry.unit_price),
-                "percentage": _decimal_to_float(percentage),
+                "old_unit_price": old_price,
+                "new_unit_price": entry.unit_price,
+                "percentage": percentage,
                 "date": invoice_date,
             }
         )
         if variation:
             variations_created.append(variation)
 
+    # ON CHECK SI LE USER PEUT OU VEUT RECEVOIR DES SMS POUR CE SUPPLIER
     can_send_sms = bool(variations_created) and _safe_get(establishment, "active_sms")
-    supplier_label_effective = _resolve_supplier_label(supplier, market_supplier)
+    supplier_label_effective = _safe_get(supplier, "label")
     if can_send_sms:
         type_sms = _safe_get(establishment, "type_sms") or "FOOD"
         if not supplier_label_effective:
@@ -902,15 +1033,22 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         elif type_sms == "FOOD & BEVERAGES" and supplier_label_effective not in {"FOOD", "BEVERAGES"}:
             can_send_sms = False
 
+
+    # CREATION DE L'ALERTE ID QUI SERT DE LOG + ENVOIE À N8N
     alert_id = None
     if can_send_sms:
         trigger = _safe_get(establishment, "sms_variation_trigger") or "ALL"
-        threshold = Decimal(str({"ALL": 0, "±5%": 5, "±10%": 10}.get(trigger, 0)))
+        threshold = Decimal(str({"ALL": 0, "±5%": 5, "±10%": 10}.get(trigger, 0))) # ON CHECK LES CONDITIONS D'ENVOIE ET SI FOURNISSEUR ELIGIBLE
+
         filtered_variations = []
         for variation in variations_created:
             pct_value = _as_decimal(_safe_get(variation, "percentage")) or Decimal("0")
+            if abs(pct_value) < Decimal("0.1"): #ON EXCLUE LES VARAITIONS QUI SONT A 2 CHIFFRES APRES LA VIRGULE
+                continue
             if abs(pct_value) >= threshold:
-                filtered_variations.append(variation)
+                filtered_variations.append(variation) # ON EXCLUE LES VARIATIONS NON ACCEPTE PAR LE USER (ALL 5 10)
+
+
         if filtered_variations:
             user_links = user_establishment_service.get_all_user_establishment(
                 filters={"establishment_id": establishment_id}
@@ -922,14 +1060,17 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                 profile = user_profiles_service.get_user_profiles_by_id(_safe_get(link, "user_id"))
                 phone = _safe_get(profile, "phone_sms") if profile else None
                 if phone:
-                    recipient_numbers.append(phone)
+                    recipient_numbers.append(phone) # ON CHERCHER LES PHONE DES USER AU BON STATUS
+
+
             if recipient_numbers:
                 filtered_variations.sort(
                     key=lambda item: float(_safe_get(item, "percentage") or 0),
                     reverse=True,
                 )
                 top_variations = filtered_variations[:5]
-                extra_count = max(0, len(filtered_variations) - len(top_variations))
+                extra_count = max(0, len(filtered_variations) - len(top_variations)) #ON LISTE LES 5 VALEURS LES PLUS IMPORTANT ET ON COMPTE LE NOMBRE DE VARIATIONS RESTANTES
+
                 variation_lines = []
                 for variation in top_variations:
                     master_article = master_articles_cache.get(_safe_get(variation, "master_article_id"))
@@ -937,49 +1078,79 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                     pct_decimal = _as_decimal(_safe_get(variation, "percentage")) or Decimal("0")
                     pct_value = float(pct_decimal)
                     sign = "+" if pct_decimal > 0 else ""
-                    variation_lines.append(f"- {article_name} : {sign}{pct_value:.1f}%")
+                    variation_lines.append(f"- {article_name} : {sign}{pct_value:.1f}%") # CONSTRUCTION DE LA LIGNE DE VARIATIONS
+
                 block_variations = "\n".join(variation_lines)
-                block_extra = f"+{extra_count} autres variations" if extra_count else ""
-                impacted_recipes_from_variations = set()
+                block_extra = f"+{extra_count} autres variations" if extra_count else "" #AJOUT DE "+7 AUTRES VARIATIONS"
+
+                # 1. Recettes impactées directement par les variations (master_article)
+                impacted_direct = set()
                 for variation in filtered_variations:
-                    impacted_recipes_from_variations.update(recipes_by_master.get(_safe_get(variation, "master_article_id"), set()))
+                    master_id = _safe_get(variation, "master_article_id")
+                    impacted_direct.update(recipes_by_master.get(master_id, set()))
+                # 2. Recettes impactées indirectement via les sous-recettes
+                impacted_indirect = set(impacted_sub_recipes)
+                # 3. Fusion des deux univers
+                all_impacted_for_sms = impacted_direct | impacted_indirect
+                # 4. Filtre sur les recettes actives seulement
                 recipes_impacted_count = len(
                     {
-                        rid
-                        for rid in impacted_recipes_from_variations
-                        if rid in recipes_cache
-                        and _safe_get(recipes_cache[rid], "saleable")
-                        and _safe_get(recipes_cache[rid], "active")
+                        rid for rid in all_impacted_for_sms
+                        if rid in recipes_cache and _safe_get(recipes_cache[rid], "active")
                     }
                 )
+
+                sms_date = _format_sms_date(invoice_date)
                 supplier_name_for_sms = _safe_get(supplier, "name") or cleaned_supplier_name
                 sms_lines = [f"{supplier_name_for_sms} du {invoice_date}:", "", block_variations]
+                
+                sms_lines = [
+                    f"{supplier_name_for_sms} du {sms_date}:",
+                    "",
+                    block_variations,
+                ]
+                
                 if block_extra:
                     sms_lines.append(block_extra)
                 if recipes_impacted_count:
                     sms_lines.extend(["", f"Impact sur {recipes_impacted_count} recettes."])
+
                 sms_text = "\n".join(line for line in sms_lines if line.strip())
-                recipient_numbers = list(dict.fromkeys(recipient_numbers))
-                alert = alert_logs_service.create_alert_logs(
-                    {
-                        "establishment_id": establishment_id,
-                        "content": sms_text,
-                        "sent_to_number": ",".join(recipient_numbers),
-                        "payload": {
-                            "invoice_id": str(invoice_id),
-                            "variation_count": len(filtered_variations),
-                            "trigger": trigger,
-                        },
-                    }
-                )
-                if not alert:
-                    raise LogicError("Création de l'alerte SMS impossible")
-                alert_id = _safe_get(alert, "id")
-                if alert_id:
-                    for variation in filtered_variations:
-                        variations_service.update_variations(
-                            _safe_get(variation, "id"),
-                            {"alert_logs_id": alert_id},
-                        )
+
+                # CREATION DE L'ALERT LOGS
+                for link in user_links:
+                    if _safe_get(link, "role") not in {"owner", "admin"}:
+                        continue
+
+                    profile = user_profiles_service.get_user_profiles_by_id(_safe_get(link, "user_id"))
+                    phone = _safe_get(profile, "phone_sms") if profile else None
+                    if not phone:
+                        continue
+
+                    alert = alert_logs_service.create_alert_logs(
+                        {
+                            "establishment_id": establishment_id,
+                            "content": sms_text,
+                            "sent_to_number": phone,
+                            "sent_to_id": _safe_get(link, "user_id"),
+                            "payload": {
+                                "invoice_id": str(invoice_id),
+                                "variation_count": len(filtered_variations),
+                                "trigger": trigger,
+                            },
+                        }
+                    )
+
+                    if not alert:
+                        raise LogicError("Création de l'alerte SMS impossible")
+                    
+                    alert_id = _safe_get(alert, "id")
+
+                    if alert_id:
+                        for variation in filtered_variations:
+                            variations_service.update_variations(
+                                _safe_get(variation, "id"),
+                                {"alert_logs_id": alert_id},
+                            )
 
     import_jobs_service.update_import_job(import_job_id, {"status": "completed"})

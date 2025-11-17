@@ -15,7 +15,7 @@ class HistoryIngredients(BaseModel):
     unit_cost: Optional[float] = None
     quantity: Optional[float] = None
     unit: Optional[str] = None
-    version_number: Optional[int] = None
+    version_number: Optional[float] = None
     created_at: Optional[datetime] = None
     gross_unit_price: Optional[float] = None
     percentage_loss: Optional[float] = None

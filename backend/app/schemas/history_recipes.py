@@ -9,7 +9,7 @@ class HistoryRecipes(BaseModel):
     id: Optional[UUID] = None
     recipe_id: Optional[UUID] = None
     establishment_id: Optional[UUID] = None
-    version_number: Optional[int] = None
+    version_number: Optional[float] = None
     created_at: Optional[datetime] = None
     date: Optional[datetime] = None
     purchase_cost_total: Optional[float] = None

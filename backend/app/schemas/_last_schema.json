@@ -1341,8 +1341,8 @@
     },
     {
       "column": "version_number",
-      "data_type": "integer",
-      "udt_name": "int4"
+      "data_type": "numeric",
+      "udt_name": "numeric"
     },
     {
       "column": "created_at",
@@ -1408,8 +1408,8 @@
     },
     {
       "column": "version_number",
-      "data_type": "integer",
-      "udt_name": "int4"
+      "data_type": "numeric",
+      "udt_name": "numeric"
     },
     {
       "column": "created_at",
