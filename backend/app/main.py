@@ -1,3 +1,5 @@
+from app.api.routes import product_stripe
+from app.api.routes import price_stripe
 from app.api.routes import sessions_ia
 from app.api.routes import logs_ia
 from app.api.routes import messages_ia
@@ -142,3 +144,5 @@ app.include_router(regex_patterns.router)
 app.include_router(messages_ia.router)
 app.include_router(logs_ia.router)
 app.include_router(sessions_ia.router)
+app.include_router(price_stripe.router)
+app.include_router(product_stripe.router)

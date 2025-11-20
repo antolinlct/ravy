@@ -15,3 +15,4 @@ class UsageCounters(BaseModel):
     limit_value: Optional[float] = None
     value_category: Optional[Addon_category] = None
     updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None

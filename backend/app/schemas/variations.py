@@ -18,3 +18,4 @@ class Variations(BaseModel):
     alert_logs_id: Optional[UUID] = None
     is_viewed: Optional[bool] = None
     invoice_id: Optional[UUID] = None
+    is_deleted: Optional[bool] = None

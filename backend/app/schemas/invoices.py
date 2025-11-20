@@ -4,7 +4,7 @@ from typing import List, Optional, Any, Literal
 from uuid import UUID
 
 
-Import_mode = Literal["EMAIL", "FILEUPLOADER"]
+Import_mode = Literal["EMAIL", "FILEUPLOADER", "MANUALLY"]
 
 class Invoices(BaseModel):
     id: Optional[UUID] = None

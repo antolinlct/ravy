@@ -1,3 +1,5 @@
+# FONCTION POUR L'IMPORT D'UNE FACTURE
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -107,19 +109,36 @@ def _safe_get(obj: Any, key: str) -> Any:
     return getattr(obj, key, None)
 
 
-def _apply_regex(pattern: Optional[str], value: Optional[str]) -> Optional[str]:
+import unicodedata
+import re
+
+def _apply_regex(
+    pattern: Optional[str],
+    value: Optional[str],
+    pattern_type: Optional[str] = None
+) -> Optional[str]:
     if value is None:
         return None
     if not pattern:
-        return value.strip()
-    import re
+        result = value.strip()
+    else:
+        try:
+            # Respecte les flags présents dans la regex (ex: (?i))
+            result = re.sub(pattern, "", value)
+            result = result.strip()
+        except re.error as exc:
+            raise LogicError(f"Regex invalide: {pattern}") from exc
 
-    try:
-        compiled = re.compile(pattern, flags=re.IGNORECASE)
-    except re.error as exc:  # pragma: no cover - defensive
-        raise LogicError(f"Regex invalide: {pattern}") from exc
-    match = compiled.search(value)
-    return match.group(0).strip() if match else value.strip()
+    # --------- NORMALISATION SPÉCIALE -----------
+    # si c'est un market_master_article_name → minuscule
+    if pattern_type == "market_master_article_name" and result:
+        result = ''.join(
+        c for c in unicodedata.normalize('NFKD', result)
+        if not unicodedata.combining(c)
+        )
+        result = result.lower()
+
+    return result or None
 
 
 def _extract_regex(pattern_type: str) -> Optional[str]:
@@ -342,7 +361,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     regex_master_article = _extract_regex("market_master_article_name")
 
     raw_supplier_name = supplier_block.get("raw_name")
-    cleaned_supplier_name = _apply_regex(regex_supplier, raw_supplier_name) or raw_supplier_name or "Fournisseur"
+    cleaned_supplier_name = _apply_regex(regex_supplier, raw_supplier_name, "supplier_name") or raw_supplier_name or "Fournisseur"
 
     market_supplier: Optional[Any] = None
     market_supplier_id: Optional[UUID] = None
@@ -456,7 +475,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         if not isinstance(line, dict):
             continue
         raw_name = line.get("product_name")
-        cleaned_name = _apply_regex(regex_master_article, raw_name) or raw_name
+        cleaned_name = _apply_regex(regex_master_article, raw_name, "market_master_article_name") or raw_name
         mma = market_master_articles_service.get_all_market_master_articles(
             filters={
                 "market_supplier_id": market_supplier_id,
@@ -464,6 +483,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             },
             limit=1,
         )
+
         if mma:
             market_master_article = mma[0]
         else:
@@ -493,6 +513,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
             )
             master_article = found_master[0] if found_master else None
         if not master_article:
+
             master_article = master_articles_service.create_master_articles(
                 {
                     "establishment_id": establishment_id,
@@ -565,7 +586,40 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         articles_by_master[master_article_id].append(entry)
         articles_created.append(entry)
 
+        # Mise à jour du current_unit_price du master_article
+        latest_articles = articles_service.get_all_articles(
+            filters={
+                "master_article_id": master_article_id,
+                "order_by": "date",
+                "direction": "desc",
+            },
+            limit=1,
+        )
+        if latest_articles:
+            latest_art = latest_articles[0]
+            master_articles_service.update_master_articles(
+                master_article_id,
+                {"current_unit_price": _safe_get(latest_art, "unit_price")},
+            )
+        # Mise à jour du current_unit_price du market_master_article
+        latest_market_articles = market_articles_service.get_all_market_articles(
+            filters={
+                "market_master_article_id": market_master_article_id,
+                "order_by": "date",
+                "direction": "desc",
+            },
+            limit=1,
+        )
+        if latest_market_articles:
+            latest_mma = latest_market_articles[0]
+            market_master_articles_service.update_market_master_articles(
+               market_master_article_id,
+                {"current_unit_price": _safe_get(latest_mma, "unit_price")},
+            )
+
+
     master_article_ids = _unique(master_article_ids)
+
 
 #REMONTE TOUS LES INGREDIENTS & RECETTES D'UN RESTAURANT (LIMIT 10000)
 
@@ -893,7 +947,7 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
     impacted_sub_recipes = _recompute_recipes(impacted_recipes_sub)
 
 
-    # CALCULES DES MARGES
+    # CALCULES DES MARGES MOYENNES
     impacted_for_margins = set(impacted_article_recipes) | set(impacted_sub_recipes) #FUSIONNE LES 2 TYÊS DE RECETTES IMPACTÉS
     impacted_recipes_saleable = [
         recipes_cache[rid]

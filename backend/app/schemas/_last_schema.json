@@ -1797,6 +1797,11 @@
       "column": "updated_by",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "mercuriale_articles": [
@@ -1903,7 +1908,7 @@
       "udt_name": "timestamptz"
     }
   ],
-  "price": [
+  "price_stripe": [
     {
       "column": "id",
       "data_type": "uuid",
@@ -1945,7 +1950,7 @@
       "udt_name": "timestamptz"
     }
   ],
-  "product": [
+  "product_stripe": [
     {
       "column": "id",
       "data_type": "uuid",
@@ -2649,6 +2654,11 @@
       "column": "updated_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
     }
   ],
   "user_establishment": [
@@ -2817,6 +2827,11 @@
       "column": "invoice_id",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "is_deleted",
+      "data_type": "boolean",
+      "udt_name": "bool"
     }
   ],
   "vat_rates": [

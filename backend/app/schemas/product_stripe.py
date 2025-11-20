@@ -7,7 +7,7 @@ from uuid import UUID
 Product_type = Literal["plan", "addon"]
 Addon_category = Literal["seat", "invoices", "recipe"]
 
-class Product(BaseModel):
+class ProductStripe(BaseModel):
     id: Optional[UUID] = None
     internal_code: Optional[str] = None
     marketing_name: Optional[str] = None

@@ -6,7 +6,7 @@ from uuid import UUID
 
 Billing_cycle = Literal["monthly", "yearly"]
 
-class Price(BaseModel):
+class PriceStripe(BaseModel):
     id: Optional[UUID] = None
     product_id: Optional[UUID] = None
     billing_cycle: Optional[Billing_cycle] = None

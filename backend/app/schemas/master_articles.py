@@ -17,3 +17,4 @@ class MasterArticles(BaseModel):
     updated_at: Optional[datetime] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
+    name: Optional[str] = None

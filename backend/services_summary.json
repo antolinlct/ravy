@@ -1160,6 +1160,49 @@
       }
     ]
   },
+  "price_stripe_service": {
+    "table_name": "price_stripe",
+    "functions": [
+      {
+        "name": "get_all_price_stripe",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_price_stripe_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_price_stripe",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_price_stripe",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_price_stripe",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
   "user_profiles_service": {
     "table_name": "user_profiles",
     "functions": [
@@ -1325,6 +1368,49 @@
       },
       {
         "name": "delete_recipe_margin_subcategory",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "product_stripe_service": {
+    "table_name": "product_stripe",
+    "functions": [
+      {
+        "name": "get_all_product_stripe",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_product_stripe_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_product_stripe",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_product_stripe",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_product_stripe",
         "args": [
           "id"
         ],
