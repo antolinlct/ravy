@@ -76,10 +76,14 @@ def _ensure_portion(recipe_id: Optional[UUID], portion: Optional[Decimal]) -> De
 def _split_histories(
     histories: Iterable[Any], target_date: date
 ) -> Tuple[Optional[Any], Optional[Any], Optional[Any]]:
+    ordered = sorted(
+        histories,
+        key=lambda h: _as_date(_safe_get(h, "date")) or date.min,
+    )
     same_day = None
     h_prev = None
     h_next = None
-    for history in histories:
+    for history in ordered:
         history_date = _as_date(_safe_get(history, "date"))
         if history_date is None:
             continue

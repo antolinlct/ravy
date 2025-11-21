@@ -180,6 +180,7 @@ def update_recipes_and_history_recipes(
                 prev_version = _as_decimal(_safe_get(last_history, "version_number"))
                 version_number = (prev_version + Decimal("0.01")) if prev_version else Decimal("1")
                 contains_sub_value = _safe_get(last_history, "contains_sub_recipe")
+            contains_sub_value = bool(contains_sub_value)
 
             payload = {
                 "recipe_id": recipe_id,
@@ -201,7 +202,10 @@ def update_recipes_and_history_recipes(
             if new_history:
                 histories.append(new_history)
         else:
-            history_to_update = future_histories[0]
+            history_to_update = max(
+                future_histories,
+                key=lambda h: _as_date(_safe_get(h, "date")) or date.min,
+            )
             portion_hist = _ensure_portion(
                 _as_decimal(_safe_get(history_to_update, "portion")) or portion_recipe
             )
