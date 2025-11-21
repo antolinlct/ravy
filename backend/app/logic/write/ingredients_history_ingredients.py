@@ -210,14 +210,40 @@ def update_ingredients_and_history_ingredients(
     ]
     ingredients_fixed = [ing for ing in ingredients if _safe_get(ing, "type") == "FIXED"]
 
+    recipe_ids_needed: Set[UUID] = set(
+        filter(
+            None,
+            (
+                _safe_get(ing, "recipe_id")
+                for ing in ingredients
+            ),
+        )
+    )
+    recipe_ids_needed.update(
+        filter(
+            None,
+            (_safe_get(ing, "subrecipe_id") for ing in ingredients_subrecipes),
+        )
+    )
+
     recipes_cache: Dict[UUID, Any] = {}
+    if recipe_ids_needed:
+        fetched_recipes = recipes_service.get_all_recipes(
+            filters={"establishment_id": establishment_id},
+            limit=max(200, len(recipe_ids_needed)),
+        )
+        recipes_cache = {
+            _safe_get(r, "id"): r
+            for r in fetched_recipes
+            if _safe_get(r, "id") in recipe_ids_needed
+        }
 
     def _get_recipe(recipe_id: Optional[UUID]) -> Optional[Any]:
         if recipe_id is None:
             return None
-        if recipe_id not in recipes_cache:
-            recipes_cache[recipe_id] = recipes_service.get_recipes_by_id(recipe_id)
         recipe = recipes_cache.get(recipe_id)
+        if recipe is None:
+            return None
         if _safe_get(recipe, "establishment_id") != establishment_id:
             return None
         return recipe
