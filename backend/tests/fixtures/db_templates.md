@@ -254,7 +254,7 @@ financial_reports = fake_db.create_financial_reports({
 
 history_ingredients = fake_db.create_history_ingredients({
     "id": uuid4(),
-    "ingredient_id": "uuid",
+    "ingredient_id": ingredients["id"],
     "recipe_id": recipes["id"],
     "establishment_id": establishments["id"],
     "master_article_id": master_articles["id"],
@@ -720,7 +720,7 @@ recipe_margin_category = fake_db.create_recipe_margin_category({
     "average_margin": 0,
     "establishment_id": establishments["id"],
     "responsible_recipe": recipes["id"],
-    "cagtegory_id": recipe_categories["id"],
+    "category_id": recipe_categories["id"],
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "created_by": user_profiles["id"],
     "updated_by": user_profiles["id"],
@@ -736,7 +736,7 @@ recipe_margin_subcategory = fake_db.create_recipe_margin_subcategory({
     "average_margin": 0,
     "establishment_id": establishments["id"],
     "responsible_recipe": recipes["id"],
-    "subcagtegory_id": recipes_subcategories["id"],
+    "subcategory_id": recipes_subcategories["id"],
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "created_by": user_profiles["id"],
     "updated_by": user_profiles["id"],
@@ -783,6 +783,7 @@ recipes_subcategories = fake_db.create_recipes_subcategories({
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "created_by": "uuid",
     "updated_by": user_profiles["id"],
+    "establishment_id": establishments["id"],
 })
 
 # CREATION D'UNE RECOMMENDATIONS

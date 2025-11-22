@@ -2138,7 +2138,7 @@
       "udt_name": "uuid"
     },
     {
-      "column": "cagtegory_id",
+      "column": "category_id",
       "data_type": "uuid",
       "udt_name": "uuid"
     },
@@ -2190,7 +2190,7 @@
       "udt_name": "uuid"
     },
     {
-      "column": "subcagtegory_id",
+      "column": "subcategory_id",
       "data_type": "uuid",
       "udt_name": "uuid"
     },
@@ -2365,6 +2365,11 @@
     },
     {
       "column": "updated_by",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
       "data_type": "uuid",
       "udt_name": "uuid"
     }

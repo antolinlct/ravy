@@ -12,7 +12,7 @@ class RecipeMarginCategory(BaseModel):
     average_margin: Optional[float] = None
     establishment_id: Optional[UUID] = None
     responsible_recipe: Optional[UUID] = None
-    cagtegory_id: Optional[UUID] = None
+    category_id: Optional[UUID] = None
     updated_at: Optional[datetime] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None

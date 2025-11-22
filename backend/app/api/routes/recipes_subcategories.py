@@ -10,12 +10,13 @@ def list_recipes_subcategories(
     direction: str | None = None,
     limit: int | None = 200,
     page: int | None = 1,
+    establishment_id: str | None = None
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "page": page
+        "page": page, "establishment_id": establishment_id
     }
     filters = {k: v for k, v in filters.items() if v is not None}
     return recipes_subcategories_service.get_all_recipes_subcategories(filters, limit=limit, page=page)
