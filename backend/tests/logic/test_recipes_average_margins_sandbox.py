@@ -12,7 +12,7 @@ from tests.fixtures import fake_services
 # pointent vers notre sandbox local.
 sys.modules["app.services"] = fake_services
 
-from app.logic.write.recipes_average_margins import recompute_recipe_margins
+from app.logic.write.shared.recipes_average_margins import recompute_recipe_margins
 
 
 # ===============================================================
