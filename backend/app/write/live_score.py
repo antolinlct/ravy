@@ -132,14 +132,23 @@ def create_or_update_live_score(*, establishment_id: UUID, target_date: Any = No
         filters={"financial_report_id": report_id},
     )
 
+    recipe_cache: Dict[UUID, Any] = {}
+    master_article_cache: Dict[UUID, Any] = {}
+    market_average_cache: Dict[tuple, Dict[str, Optional[Decimal]]] = {}
+
     consumed_value_sum = Decimal("0")
     market_balanced_sum = Decimal("0")
 
     def _fetch_market_averages_range(
         *, master_article_id: Optional[UUID], market_master_article_id: Optional[UUID], start: date, end: date
     ) -> Dict[str, Optional[Decimal]]:
+        cache_key = (master_article_id, market_master_article_id, start, end)
+        if cache_key in market_average_cache:
+            return market_average_cache[cache_key]
         if not master_article_id:
-            return {"article": None, "market": None}
+            result = {"article": None, "market": None}
+            market_average_cache[cache_key] = result
+            return result
 
         def _fetch_articles(start_date: date, end_date: date) -> Sequence[Any]:
             return _paginate(
@@ -189,7 +198,9 @@ def create_or_update_live_score(*, establishment_id: UUID, target_date: Any = No
 
         article_avg = _mean_decimal(_as_decimal(_safe_get(a, "unit_price", None)) for a in articles_range)
         market_avg = _mean_decimal(_as_decimal(_safe_get(m, "unit_price", None)) for m in market_range)
-        return {"article": article_avg, "market": market_avg}
+        result = {"article": article_avg, "market": market_avg}
+        market_average_cache[cache_key] = result
+        return result
 
     for ingredient in ingredients:
         quantity = _as_decimal(_safe_get(ingredient, "quantity", 0) or 0) or Decimal("0")
@@ -198,7 +209,11 @@ def create_or_update_live_score(*, establishment_id: UUID, target_date: Any = No
         master_article_id = _safe_get(ingredient, "master_article_id", None)
         market_master_article_id = None
         if master_article_id:
-            master_article = master_articles_service.get_master_articles_by_id(master_article_id)
+            if master_article_id not in master_article_cache:
+                master_article_cache[master_article_id] = master_articles_service.get_master_articles_by_id(
+                    master_article_id
+                )
+            master_article = master_article_cache.get(master_article_id)
             market_master_article_id = _safe_get(master_article, "market_master_article_id", None)
 
         averages = _fetch_market_averages_range(
@@ -229,7 +244,9 @@ def create_or_update_live_score(*, establishment_id: UUID, target_date: Any = No
     for fr in recipes:
         recipe_id = _safe_get(fr, "recipe_id", None)
         total_revenue = _as_decimal(_safe_get(fr, "total_revenue", 0) or 0) or Decimal("0")
-        recipe = recipes_service.get_recipes_by_id(recipe_id) if recipe_id else None
+        if recipe_id and recipe_id not in recipe_cache:
+            recipe_cache[recipe_id] = recipes_service.get_recipes_by_id(recipe_id)
+        recipe = recipe_cache.get(recipe_id)
         current_margin = _as_decimal(_safe_get(recipe, "current_margin", 0) or 0) or Decimal("0")
         balanced_margin = total_revenue * current_margin
         balanced_margin_sum += balanced_margin
