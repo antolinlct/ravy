@@ -12,6 +12,7 @@ from __future__ import annotations
 from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from statistics import mean
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from uuid import UUID
@@ -55,6 +56,24 @@ def _as_date(value: Any) -> Optional[date]:
         try:
             return date.fromisoformat(raw[:10])
         except ValueError:
+            return None
+    return None
+
+
+def _as_decimal(value: Any) -> Optional[Decimal]:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return Decimal(raw)
+        except InvalidOperation:
             return None
     return None
 
@@ -273,15 +292,15 @@ def create_or_update_financial_report(
     # Étape 1: financial_recipes
     # ------------------------------------------------------------------
     financial_recipes: List[Dict[str, Any]] = []
-    theoretical_sales_solid = 0.0
-    theoretical_material_cost_solid = 0.0
-    total_sales_numbers = 0.0
-    balanced_margin_sum = 0.0
-    total_revenue_sum = 0.0
+    theoretical_sales_solid = Decimal("0")
+    theoretical_material_cost_solid = Decimal("0")
+    total_sales_numbers = Decimal("0")
+    balanced_margin_sum = Decimal("0")
+    total_revenue_sum = Decimal("0")
 
     for entry in payload:
         recipe_id = entry.get("id") or entry.get("recipe_id")
-        sales_number = float(entry.get("sales_number") or 0)
+        sales_number = _as_decimal(entry.get("sales_number") or 0) or Decimal("0")
         if not recipe_id:
             continue
 
@@ -289,15 +308,17 @@ def create_or_update_financial_report(
         if not recipe:
             continue
 
-        price_excl_tax = getattr(recipe, "price_excl_tax", 0) or 0
-        purchase_cost_per_portion = getattr(recipe, "purchase_cost_per_portion", 0) or 0
-        current_margin = getattr(recipe, "current_margin", 0) or 0
-        portion = getattr(recipe, "portion", 1) or 1
+        price_excl_tax = _as_decimal(getattr(recipe, "price_excl_tax", 0) or 0) or Decimal("0")
+        purchase_cost_per_portion = _as_decimal(
+            getattr(recipe, "purchase_cost_per_portion", 0) or 0
+        ) or Decimal("0")
+        current_margin = _as_decimal(getattr(recipe, "current_margin", 0) or 0) or Decimal("0")
+        portion = _as_decimal(getattr(recipe, "portion", 1) or 1) or Decimal("1")
 
-        total_revenue_recipe = float(price_excl_tax) * sales_number
-        total_cost_recipe = float(purchase_cost_per_portion) * sales_number
+        total_revenue_recipe = price_excl_tax * sales_number
+        total_cost_recipe = purchase_cost_per_portion * sales_number
         total_margin_recipe = total_revenue_recipe - total_cost_recipe
-        balanced_margin = total_revenue_recipe * float(current_margin)
+        balanced_margin = total_revenue_recipe * current_margin
 
         payload_recipe = {
             "financial_report_id": report_id,
@@ -325,14 +346,14 @@ def create_or_update_financial_report(
     # ------------------------------------------------------------------
     # Étape 2: financial_ingredients
     # ------------------------------------------------------------------
-    consumed_value_sum = 0.0
-    market_balanced_sum = 0.0
+    consumed_value_sum = Decimal("0")
+    market_balanced_sum = Decimal("0")
 
     for fr in financial_recipes:
         fr_id = fr.get("id")
         recipe_id = fr.get("recipe_id")
-        sales_number = fr.get("sales_number", 0) or 0
-        portion = fr.get("portion") or 1
+        sales_number = _as_decimal(fr.get("sales_number", 0) or 0) or Decimal("0")
+        portion = _as_decimal(fr.get("portion") or 1) or Decimal("1")
 
         if not fr_id or not recipe_id:
             continue
@@ -348,9 +369,9 @@ def create_or_update_financial_report(
                 continue
 
             master_article_id = getattr(ingredient, "master_article_id", None)
-            percentage_loss = getattr(ingredient, "percentage_loss", 0) or 0
-            base_quantity = (getattr(ingredient, "quantity", 0) or 0) * (
-                percentage_loss if percentage_loss > 0 else 1
+            percentage_loss = _as_decimal(getattr(ingredient, "percentage_loss", 0) or 0)
+            base_quantity = (_as_decimal(getattr(ingredient, "quantity", 0) or 0) or Decimal("0")) * (
+                percentage_loss if percentage_loss and percentage_loss > 0 else Decimal("1")
             )
             quantity = (base_quantity / portion) * sales_number
 
@@ -360,8 +381,10 @@ def create_or_update_financial_report(
                 end=month_end,
             )
 
-            consumed_value = (history_avg.unit_cost_per_portion_recipe or 0) * quantity
-            accumulated_loss = (history_avg.loss_value or 0) * sales_number
+            consumed_value_unit = _as_decimal(history_avg.unit_cost_per_portion_recipe or 0) or Decimal("0")
+            consumed_value = consumed_value_unit * quantity
+            accumulated_loss_unit = _as_decimal(history_avg.loss_value or 0) or Decimal("0")
+            accumulated_loss = accumulated_loss_unit * sales_number
 
             market_master_article_id = None
             if master_article_id:
@@ -375,12 +398,14 @@ def create_or_update_financial_report(
                 end=month_end,
             )
 
-            market_gap_value = 0.0
-            market_gap_percentage = 0.0
+            market_gap_value = Decimal("0")
+            market_gap_percentage = Decimal("0")
             if market_avg.article_unit_price is not None and market_avg.market_unit_price is not None:
-                market_gap_value = market_avg.article_unit_price - market_avg.market_unit_price
-                if market_avg.market_unit_price:
-                    market_gap_percentage = market_gap_value / market_avg.market_unit_price
+                article_unit_price = _as_decimal(market_avg.article_unit_price) or Decimal("0")
+                market_unit_price = _as_decimal(market_avg.market_unit_price) or Decimal("0")
+                market_gap_value = article_unit_price - market_unit_price
+                if market_unit_price:
+                    market_gap_percentage = market_gap_value / market_unit_price
 
             market_total_savings = market_gap_value * quantity
             market_balanced = consumed_value * market_gap_percentage
@@ -408,14 +433,14 @@ def create_or_update_financial_report(
     # ------------------------------------------------------------------
     # Étape 3: financial_reports
     # ------------------------------------------------------------------
-    ca_solid_ht = total_revenue_food_excl_tax
-    ca_total_ht = total_revenue_excl_tax
+    ca_solid_ht = _as_decimal(total_revenue_food_excl_tax) or Decimal("0")
+    ca_total_ht = _as_decimal(total_revenue_excl_tax) or Decimal("0")
     ca_liquid_ht = ca_total_ht - ca_solid_ht
 
     ca_tracked_recipe_total = theoretical_sales_solid
-    ca_tracked_recipe_ratio = (ca_tracked_recipe_total / ca_total_ht * 100) if ca_total_ht else 0
+    ca_tracked_recipe_ratio = (ca_tracked_recipe_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
     ca_untracked_recipes_total = ca_solid_ht - ca_tracked_recipe_total
-    ca_untracked_recipes_ratio = (ca_untracked_recipes_total / ca_total_ht * 100) if ca_total_ht else 0
+    ca_untracked_recipes_ratio = (ca_untracked_recipes_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
     suppliers = _paginate(
         suppliers_service.get_all_suppliers,
@@ -432,72 +457,75 @@ def create_or_update_financial_report(
         },
     )
 
-    def _sum_invoices(label: str) -> float:
-        return float(
-            sum(
-                getattr(inv, "total_excl_tax", 0) or 0
-                for inv in invoices
-                if supplier_labels.get(getattr(inv, "supplier_id", None)) == label
-            )
+    def _sum_invoices(label: str) -> Decimal:
+        return sum(
+            _as_decimal(getattr(inv, "total_excl_tax", 0) or 0) or Decimal("0")
+            for inv in invoices
+            if supplier_labels.get(getattr(inv, "supplier_id", None)) == label
         )
 
     material_cost_solid = _sum_invoices("FOOD")
     material_cost_liquid = _sum_invoices("BEVERAGES")
     material_cost_total = material_cost_solid + material_cost_liquid
 
-    material_cost_ratio = (material_cost_total / ca_total_ht * 100) if ca_total_ht else 0
-    material_cost_ratio_solid = (material_cost_solid / ca_total_ht * 100) if ca_total_ht else 0
-    material_cost_ratio_liquid = (material_cost_liquid / ca_total_ht * 100) if ca_total_ht else 0
+    material_cost_ratio = (material_cost_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
+    material_cost_ratio_solid = (material_cost_solid / ca_total_ht * 100) if ca_total_ht else Decimal("0")
+    material_cost_ratio_liquid = (material_cost_liquid / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    labor_cost_total = fte_cost
-    labor_cost_ratio = (labor_cost_total / ca_total_ht * 100) if ca_total_ht else 0
+    labor_cost_total = _as_decimal(fte_cost) or Decimal("0")
+    labor_cost_ratio = (labor_cost_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    fixed_charges_total = _sum_invoices("FIXED COSTS") + total_fixed_cost
-    fixed_charges_ratio = (fixed_charges_total / ca_total_ht * 100) if ca_total_ht else 0
+    fixed_charges_total = _sum_invoices("FIXED COSTS") + (_as_decimal(total_fixed_cost) or Decimal("0"))
+    fixed_charges_ratio = (fixed_charges_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    variable_charges_total = _sum_invoices("VARIABLES COSTS") + total_variable_cost
-    variable_charges_ratio = (variable_charges_total / ca_total_ht * 100) if ca_total_ht else 0
+    variable_charges_total = _sum_invoices("VARIABLES COSTS") + (
+        _as_decimal(total_variable_cost) or Decimal("0")
+    )
+    variable_charges_ratio = (variable_charges_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    other_charges_total = total_other_cost
-    other_charges_ratio = (other_charges_total / ca_total_ht * 100) if ca_total_ht else 0
+    other_charges_total = _as_decimal(total_other_cost) or Decimal("0")
+    other_charges_ratio = (other_charges_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
     commercial_margin_solid = ca_solid_ht - material_cost_solid
     commercial_margin_liquid = ca_liquid_ht - material_cost_liquid
     commercial_margin_total = ca_total_ht - material_cost_total
-    commercial_margin_ratio = (commercial_margin_total / ca_total_ht * 100) if ca_total_ht else 0
-    commercial_margin_solid_ratio = (commercial_margin_solid / ca_total_ht * 100) if ca_total_ht else 0
-    commercial_margin_liquid_ratio = (commercial_margin_liquid / ca_total_ht * 100) if ca_total_ht else 0
+    commercial_margin_ratio = (commercial_margin_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
+    commercial_margin_solid_ratio = (commercial_margin_solid / ca_total_ht * 100) if ca_total_ht else Decimal("0")
+    commercial_margin_liquid_ratio = (
+        (commercial_margin_liquid / ca_total_ht * 100) if ca_total_ht else Decimal("0")
+    )
 
     production_cost_total = material_cost_total + labor_cost_total
-    production_cost_ratio = (production_cost_total / ca_total_ht * 100) if ca_total_ht else 0
+    production_cost_ratio = (production_cost_total / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
     ebitda = ca_total_ht - (
         production_cost_total + fixed_charges_total + variable_charges_total + other_charges_total
     )
-    ebitda_ratio = (ebitda / ca_total_ht * 100) if ca_total_ht else 0
+    ebitda_ratio = (ebitda / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
     mscv = ca_total_ht - (material_cost_total + variable_charges_total)
-    mscv_ratio = (mscv / ca_total_ht * 100) if ca_total_ht else 0
+    mscv_ratio = (mscv / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    break_even_point = (labor_cost_total + fixed_charges_total) / mscv if mscv else 0
+    break_even_point = (labor_cost_total + fixed_charges_total) / mscv if mscv else Decimal("0")
     safety_margin = ca_total_ht - break_even_point
-    safety_margin_ratio = (safety_margin / ca_total_ht * 100) if ca_total_ht else 0
+    safety_margin_ratio = (safety_margin / ca_total_ht * 100) if ca_total_ht else Decimal("0")
 
-    revenue_per_employee = ca_total_ht / fte_count if fte_count else 0
-    result_per_employee = ebitda / fte_count if fte_count else 0
-    salary_per_employee = labor_cost_total / fte_count if fte_count else 0
+    fte_count_decimal = _as_decimal(fte_count) or Decimal("0")
+    revenue_per_employee = ca_total_ht / fte_count_decimal if fte_count_decimal else Decimal("0")
+    result_per_employee = ebitda / fte_count_decimal if fte_count_decimal else Decimal("0")
+    salary_per_employee = labor_cost_total / fte_count_decimal if fte_count_decimal else Decimal("0")
 
-    avg_revenue_per_dish = ca_solid_ht / total_sales_numbers if total_sales_numbers else 0
-    avg_cost_per_dish = material_cost_solid / total_sales_numbers if total_sales_numbers else 0
+    avg_revenue_per_dish = ca_solid_ht / total_sales_numbers if total_sales_numbers else Decimal("0")
+    avg_cost_per_dish = material_cost_solid / total_sales_numbers if total_sales_numbers else Decimal("0")
     avg_margin_per_dish = avg_revenue_per_dish - avg_cost_per_dish
 
-    multiplier_global = ca_total_ht / material_cost_total if material_cost_total else 0
-    multiplier_solid = ca_solid_ht / material_cost_solid if material_cost_solid else 0
-    multiplier_liquid = ca_liquid_ht / material_cost_liquid if material_cost_liquid else 0
+    multiplier_global = ca_total_ht / material_cost_total if material_cost_total else Decimal("0")
+    multiplier_solid = ca_solid_ht / material_cost_solid if material_cost_solid else Decimal("0")
+    multiplier_liquid = ca_liquid_ht / material_cost_liquid if material_cost_liquid else Decimal("0")
 
     # Scores
-    purchase = (market_balanced_sum / consumed_value_sum * 100) if consumed_value_sum else 0
-    recipe_score_value = (balanced_margin_sum / total_revenue_sum) if total_revenue_sum else 0
+    purchase = (market_balanced_sum / consumed_value_sum * 100) if consumed_value_sum else Decimal("0")
+    recipe_score_value = (balanced_margin_sum / total_revenue_sum) if total_revenue_sum else Decimal("0")
 
     score_matrix = _paginate(
         score_matrix_service.get_all_score_matrix,
@@ -514,10 +542,18 @@ def create_or_update_financial_report(
                 return float(score)
         return float(getattr(score_matrix[-1], "score", 0)) if score_matrix else 0
 
-    score_purchase = _score_from_matrix("purchase_result", purchase)
-    score_recipe = round((recipe_score_value + score_purchase) / 2)
-    score_financial = _score_from_matrix("financial_result", ebitda_ratio)
-    score_global = (score_purchase * 0.4) + (score_recipe * 0.4) + (score_financial * 0.2)
+    score_purchase_raw = _score_from_matrix("purchase_result", float(purchase))
+    score_purchase = _as_decimal(score_purchase_raw) or Decimal("0")
+    score_recipe = _as_decimal(
+        round(float((recipe_score_value + score_purchase) / Decimal("2")))
+    ) or Decimal("0")
+    score_financial_raw = _score_from_matrix("financial_result", float(ebitda_ratio))
+    score_financial = _as_decimal(score_financial_raw) or Decimal("0")
+    score_global = _as_decimal(
+        (score_purchase * Decimal("0.4"))
+        + (score_recipe * Decimal("0.4"))
+        + (score_financial * Decimal("0.2"))
+    ) or Decimal("0")
 
     update_payload = {
         "establishment_id": establishment_id,
@@ -537,7 +573,7 @@ def create_or_update_financial_report(
         "material_cost_ratio_liquid": material_cost_ratio_liquid,
         "labor_cost_total": labor_cost_total,
         "labor_cost_ratio": labor_cost_ratio,
-        "fte_count": fte_count,
+        "fte_count": fte_count_decimal,
         "fixed_charges_total": fixed_charges_total,
         "fixed_charges_ratio": fixed_charges_ratio,
         "variable_charges_total": variable_charges_total,
