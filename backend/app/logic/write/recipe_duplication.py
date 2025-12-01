@@ -200,18 +200,11 @@ def duplicate_recipe(
         trigger="manual",
     )
 
-    saleable_value = _safe_get(base_recipe, "saleable")
-    active_value = _safe_get(base_recipe, "active")
-
-    is_saleable = bool(saleable_value)
-    is_active = bool(active_value)
-
-    if is_saleable and is_active:
-        recompute_recipe_margins(
-            establishment_id=establishment_id,
-            recipe_ids=[new_recipe_id],
-            target_date=target_date_norm,
-        )
+    recompute_recipe_margins(
+        establishment_id=establishment_id,
+        recipe_ids=[new_recipe_id],
+        target_date=target_date_norm,
+    )
 
     return {
     "new_recipe_id": new_recipe_id,

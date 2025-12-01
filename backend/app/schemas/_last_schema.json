@@ -944,17 +944,22 @@
       "udt_name": "numeric"
     },
     {
-      "column": "market_gap",
+      "column": "market_gap_value",
       "data_type": "numeric",
       "udt_name": "numeric"
     },
     {
-      "column": "market_savings",
+      "column": "market_gap_percentage",
       "data_type": "numeric",
       "udt_name": "numeric"
     },
     {
-      "column": "balanced_value",
+      "column": "market_total_savings",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "market_balanced",
       "data_type": "numeric",
       "udt_name": "numeric"
     }
@@ -1238,11 +1243,6 @@
       "udt_name": "numeric"
     },
     {
-      "column": "charges_per_employee",
-      "data_type": "numeric",
-      "udt_name": "numeric"
-    },
-    {
       "column": "salary_per_employee",
       "data_type": "numeric",
       "udt_name": "numeric"
@@ -1291,6 +1291,36 @@
       "column": "notes",
       "data_type": "text",
       "udt_name": "text"
+    },
+    {
+      "column": "mscv",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "mscv_ratio",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "score_global",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "score_financial",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "score_recipe",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "score_purchase",
+      "data_type": "numeric",
+      "udt_name": "numeric"
     }
   ],
   "history_ingredients": [

@@ -166,9 +166,10 @@ financial_ingredients = fake_db.create_financial_ingredients({
     "quantity": 0,
     "consumed_value": 0,
     "accumulated_loss": 0,
-    "market_gap": 0,
-    "market_savings": 0,
-    "balanced_value": 0,
+    "market_gap_value": 0,
+    "market_gap_percentage": 0,
+    "market_total_savings": 0,
+    "market_balanced": 0,
 })
 
 # CREATION D'UNE FINANCIAL_RECIPES
@@ -236,7 +237,6 @@ financial_reports = fake_db.create_financial_reports({
     "safety_margin_ratio": 0,
     "revenue_per_employee": 0,
     "result_per_employee": 0,
-    "charges_per_employee": 0,
     "salary_per_employee": 0,
     "avg_revenue_per_dish": 0,
     "avg_cost_per_dish": 0,
@@ -247,6 +247,12 @@ financial_reports = fake_db.create_financial_reports({
     "multiplier_solid": 0,
     "multiplier_liquid": 0,
     "notes": "string",
+    "mscv": 0,
+    "mscv_ratio": 0,
+    "score_global": 0,
+    "score_financial": 0,
+    "score_recipe": 0,
+    "score_purchase": 0,
 })
 
 # CREATION D'UNE HISTORY_INGREDIENTS

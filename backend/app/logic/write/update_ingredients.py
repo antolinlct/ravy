@@ -176,23 +176,9 @@ def update_ingredient(
     impacted_recipes.add(recipe_id)
 
     if impacted_recipes:
-        recipe_map = _get_recipes_by_ids(
-            establishment_id=establishment_id, recipe_ids=impacted_recipes
-        )
-
-        margin_recipe_ids = set()
-        for rid, rec in recipe_map.items():
-            saleable_val = _safe_get(rec, "saleable")
-            active_val = _safe_get(rec, "active")
-            is_saleable = True if saleable_val is None else bool(saleable_val)
-            is_active = True if active_val is None else bool(active_val)
-            if is_saleable and is_active:
-                margin_recipe_ids.add(rid)
-
-        if margin_recipe_ids:
             recompute_recipe_margins(
                 establishment_id=establishment_id,
-                recipe_ids=list(margin_recipe_ids),
+                recipe_ids=list(impacted_recipes),
                 target_date=target_date_norm,
             )
 

@@ -335,101 +335,100 @@ def update_ingredients_and_history_ingredients(
 
 
     # --------------------------------------------------------
-    # ARTICLE – manual
+    # ARTICLE – manual (logique unifiée)
     # --------------------------------------------------------
     if trigger == "manual":
         for ingredient in ingredients_article:
             ingredient_id = _safe_get(ingredient, "id")
             recipe_id = _safe_get(ingredient, "recipe_id")
-            histories = _get_histories(ingredient_id)
-            if not histories:
-                articles = articles_service.get_all_articles(
-                    filters={
-                        "master_article_id": _safe_get(ingredient, "master_article_id"),
-                        "order_by": "date",
-                        "direction": "desc",
-                        "establishment_id": establishment_id,
-                    },
-                    limit=3, #ON PREND LES 3 PLUS RECENT POUR BOUCLER EN SECU SI UN DES PRIX UNITAIRE EST VIDE.
-                )
-                if not articles:
-                    continue
+            master_article_id = _safe_get(ingredient, "master_article_id")
 
-                article = articles[0]
-                gross_unit_price = None
-                for art in articles:
-                    price = _as_decimal(_safe_get(art, "unit_price"))
-                    if price is not None and price > 0:
-                        gross_unit_price = price
-                        article = art
-                        break
-                if gross_unit_price is None:
-                    # aucun prix valide trouvé sur les 3 derniers articles
-                    continue
+            # sécurités minimales
+            if master_article_id is None:
+                continue
 
-                quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
-                percentage_loss = _as_decimal(_safe_get(ingredient, "percentage_loss")) or Decimal("0")
-                unit_cost = _as_decimal(_safe_get(ingredient, "unit_cost"))
-
-                if unit_cost is None:
-                    unit_cost, _, loss_value = _compute_loss_and_cost( gross_unit_price, quantity, percentage_loss)                   
-                else:
-                    _, _, loss_value = _compute_loss_and_cost( gross_unit_price, quantity, percentage_loss)
-
-                unit_cost_per_portion_recipe = _as_decimal(_safe_get(ingredient, "unit_cost_per_portion_recipe"))
-
-                if unit_cost_per_portion_recipe is None:
-                    portion = _portion_for_recipe(recipe_id)
-                    unit_cost_per_portion_recipe = unit_cost / portion
-
-
-                history_payload = {
-                    "ingredient_id": ingredient_id,
-                    "recipe_id": recipe_id,
+            # 1) récupérer les derniers articles du master_article
+            articles = articles_service.get_all_articles(
+                filters={
+                    "master_article_id": master_article_id,
+                    "order_by": "date",
+                    "direction": "desc",
                     "establishment_id": establishment_id,
-                    "master_article_id": _safe_get(ingredient, "master_article_id"),
-                    "unit": _safe_get(ingredient, "unit"),
-                    "quantity": quantity,
-                    "percentage_loss": percentage_loss,
-                    "gross_unit_price": gross_unit_price,
-                    "unit_cost": unit_cost,
-                    "loss_value": loss_value,
-                    "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
-                    "date": datetime.combine(_as_date(_safe_get(article, "date")) or target_date_norm, time()),
-                    "version_number": Decimal("1"),
-                }
-                history_ingredients_service.create_history_ingredients(history_payload)
+                },
+                limit=5,
+            )
+            if not articles:
+                continue
 
-            # CAS DES HISTORIQUES EXISTE DONC MODIFCICATION ET PAS DE CRÉATION.
-            else:
-                latest_history = histories[-1]
-                gross_unit_price = _as_decimal(_safe_get(latest_history, "gross_unit_price")) or _as_decimal(_safe_get(ingredient, "gross_unit_price"))
-                if gross_unit_price is None:
-                    continue
+            # 2) sélectionner le dernier article avec prix valide
+            last_article = None
+            last_price = None
 
-                quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
-                percentage_loss = _as_decimal(_safe_get(ingredient, "percentage_loss")) or Decimal("0")
-                unit_cost, _, loss_value = _compute_loss_and_cost(gross_unit_price, quantity, percentage_loss)
-                portion = _portion_for_recipe(recipe_id)
-                unit_cost_per_portion_recipe = unit_cost / portion
+            for art in articles:
+                price = _as_decimal(_safe_get(art, "unit_price"))
+                if price is not None and price > 0:
+                    last_article = art
+                    last_price = price
+                    break
 
+            if last_article is None:
+                continue
 
-                history_payload = {
-                    "gross_unit_price": gross_unit_price,
-                    "quantity": quantity,
-                    "percentage_loss": percentage_loss,
-                    "unit_cost": unit_cost,
-                    "loss_value": loss_value,
-                    "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
-                    "unit": _safe_get(ingredient, "unit"),
-                }
+            # date de référence de l'historique = date du dernier article
+            article_date = _as_date(_safe_get(last_article, "date")) or target_date_norm
+            history_dt = datetime.combine(article_date, time())
 
-                current_version = _as_decimal(_safe_get(latest_history, "version_number"))
+            # 3) re-calcul des coûts depuis les valeurs de l'ingrédient
+            quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
+            percentage_loss = _as_decimal(_safe_get(ingredient, "percentage_loss")) or Decimal("0")
+
+            unit_cost, _, loss_value = _compute_loss_and_cost(last_price, quantity, percentage_loss)
+
+            portion = _portion_for_recipe(recipe_id)
+            unit_cost_per_portion_recipe = unit_cost / portion
+
+            # 4) vérifier s'il existe déjà un historique à cette date
+            histories = _get_histories(ingredient_id)
+            same_day_history, _, _ = _split_histories(histories, article_date)
+
+            history_payload = {
+                "gross_unit_price": last_price,
+                "quantity": quantity,
+                "percentage_loss": percentage_loss,
+                "unit_cost": unit_cost,
+                "loss_value": loss_value,
+                "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
+                "unit": _safe_get(ingredient, "unit"),
+            }
+
+            if same_day_history:
+                # 5) UPDATE si même date
+                current_version = _as_decimal(_safe_get(same_day_history, "version_number"))
                 if current_version is not None and current_version != current_version.to_integral_value():
                     history_payload["version_number"] = _compute_manual_version(histories)
 
-                history_ingredients_service.update_history_ingredients(_safe_get(latest_history, "id"), history_payload )
+                history_ingredients_service.update_history_ingredients(
+                    _safe_get(same_day_history, "id"), 
+                    history_payload
+                )
 
+            else:
+                # 6) CREATE sinon → version entière suivante
+                version_number = _compute_manual_version(histories)
+
+                history_payload_full = {
+                    "ingredient_id": ingredient_id,
+                    "recipe_id": recipe_id,
+                    "establishment_id": establishment_id,
+                    "master_article_id": master_article_id,
+                    "date": history_dt,
+                    "version_number": version_number,
+                    **history_payload,
+                }
+
+                history_ingredients_service.create_history_ingredients(history_payload_full)
+
+            # 7) mettre à jour l'ingrédient avec le dernier historique
             latest_histories = _get_histories(ingredient_id)
             if latest_histories:
                 _update_ingredient_from_history(ingredient, latest_histories[-1])
@@ -437,6 +436,7 @@ def update_ingredients_and_history_ingredients(
             if recipe_id:
                 recipes_directly_impacted.add(recipe_id)
             ingredients_processed.add(ingredient_id)
+
 
     # --------------------------------------------------------
     # SUBRECIPE – import
@@ -596,6 +596,7 @@ def update_ingredients_and_history_ingredients(
                     "ingredient_id": ingredient_id,
                     "recipe_id": recipe_id,
                     "establishment_id": establishment_id,
+                    "gross_unit_price": _as_decimal(_safe_get(ingredient, "gross_unit_price")),
                     "unit_cost": _as_decimal(_safe_get(ingredient, "unit_cost")),
                     "date": now_dt,
                     "version_number": version_number,

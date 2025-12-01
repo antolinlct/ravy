@@ -19,6 +19,7 @@ class FinancialIngredients(BaseModel):
     quantity: Optional[float] = None
     consumed_value: Optional[float] = None
     accumulated_loss: Optional[float] = None
-    market_gap: Optional[float] = None
-    market_savings: Optional[float] = None
-    balanced_value: Optional[float] = None
+    market_gap_value: Optional[float] = None
+    market_gap_percentage: Optional[float] = None
+    market_total_savings: Optional[float] = None
+    market_balanced: Optional[float] = None

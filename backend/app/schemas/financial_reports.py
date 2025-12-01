@@ -48,7 +48,6 @@ class FinancialReports(BaseModel):
     safety_margin_ratio: Optional[float] = None
     revenue_per_employee: Optional[float] = None
     result_per_employee: Optional[float] = None
-    charges_per_employee: Optional[float] = None
     salary_per_employee: Optional[float] = None
     avg_revenue_per_dish: Optional[float] = None
     avg_cost_per_dish: Optional[float] = None
@@ -59,3 +58,9 @@ class FinancialReports(BaseModel):
     multiplier_solid: Optional[float] = None
     multiplier_liquid: Optional[float] = None
     notes: Optional[str] = None
+    mscv: Optional[float] = None
+    mscv_ratio: Optional[float] = None
+    score_global: Optional[float] = None
+    score_financial: Optional[float] = None
+    score_recipe: Optional[float] = None
+    score_purchase: Optional[float] = None
