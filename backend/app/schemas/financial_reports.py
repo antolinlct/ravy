@@ -64,3 +64,5 @@ class FinancialReports(BaseModel):
     score_financial: Optional[float] = None
     score_recipe: Optional[float] = None
     score_purchase: Optional[float] = None
+    other_charges_total: Optional[float] = None
+    other_charges_ratio: Optional[float] = None

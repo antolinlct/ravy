@@ -253,6 +253,8 @@ financial_reports = fake_db.create_financial_reports({
     "score_financial": 0,
     "score_recipe": 0,
     "score_purchase": 0,
+    "other_charges_total": 0,
+    "other_charges_ratio": 0,
 })
 
 # CREATION D'UNE HISTORY_INGREDIENTS
