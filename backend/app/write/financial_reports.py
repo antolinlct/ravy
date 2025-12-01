@@ -247,10 +247,27 @@ def create_or_update_financial_report(
         )
         report_id = created.get("id") if created else None
 
-    is_new_report = report is None
-
     if not report_id:
         raise FinancialReportError("Impossible de créer ou récupérer le rapport financier")
+
+    # Nettoyage systématique des données existantes du rapport
+    existing_ingredients = _paginate(
+        financial_ingredients_service.get_all_financial_ingredients,
+        filters={"financial_report_id": report_id},
+    )
+    for ingredient in existing_ingredients:
+        fi_id = getattr(ingredient, "id", None)
+        if fi_id is not None:
+            financial_ingredients_service.delete_financial_ingredients(fi_id)
+
+    existing_recipes = _paginate(
+        financial_recipes_service.get_all_financial_recipes,
+        filters={"financial_report_id": report_id},
+    )
+    for recipe in existing_recipes:
+        fr_id = getattr(recipe, "id", None)
+        if fr_id is not None:
+            financial_recipes_service.delete_financial_recipes(fr_id)
 
     # ------------------------------------------------------------------
     # Étape 1: financial_recipes
@@ -282,15 +299,6 @@ def create_or_update_financial_report(
         total_margin_recipe = total_revenue_recipe - total_cost_recipe
         balanced_margin = total_revenue_recipe * float(current_margin)
 
-        existing_financial_recipe = financial_recipes_service.get_all_financial_recipes(
-            filters={
-                "financial_report_id": report_id,
-                "recipe_id": recipe_id,
-                "establishment_id": establishment_id,
-            },
-            limit=1,
-        )
-
         payload_recipe = {
             "financial_report_id": report_id,
             "recipe_id": recipe_id,
@@ -302,17 +310,8 @@ def create_or_update_financial_report(
             "balanced_margin": balanced_margin,
         }
 
-        if existing_financial_recipe:
-            fr_id = getattr(existing_financial_recipe[0], "id", None)
-            if fr_id:
-                financial_recipes_service.update_financial_recipes(fr_id, payload_recipe)
-                payload_recipe["id"] = fr_id
-        elif is_new_report:
-            created_recipe = financial_recipes_service.create_financial_recipes(payload_recipe)
-            payload_recipe["id"] = created_recipe.get("id") if created_recipe else None
-        else:
-            # On ne crée pas de nouvelles financial_recipes lorsqu'on met à jour un rapport existant
-            continue
+        created_recipe = financial_recipes_service.create_financial_recipes(payload_recipe)
+        payload_recipe["id"] = created_recipe.get("id") if created_recipe else None
 
         payload_recipe["portion"] = portion
         financial_recipes.append(payload_recipe)
@@ -386,15 +385,6 @@ def create_or_update_financial_report(
             market_total_savings = market_gap_value * quantity
             market_balanced = consumed_value * market_gap_percentage
 
-            existing_financial_ingredient = financial_ingredients_service.get_all_financial_ingredients(
-                filters={
-                    "financial_report_id": report_id,
-                    "ingredient_id": ing_id,
-                    "financial_recipe_id": fr_id,
-                },
-                limit=1,
-            )
-
             payload_ingredient = {
                 "financial_report_id": report_id,
                 "master_article_id": master_article_id,
@@ -410,15 +400,7 @@ def create_or_update_financial_report(
                 "market_balanced": market_balanced,
             }
 
-            if existing_financial_ingredient:
-                fi_id = getattr(existing_financial_ingredient[0], "id", None)
-                if fi_id:
-                    financial_ingredients_service.update_financial_ingredients(fi_id, payload_ingredient)
-            elif is_new_report:
-                financial_ingredients_service.create_financial_ingredients(payload_ingredient)
-            else:
-                # On ne crée pas de nouvelles financial_ingredients lors d'une mise à jour
-                continue
+            financial_ingredients_service.create_financial_ingredients(payload_ingredient)
 
             consumed_value_sum += consumed_value
             market_balanced_sum += market_balanced
