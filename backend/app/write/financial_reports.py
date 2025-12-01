@@ -78,6 +78,14 @@ def _as_decimal(value: Any) -> Optional[Decimal]:
     return None
 
 
+def _safe_get(obj: Any, key: str, default: Any = None) -> Any:
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 def _month_bounds(target: date) -> Tuple[date, date]:
     month_start = target.replace(day=1)
     last_day = monthrange(target.year, target.month)[1]
@@ -155,8 +163,8 @@ def _fetch_history_ingredient_averages(
             page_size=1,
         )
 
-    ucpp = _mean_or_none(getattr(r, "unit_cost_per_portion_recipe", None) for r in records)
-    loss_val = _mean_or_none(getattr(r, "loss_value", None) for r in records)
+    ucpp = _mean_or_none(_safe_get(r, "unit_cost_per_portion_recipe", None) for r in records)
+    loss_val = _mean_or_none(_safe_get(r, "loss_value", None) for r in records)
     return IngredientAverages(unit_cost_per_portion_recipe=ucpp, loss_value=loss_val)
 
 
@@ -220,8 +228,8 @@ def _fetch_market_averages(
             page_size=1,
         )
 
-    article_avg = _mean_or_none(getattr(a, "unit_price", None) for a in articles_month)
-    market_avg = _mean_or_none(getattr(m, "unit_price", None) for m in market_month)
+    article_avg = _mean_or_none(_safe_get(a, "unit_price", None) for a in articles_month)
+    market_avg = _mean_or_none(_safe_get(m, "unit_price", None) for m in market_month)
     return MarketAverages(article_unit_price=article_avg, market_unit_price=market_avg)
 
 
@@ -259,7 +267,7 @@ def create_or_update_financial_report(
     report = existing_reports[0] if existing_reports else None
 
     if report:
-        report_id = getattr(report, "id", None)
+        report_id = _safe_get(report, "id", None)
     else:
         created = financial_reports_service.create_financial_reports(
             {"establishment_id": establishment_id, "month": month_start.isoformat()}
@@ -275,7 +283,7 @@ def create_or_update_financial_report(
         filters={"financial_report_id": report_id},
     )
     for ingredient in existing_ingredients:
-        fi_id = getattr(ingredient, "id", None)
+        fi_id = _safe_get(ingredient, "id", None)
         if fi_id is not None:
             financial_ingredients_service.delete_financial_ingredients(fi_id)
 
@@ -284,7 +292,7 @@ def create_or_update_financial_report(
         filters={"financial_report_id": report_id},
     )
     for recipe in existing_recipes:
-        fr_id = getattr(recipe, "id", None)
+        fr_id = _safe_get(recipe, "id", None)
         if fr_id is not None:
             financial_recipes_service.delete_financial_recipes(fr_id)
 
@@ -308,12 +316,12 @@ def create_or_update_financial_report(
         if not recipe:
             continue
 
-        price_excl_tax = _as_decimal(getattr(recipe, "price_excl_tax", 0) or 0) or Decimal("0")
+        price_excl_tax = _as_decimal(_safe_get(recipe, "price_excl_tax", 0) or 0) or Decimal("0")
         purchase_cost_per_portion = _as_decimal(
-            getattr(recipe, "purchase_cost_per_portion", 0) or 0
+            _safe_get(recipe, "purchase_cost_per_portion", 0) or 0
         ) or Decimal("0")
-        current_margin = _as_decimal(getattr(recipe, "current_margin", 0) or 0) or Decimal("0")
-        portion = _as_decimal(getattr(recipe, "portion", 1) or 1) or Decimal("1")
+        current_margin = _as_decimal(_safe_get(recipe, "current_margin", 0) or 0) or Decimal("0")
+        portion = _as_decimal(_safe_get(recipe, "portion", 1) or 1) or Decimal("1")
 
         total_revenue_recipe = price_excl_tax * sales_number
         total_cost_recipe = purchase_cost_per_portion * sales_number
@@ -364,13 +372,15 @@ def create_or_update_financial_report(
         )
 
         for ingredient in ingredients:
-            ing_id = getattr(ingredient, "id", None)
+            ing_id = _safe_get(ingredient, "id", None)
             if not ing_id:
                 continue
 
-            master_article_id = getattr(ingredient, "master_article_id", None)
-            percentage_loss = _as_decimal(getattr(ingredient, "percentage_loss", 0) or 0)
-            base_quantity = (_as_decimal(getattr(ingredient, "quantity", 0) or 0) or Decimal("0")) * (
+            master_article_id = _safe_get(ingredient, "master_article_id", None)
+            percentage_loss = _as_decimal(_safe_get(ingredient, "percentage_loss", 0) or 0)
+            base_quantity = (
+                _as_decimal(_safe_get(ingredient, "quantity", 0) or 0) or Decimal("0")
+            ) * (
                 percentage_loss if percentage_loss and percentage_loss > 0 else Decimal("1")
             )
             quantity = (base_quantity / portion) * sales_number
@@ -389,7 +399,7 @@ def create_or_update_financial_report(
             market_master_article_id = None
             if master_article_id:
                 master_article = master_articles_service.get_master_articles_by_id(master_article_id)
-                market_master_article_id = getattr(master_article, "market_master_article_id", None)
+                market_master_article_id = _safe_get(master_article, "market_master_article_id", None)
 
             market_avg = _fetch_market_averages(
                 master_article_id=master_article_id,
@@ -446,7 +456,7 @@ def create_or_update_financial_report(
         suppliers_service.get_all_suppliers,
         filters={"establishment_id": establishment_id},
     )
-    supplier_labels = {getattr(s, "id", None): getattr(s, "label", None) for s in suppliers}
+    supplier_labels = {_safe_get(s, "id", None): _safe_get(s, "label", None) for s in suppliers}
 
     invoices = _paginate(
         invoices_service.get_all_invoices,
@@ -459,9 +469,9 @@ def create_or_update_financial_report(
 
     def _sum_invoices(label: str) -> Decimal:
         return sum(
-            _as_decimal(getattr(inv, "total_excl_tax", 0) or 0) or Decimal("0")
+            _as_decimal(_safe_get(inv, "total_excl_tax", 0) or 0) or Decimal("0")
             for inv in invoices
-            if supplier_labels.get(getattr(inv, "supplier_id", None)) == label
+            if supplier_labels.get(_safe_get(inv, "supplier_id", None)) == label
         )
 
     material_cost_solid = _sum_invoices("FOOD")
@@ -534,13 +544,13 @@ def create_or_update_financial_report(
 
     def _score_from_matrix(field: str, result_value: float) -> float:
         for row in score_matrix:
-            threshold = getattr(row, field, None)
-            score = getattr(row, "score", None)
+            threshold = _safe_get(row, field, None)
+            score = _safe_get(row, "score", None)
             if threshold is None or score is None:
                 continue
             if result_value >= threshold:
                 return float(score)
-        return float(getattr(score_matrix[-1], "score", 0)) if score_matrix else 0
+        return float(_safe_get(score_matrix[-1], "score", 0)) if score_matrix else 0
 
     score_purchase_raw = _score_from_matrix("purchase_result", float(purchase))
     score_purchase = _as_decimal(score_purchase_raw) or Decimal("0")
