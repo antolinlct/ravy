@@ -25,3 +25,4 @@ class HistoryIngredients(BaseModel):
     updated_by: Optional[UUID] = None
     loss_value: Optional[float] = None
     unit_cost_per_portion_recipe: Optional[float] = None
+    source_article_id: Optional[UUID] = None

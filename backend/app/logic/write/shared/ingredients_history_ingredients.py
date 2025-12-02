@@ -321,6 +321,7 @@ def update_ingredients_and_history_ingredients(
                     "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
                     "date": datetime.combine(target_date_norm, time()),
                     "version_number": version_number,
+                    "source_article_id": _safe_get(article, "id"),
                 }
                 history_ingredients_service.create_history_ingredients(history_payload)
 
@@ -399,6 +400,7 @@ def update_ingredients_and_history_ingredients(
                 "loss_value": loss_value,
                 "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
                 "unit": _safe_get(ingredient, "unit"),
+                "source_article_id": _safe_get(last_article, "id"),
             }
 
             if same_day_history:

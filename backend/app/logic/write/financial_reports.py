@@ -32,7 +32,7 @@ from app.services import (
     suppliers_service,
 )
 
-from app.logic.write.live_score import create_or_update_live_score
+from ravy_app.backend.app.logic.write.shared.live_score import create_or_update_live_score
 
 
 class FinancialReportError(Exception):

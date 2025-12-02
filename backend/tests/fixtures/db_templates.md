@@ -280,6 +280,7 @@ history_ingredients = fake_db.create_history_ingredients({
     "updated_by": user_profiles["id"],
     "loss_value": 0,
     "unit_cost_per_portion_recipe": 0,
+    "source_article_id": articles["id"],
 })
 
 # CREATION D'UNE HISTORY_RECIPES
