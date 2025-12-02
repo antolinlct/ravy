@@ -141,6 +141,8 @@ def create_articles_from_lines(
         raise ArticleWriteError("Date de facture invalide")
 
     master_articles_cache: Dict[UUID, Any] = {}
+    master_article_by_market_id: Dict[UUID, Any] = {}
+    market_master_articles_cache: Dict[str, Any] = {}
     articles_by_master: Dict[UUID, List[ArticleEntry]] = defaultdict(list)
     master_article_ids: List[UUID] = []
     articles_created: List[ArticleEntry] = []
@@ -151,45 +153,58 @@ def create_articles_from_lines(
             continue
         raw_name = line.get("product_name")
         cleaned_name = _apply_regex(regex_master_article, raw_name, "market_master_article_name") or raw_name
-        mma = market_master_articles_service.get_all_market_master_articles(
-            filters={"market_supplier_id": market_supplier_id, "unformatted_name": cleaned_name},
-            limit=1,
-        )
+        if not cleaned_name:
+            raise ArticleWriteError("Nom de produit manquant pour la ligne fournie")
 
-        if mma:
-            market_master_article = mma[0]
+        cached_mma = market_master_articles_cache.get(cleaned_name)
+        if cached_mma is not None:
+            market_master_article = cached_mma
         else:
-            market_master_article = market_master_articles_service.create_market_master_articles(
-                {
-                    "market_supplier_id": market_supplier_id,
-                    "name": line.get("product_name"),
-                    "unformatted_name": cleaned_name,
-                    "unit": line.get("unit"),
-                    "current_unit_price": _as_decimal(line.get("unit_price_excl_tax")),
-                }
+            mma = market_master_articles_service.get_all_market_master_articles(
+                filters={"market_supplier_id": market_supplier_id, "unformatted_name": cleaned_name},
+                limit=1,
             )
+
+            if mma:
+                market_master_article = mma[0]
+            else:
+                market_master_article = market_master_articles_service.create_market_master_articles(
+                    {
+                        "market_supplier_id": market_supplier_id,
+                        "name": raw_name,
+                        "unformatted_name": cleaned_name,
+                        "unit": line.get("unit"),
+                        "current_unit_price": _as_decimal(line.get("unit_price_excl_tax")),
+                    }
+                )
+            market_master_articles_cache[cleaned_name] = market_master_article
         if not market_master_article:
             raise ArticleWriteError("Création du market_master_article impossible")
         market_master_article_id = _safe_get(market_master_article, "id")
         if not market_master_article_id:
             raise ArticleWriteError("Market master article sans identifiant")
 
-        found_master = master_articles_service.get_all_master_articles(
-            filters={"establishment_id": establishment_id, "market_master_article_id": market_master_article_id},
-            limit=1,
-        )
-        master_article = found_master[0] if found_master else None
-        if not master_article:
-            master_article = master_articles_service.create_master_articles(
-                {
-                    "establishment_id": establishment_id,
-                    "supplier_id": supplier_id,
-                    "market_master_article_id": market_master_article_id,
-                    "unit": line.get("unit"),
-                    "unformatted_name": cleaned_name,
-                    "current_unit_price": _as_decimal(line.get("unit_price_excl_tax")),
-                }
+        cached_master_article = master_article_by_market_id.get(market_master_article_id)
+        if cached_master_article is not None:
+            master_article = cached_master_article
+        else:
+            found_master = master_articles_service.get_all_master_articles(
+                filters={"establishment_id": establishment_id, "market_master_article_id": market_master_article_id},
+                limit=1,
             )
+            master_article = found_master[0] if found_master else None
+            if not master_article:
+                master_article = master_articles_service.create_master_articles(
+                    {
+                        "establishment_id": establishment_id,
+                        "supplier_id": supplier_id,
+                        "market_master_article_id": market_master_article_id,
+                        "unit": line.get("unit"),
+                        "unformatted_name": cleaned_name,
+                        "current_unit_price": _as_decimal(line.get("unit_price_excl_tax")),
+                    }
+                )
+            master_article_by_market_id[market_master_article_id] = master_article
         if not master_article:
             raise ArticleWriteError("Création du master_article impossible")
         master_article_id = _safe_get(master_article, "id")
