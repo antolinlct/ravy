@@ -245,7 +245,8 @@ def delete_invoice(
             histories = history_ingredients_service.get_all_history_ingredients(
                 filters={"ingredient_id": ing_id, "establishment_id": establishment_id}
             )
-            _delete_history_ingredients(histories)
+            if histories:
+                _delete_history_ingredients(histories)
             if ing_id:
                 ingredients_service.delete_ingredients(ing_id)
             continue
@@ -320,7 +321,8 @@ def delete_invoice(
             histories = history_recipes_service.get_all_history_recipes(
                 filters={"recipe_id": rid, "establishment_id": establishment_id}
             )
-            _delete_history_recipes(histories)
+            if histories:
+                _delete_history_recipes(histories)
             recipes_service.delete_recipes(rid)
             deleted_recipe_ids.add(rid)
             continue
@@ -358,19 +360,20 @@ def delete_invoice(
         parent_recipe_id = _safe_get(ing, "recipe_id")
         sub_id = _safe_get(ing, "subrecipe_id") or _safe_get(ing, "subrecipes_id")
 
-        if parent_recipe_id:
+        if parent_recipe_id and parent_recipe_id not in deleted_recipe_ids:
             parent_recipe_ids.add(parent_recipe_id)
 
         if sub_id in deleted_recipe_ids:
             histories = history_ingredients_service.get_all_history_ingredients(
                 filters={"ingredient_id": ing_id, "establishment_id": establishment_id}
             )
-            _delete_history_ingredients(histories)
+            if histories:
+                _delete_history_ingredients(histories)
             if ing_id:
                 ingredients_service.delete_ingredients(ing_id)
             continue
 
-        if ing_id:
+        if ing_id and parent_recipe_id not in deleted_recipe_ids:
             subrecipe_ids_to_update.add(ing_id)
 
     if subrecipe_ids_to_update:
@@ -394,7 +397,8 @@ def delete_invoice(
             histories = history_recipes_service.get_all_history_recipes(
                 filters={"recipe_id": rid, "establishment_id": establishment_id}
             )
-            _delete_history_recipes(histories)
+            if histories:
+                _delete_history_recipes(histories)
             recipes_service.delete_recipes(rid)
             deleted_recipe_ids.add(rid)
             continue
@@ -423,7 +427,9 @@ def delete_invoice(
     # Étape 8 : suppression des résidus articles et invoices
     # ------------------------------------------------------------------
     for art in list_article_to_delete:
-        articles_service.delete_articles(_safe_get(art, "id"))
+        art_id = _safe_get(art, "id")
+        if art_id:
+            articles_service.delete_articles(art_id)
     invoices_service.delete_invoices(invoice_to_delete_id)
 
     return {
