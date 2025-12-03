@@ -440,7 +440,11 @@ class SuppliersService:
         return _update("suppliers", id, payload)
 
     def delete_suppliers(self, id):
-        return _delete("suppliers", id)
+        _delete("suppliers", id)
+        DB["supplier_alias"] = [
+            alias for alias in DB["supplier_alias"] if alias.get("supplier_id") != id
+        ]
+        return {"deleted": True}
 
 suppliers_service = SuppliersService()
 

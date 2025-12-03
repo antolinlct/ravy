@@ -29,7 +29,9 @@ def test_delete_invoice_removes_supplier_and_all_cascades(monkeypatch):
             "alias": "ACME",
         }
     )
-    fake_db.create_invoices({"id": invoice_id, "establishment_id": est_id})
+    fake_db.create_invoices(
+        {"id": invoice_id, "establishment_id": est_id, "supplier_id": supplier_id}
+    )
 
     article_id = uuid4()
     fake_db.create_master_articles(
@@ -165,8 +167,12 @@ def test_delete_invoice_updates_and_cleans_dependents(monkeypatch):
     fake_db.create_supplier_alias(
         {"establishment_id": est_id, "supplier_id": supplier_id, "alias": "Alias"}
     )
-    fake_db.create_invoices({"id": invoice_id, "establishment_id": est_id})
-    fake_db.create_invoices({"id": other_invoice_id, "establishment_id": est_id})
+    fake_db.create_invoices(
+        {"id": invoice_id, "establishment_id": est_id, "supplier_id": supplier_id}
+    )
+    fake_db.create_invoices(
+        {"id": other_invoice_id, "establishment_id": est_id, "supplier_id": supplier_id}
+    )
 
     article_delete = uuid4()
     article_keep = uuid4()
@@ -407,7 +413,13 @@ def test_delete_invoice_noop_when_no_articles(monkeypatch):
     supplier_id = uuid4()
     invoice_id = uuid4()
 
-    fake_db.create_invoices({"id": invoice_id, "establishment_id": est_id})
+    fake_db.create_suppliers({"id": supplier_id})
+    fake_db.create_supplier_alias(
+        {"establishment_id": est_id, "supplier_id": supplier_id, "alias": "Alias"}
+    )
+    fake_db.create_invoices(
+        {"id": invoice_id, "establishment_id": est_id, "supplier_id": supplier_id}
+    )
 
     calls = {"recipes": 0, "ingredients": 0, "margins": 0}
 
@@ -438,7 +450,9 @@ def test_delete_invoice_noop_when_no_articles(monkeypatch):
         "deleted_master_articles": set(),
         "deleted_recipes": set(),
         "updated_recipes": set(),
-        "deleted_supplier": False,
+        "deleted_supplier": True,
     }
     assert calls == {"recipes": 0, "ingredients": 0, "margins": 0}
     assert fake_services.invoices_service.get_invoices_by_id(invoice_id) is None
+    assert fake_services.suppliers_service.get_suppliers_by_id(supplier_id) is None
+    assert fake_services.supplier_alias_service.get_all_supplier_alias({}) == []

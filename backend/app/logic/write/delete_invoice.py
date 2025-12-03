@@ -20,7 +20,6 @@ from app.services import (
     invoices_service,
     master_articles_service,
     recipes_service,
-    supplier_alias_service,
     suppliers_service,
 )
 
@@ -202,26 +201,19 @@ def delete_invoice(
     # Étape 2 : mise à jour / suppression du supplier et supplier_alias
     # ------------------------------------------------------------------
     supplier_deleted = False
-    if list_master_article_impacted and all(master_deleted_map.values()):
-        remaining_supplier_articles = articles_service.get_all_articles(
-            filters={
-                "establishment_id": establishment_id,
-                "supplier_id": supplier_id,
-                "invoice_id_neq": invoice_to_delete_id,
-                "limit": 1,
-            }
-        )
-        if not remaining_supplier_articles:
-            supplier_deleted = True
-            supplier_alias = supplier_alias_service.get_all_supplier_alias(
-                filters={
-                    "establishment_id": establishment_id,
-                    "supplier_id": supplier_id,
-                }
-            )
-            for alias in supplier_alias:
-                supplier_alias_service.delete_supplier_alias(_safe_get(alias, "id"))
-            suppliers_service.delete_suppliers(supplier_id)
+    supplier_invoices = invoices_service.get_all_invoices(
+        filters={
+            "establishment_id": establishment_id,
+            "supplier_id": supplier_id,
+        }
+    )
+    remaining_supplier_invoices = [
+        inv for inv in supplier_invoices if _safe_get(inv, "id") != invoice_to_delete_id
+    ]
+
+    if not remaining_supplier_invoices:
+        suppliers_service.delete_suppliers(supplier_id)
+        supplier_deleted = True
 
     # ------------------------------------------------------------------
     # Étape 3 : mise à jour / suppression des ingredients & history_ingredients
