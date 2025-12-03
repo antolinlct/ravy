@@ -242,13 +242,14 @@ def delete_article(
             percentage_loss=percentage_loss,
         )
         portion = _ensure_portion(recipe_id)
+        unit_cost_per_portion = costs["unit_cost"] / portion
 
         history_payload = {
             "quantity": quantity,
             "percentage_loss": percentage_loss,
             "unit_cost": costs["unit_cost"],
             "loss_value": costs["loss_value"],
-            "unit_cost_per_portion_recipe": costs["unit_cost"] / portion,
+            "unit_cost_per_portion_recipe": unit_cost_per_portion,
         }
         history_ingredients_service.update_history_ingredients(
             _safe_get(latest_history, "id"), history_payload
@@ -258,7 +259,7 @@ def delete_article(
             "unit_cost": costs["unit_cost"],
             "gross_unit_price": gross_unit_price,
             "loss_value": costs["loss_value"],
-            "unit_cost_per_portion_recipe": costs["unit_cost"] / portion,
+            "unit_cost_per_portion_recipe": unit_cost_per_portion,
         }
         if ing_id:
             ingredients_service.update_ingredients(ing_id, ingredient_payload)
