@@ -258,20 +258,7 @@ def delete_invoice(
                 ingredients_service.delete_ingredients(ing_id)
             continue
 
-        histories_to_purge = history_ingredients_service.get_all_history_ingredients(
-            filters={
-                "ingredient_id": ing_id,
-                "establishment_id": establishment_id,
-            }
-        )
-        purge_ids = [
-            h
-            for h in histories_to_purge
-            if _safe_get(h, "source_article_id") in article_ids_to_delete
-        ]
-        _delete_history_ingredients(purge_ids)
-
-        remaining_histories = history_ingredients_service.get_all_history_ingredients(
+        histories_for_ingredient = history_ingredients_service.get_all_history_ingredients(
             filters={
                 "ingredient_id": ing_id,
                 "establishment_id": establishment_id,
@@ -279,6 +266,17 @@ def delete_invoice(
                 "direction": "desc",
             }
         )
+
+        purge_histories = [
+            h
+            for h in histories_for_ingredient
+            if _safe_get(h, "source_article_id") in article_ids_to_delete
+        ]
+        _delete_history_ingredients(purge_histories)
+
+        remaining_histories = [
+            h for h in histories_for_ingredient if h not in purge_histories
+        ]
 
         if not remaining_histories:
             if ing_id:

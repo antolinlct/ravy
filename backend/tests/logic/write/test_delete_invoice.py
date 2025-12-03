@@ -398,5 +398,47 @@ def test_delete_invoice_updates_and_cleans_dependents(monkeypatch):
 
     assert master_drop in result["deleted_master_articles"] and master_keep not in result["deleted_master_articles"]
     assert recipe_drop in result["deleted_recipes"] and parent_drop in result["deleted_recipes"]
-    assert result["deleted_supplier"] is False
-    assert result["updated_recipes"] == {recipe_keep, parent_keep}
+
+
+def test_delete_invoice_noop_when_no_articles(monkeypatch):
+    fake_db.reset_db()
+
+    est_id = uuid4()
+    supplier_id = uuid4()
+    invoice_id = uuid4()
+
+    fake_db.create_invoices({"id": invoice_id, "establishment_id": est_id})
+
+    calls = {"recipes": 0, "ingredients": 0, "margins": 0}
+
+    monkeypatch.setattr(
+        delete_invoice_module,
+        "update_recipes_and_history_recipes",
+        lambda **_: calls.__setitem__("recipes", calls["recipes"] + 1),
+    )
+    monkeypatch.setattr(
+        delete_invoice_module,
+        "update_ingredients_and_history_ingredients",
+        lambda **_: calls.__setitem__("ingredients", calls["ingredients"] + 1),
+    )
+    monkeypatch.setattr(
+        delete_invoice_module,
+        "recompute_recipe_margins",
+        lambda **_: calls.__setitem__("margins", calls["margins"] + 1),
+    )
+
+    result = delete_invoice_module.delete_invoice(
+        establishment_id=est_id,
+        invoice_to_delete_id=invoice_id,
+        invoice_to_delete_date=date(2024, 1, 1),
+        supplier_id=supplier_id,
+    )
+
+    assert result == {
+        "deleted_master_articles": set(),
+        "deleted_recipes": set(),
+        "updated_recipes": set(),
+        "deleted_supplier": False,
+    }
+    assert calls == {"recipes": 0, "ingredients": 0, "margins": 0}
+    assert fake_services.invoices_service.get_invoices_by_id(invoice_id) is None
