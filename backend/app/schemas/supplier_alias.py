@@ -13,3 +13,4 @@ class SupplierAlias(BaseModel):
     establishment_id: Optional[UUID] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
+    supplier_id: Optional[UUID] = None

@@ -2491,6 +2491,11 @@
       "column": "updated_by",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
     }
   ],
   "supplier_merge_suggestions": [

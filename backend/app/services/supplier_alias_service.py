@@ -9,11 +9,13 @@ def get_all_supplier_alias(filters: dict | None = None, limit: int = 200, page: 
     # --- Filtres dynamiques (structurels ou contextuels) ---
     if "establishment_id" in filters:
         query = query.eq("establishment_id", filters["establishment_id"])
+    if "supplier_id" in filters:
+        query = query.eq("supplier_id", filters["supplier_id"])
 
 
     # --- Filtres additionnels (_gte, _lte, etc.) ---
     for key, value in filters.items():
-        if key in ("order_by", "direction", "limit", "page", "establishment_id"):
+        if key in ("order_by", "direction", "limit", "page", "establishment_id", "supplier_id"):
             continue
         if key.endswith("_gte"):
             query = query.gte(key[:-4], value)

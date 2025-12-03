@@ -11,12 +11,13 @@ def list_supplier_alias(
     limit: int | None = 200,
     page: int | None = 1,
     establishment_id: str | None = None
+    supplier_id: str | None = None
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "page": page, "establishment_id": establishment_id
+        "page": page, "establishment_id": establishment_id, "supplier_id": supplier_id
     }
     filters = {k: v for k, v in filters.items() if v is not None}
     return supplier_alias_service.get_all_supplier_alias(filters, limit=limit, page=page)

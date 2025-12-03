@@ -912,6 +912,7 @@ supplier_alias = fake_db.create_supplier_alias({
     "establishment_id": establishments["id"],
     "created_by": user_profiles["id"],
     "updated_by": user_profiles["id"],
+    "supplier_id": suppliers["id"],
 })
 
 # CREATION D'UNE SUPPLIER_MERGE_SUGGESTIONS
