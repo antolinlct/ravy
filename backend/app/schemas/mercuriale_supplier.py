@@ -1,0 +1,14 @@
+from pydantic import BaseModel
+from datetime import datetime, date
+from typing import List, Optional, Any, Literal
+from uuid import UUID
+
+
+Supplier_label = Literal["FOOD", "BEVERAGES", "FIXED COSTS", "VARIABLE COSTS", "OTHER"]
+
+class MercurialeSupplier(BaseModel):
+    id: Optional[UUID] = None
+    created_at: Optional[datetime] = None
+    market_supplier_id: Optional[UUID] = None
+    name: Optional[UUID] = None
+    label: Optional[Supplier_label] = None

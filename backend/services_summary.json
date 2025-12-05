@@ -171,6 +171,49 @@
       }
     ]
   },
+  "mercuriale_subcategories_service": {
+    "table_name": "mercuriale_subcategories",
+    "functions": [
+      {
+        "name": "get_all_mercuriale_subcategories",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriale_subcategories_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriale_subcategories",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriale_subcategories",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriale_subcategories",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
   "mercuriales_service": {
     "table_name": "mercuriales",
     "functions": [
@@ -379,6 +422,92 @@
       },
       {
         "name": "delete_market_master_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "supplier_merge_request_service": {
+    "table_name": "supplier_merge_request",
+    "functions": [
+      {
+        "name": "get_all_supplier_merge_request",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_supplier_merge_request_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_supplier_merge_request",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_supplier_merge_request",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_supplier_merge_request",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercuriale_master_article_service": {
+    "table_name": "mercuriale_master_article",
+    "functions": [
+      {
+        "name": "get_all_mercuriale_master_article",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriale_master_article_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriale_master_article",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriale_master_article",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriale_master_article",
         "args": [
           "id"
         ],
@@ -895,6 +1024,49 @@
       },
       {
         "name": "delete_establishment_email_alias",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercuriale_supplier_service": {
+    "table_name": "mercuriale_supplier",
+    "functions": [
+      {
+        "name": "get_all_mercuriale_supplier",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriale_supplier_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriale_supplier",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriale_supplier",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriale_supplier",
         "args": [
           "id"
         ],
@@ -1540,6 +1712,49 @@
       },
       {
         "name": "delete_mercuriale_articles",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercuriale_categories_service": {
+    "table_name": "mercuriale_categories",
+    "functions": [
+      {
+        "name": "get_all_mercuriale_categories",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercuriale_categories_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercuriale_categories",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercuriale_categories",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercuriale_categories",
         "args": [
           "id"
         ],
@@ -2228,6 +2443,49 @@
       },
       {
         "name": "delete_import_job",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
+  "mercurial_request_service": {
+    "table_name": "mercurial_request",
+    "functions": [
+      {
+        "name": "get_all_mercurial_request",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_mercurial_request_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_mercurial_request",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_mercurial_request",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_mercurial_request",
         "args": [
           "id"
         ],

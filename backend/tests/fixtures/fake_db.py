@@ -10,9 +10,12 @@ DB = {
     "messages_ia": [],
     "establishments": [],
     "recommendations_ai": [],
+    "mercuriale_categories": [],
     "countries": [],
     "market_master_articles": [],
+    "supplier_merge_request": [],
     "market_supplier_alias": [],
+    "mercuriale_supplier": [],
     "score_matrix": [],
     "live_score": [],
     "vat_rates": [],
@@ -29,6 +32,7 @@ DB = {
     "mercuriale_articles": [],
     "user_profiles": [],
     "financial_ingredients": [],
+    "mercuriale_subcategories": [],
     "sessions_ia": [],
     "invoices_rejected": [],
     "financial_reports": [],
@@ -38,6 +42,7 @@ DB = {
     "billing_item": [],
     "market_suppliers": [],
     "usage_counters": [],
+    "mercuriale_master_article": [],
     "logs": [],
     "user_mercuriale_access": [],
     "recipes": [],
@@ -50,6 +55,7 @@ DB = {
     "user_establishment": [],
     "invoices": [],
     "suppliers": [],
+    "mercurial_request": [],
     "supplier_alias": [],
     "variations": [],
     "history_recipes": [],
@@ -179,6 +185,11 @@ def create_recommendations_ai(data: Dict[str, Any]):
         data["id"] = uuid4()
     return _insert("recommendations_ai", data)
 
+def create_mercuriale_categories(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("mercuriale_categories", data)
+
 def create_countries(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
@@ -189,10 +200,20 @@ def create_market_master_articles(data: Dict[str, Any]):
         data["id"] = uuid4()
     return _insert("market_master_articles", data)
 
+def create_supplier_merge_request(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("supplier_merge_request", data)
+
 def create_market_supplier_alias(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
     return _insert("market_supplier_alias", data)
+
+def create_mercuriale_supplier(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("mercuriale_supplier", data)
 
 def create_score_matrix(data: Dict[str, Any]):
     if "id" not in data:
@@ -274,6 +295,11 @@ def create_financial_ingredients(data: Dict[str, Any]):
         data["id"] = uuid4()
     return _insert("financial_ingredients", data)
 
+def create_mercuriale_subcategories(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("mercuriale_subcategories", data)
+
 def create_sessions_ia(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
@@ -318,6 +344,11 @@ def create_usage_counters(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
     return _insert("usage_counters", data)
+
+def create_mercuriale_master_article(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("mercuriale_master_article", data)
 
 def create_logs(data: Dict[str, Any]):
     if "id" not in data:
@@ -378,6 +409,11 @@ def create_suppliers(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
     return _insert("suppliers", data)
+
+def create_mercurial_request(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("mercurial_request", data)
 
 def create_supplier_alias(data: Dict[str, Any]):
     if "id" not in data:

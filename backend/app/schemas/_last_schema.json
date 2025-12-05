@@ -360,6 +360,16 @@
       "column": "invoice_id",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "total",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool"
     }
   ],
   "market_master_articles": [
@@ -412,6 +422,11 @@
       "column": "updated_by",
       "data_type": "uuid",
       "udt_name": "uuid"
+    },
+    {
+      "column": "is_active",
+      "data_type": "boolean",
+      "udt_name": "bool"
     }
   ],
   "market_supplier_alias": [
@@ -1849,6 +1864,38 @@
       "udt_name": "text"
     }
   ],
+  "mercurial_request": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "user_profile_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "message",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "internal_notes",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
   "mercuriale_articles": [
     {
       "column": "id",
@@ -1861,14 +1908,9 @@
       "udt_name": "uuid"
     },
     {
-      "column": "market_master_article_id",
+      "column": "mercurial_master_article_id",
       "data_type": "uuid",
       "udt_name": "uuid"
-    },
-    {
-      "column": "unit",
-      "data_type": "text",
-      "udt_name": "text"
     },
     {
       "column": "price_standard",
@@ -1882,11 +1924,6 @@
     },
     {
       "column": "price_premium",
-      "data_type": "numeric",
-      "udt_name": "numeric"
-    },
-    {
-      "column": "vat_rate",
       "data_type": "numeric",
       "udt_name": "numeric"
     },
@@ -1906,14 +1943,142 @@
       "udt_name": "timestamptz"
     }
   ],
-  "mercuriales": [
+  "mercuriale_categories": [
     {
       "column": "id",
       "data_type": "uuid",
       "udt_name": "uuid"
     },
     {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "mercuriale_master_article": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "mercurial_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "unit",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "vat_rate",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "description",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "notes",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "market_master_article",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "category_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "subcategory_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "race_name",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "mercuriale_subcategories": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "category_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
+  "mercuriale_supplier": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
       "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "name",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "label",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_label"
+    }
+  ],
+  "mercuriales": [
+    {
+      "column": "id",
       "data_type": "uuid",
       "udt_name": "uuid"
     },
@@ -1951,6 +2116,16 @@
       "column": "updated_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
+    },
+    {
+      "column": "mercuriale_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
     }
   ],
   "price_stripe": [
@@ -2498,6 +2673,38 @@
       "udt_name": "uuid"
     }
   ],
+  "supplier_merge_request": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "created_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "supplier_merge_request_status"
+    },
+    {
+      "column": "source_market_supplier_ids",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
+    },
+    {
+      "column": "target_market_supplier_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "requesting_establishment_id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    }
+  ],
   "supplier_merge_suggestions": [
     {
       "column": "id",
@@ -2520,12 +2727,7 @@
       "udt_name": "uuid"
     },
     {
-      "column": "source_supplier_id",
-      "data_type": "uuid",
-      "udt_name": "uuid"
-    },
-    {
-      "column": "target_supplier_id",
+      "column": "target_market_supplier_id",
       "data_type": "uuid",
       "udt_name": "uuid"
     },
@@ -2538,6 +2740,11 @@
       "column": "status",
       "data_type": "USER-DEFINED",
       "udt_name": "supplier_merge_suggestions_status"
+    },
+    {
+      "column": "source_market_supplier_ids",
+      "data_type": "jsonb",
+      "udt_name": "jsonb"
     }
   ],
   "suppliers": [

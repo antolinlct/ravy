@@ -1,3 +1,9 @@
+from app.api.routes import mercurial_request
+from app.api.routes import mercuriale_master_article
+from app.api.routes import mercuriale_subcategories
+from app.api.routes import mercuriale_supplier
+from app.api.routes import supplier_merge_request
+from app.api.routes import mercuriale_categories
 from app.api.routes import product_stripe
 from app.api.routes import price_stripe
 from app.api.routes import sessions_ia
@@ -146,3 +152,9 @@ app.include_router(logs_ia.router)
 app.include_router(sessions_ia.router)
 app.include_router(price_stripe.router)
 app.include_router(product_stripe.router)
+app.include_router(mercuriale_categories.router)
+app.include_router(supplier_merge_request.router)
+app.include_router(mercuriale_supplier.router)
+app.include_router(mercuriale_subcategories.router)
+app.include_router(mercuriale_master_article.router)
+app.include_router(mercurial_request.router)

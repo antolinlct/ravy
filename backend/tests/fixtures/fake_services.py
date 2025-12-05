@@ -93,6 +93,28 @@ class MarketSupplierAliasService:
 market_supplier_alias_service = MarketSupplierAliasService()
 
 
+class MercurialeSubcategoriesService:
+    def get_all_mercuriale_subcategories(self, filters=None, limit=1000, page=1):
+        return _find("mercuriale_subcategories", filters or {}, limit)
+
+    def get_mercuriale_subcategories_by_id(self, id):
+        return next((r for r in DB["mercuriale_subcategories"] if r.get("id") == id), None)
+
+    def create_mercuriale_subcategories(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("mercuriale_subcategories", data)
+
+    def update_mercuriale_subcategories(self, id, payload: dict):
+        return _update("mercuriale_subcategories", id, payload)
+
+    def delete_mercuriale_subcategories(self, id):
+        return _delete("mercuriale_subcategories", id)
+
+mercuriale_subcategories_service = MercurialeSubcategoriesService()
+
+
 class MercurialesService:
     def get_all_mercuriales(self, filters=None, limit=1000, page=1):
         return _find("mercuriales", filters or {}, limit)
@@ -201,6 +223,50 @@ class MarketMasterArticlesService:
         return _delete("market_master_articles", id)
 
 market_master_articles_service = MarketMasterArticlesService()
+
+
+class SupplierMergeRequestService:
+    def get_all_supplier_merge_request(self, filters=None, limit=1000, page=1):
+        return _find("supplier_merge_request", filters or {}, limit)
+
+    def get_supplier_merge_request_by_id(self, id):
+        return next((r for r in DB["supplier_merge_request"] if r.get("id") == id), None)
+
+    def create_supplier_merge_request(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("supplier_merge_request", data)
+
+    def update_supplier_merge_request(self, id, payload: dict):
+        return _update("supplier_merge_request", id, payload)
+
+    def delete_supplier_merge_request(self, id):
+        return _delete("supplier_merge_request", id)
+
+supplier_merge_request_service = SupplierMergeRequestService()
+
+
+class MercurialeMasterArticleService:
+    def get_all_mercuriale_master_article(self, filters=None, limit=1000, page=1):
+        return _find("mercuriale_master_article", filters or {}, limit)
+
+    def get_mercuriale_master_article_by_id(self, id):
+        return next((r for r in DB["mercuriale_master_article"] if r.get("id") == id), None)
+
+    def create_mercuriale_master_article(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("mercuriale_master_article", data)
+
+    def update_mercuriale_master_article(self, id, payload: dict):
+        return _update("mercuriale_master_article", id, payload)
+
+    def delete_mercuriale_master_article(self, id):
+        return _delete("mercuriale_master_article", id)
+
+mercuriale_master_article_service = MercurialeMasterArticleService()
 
 
 class RecipeCategoriesService:
@@ -465,6 +531,28 @@ class EstablishmentEmailAliasService:
         return _delete("establishment_email_alias", id)
 
 establishment_email_alias_service = EstablishmentEmailAliasService()
+
+
+class MercurialeSupplierService:
+    def get_all_mercuriale_supplier(self, filters=None, limit=1000, page=1):
+        return _find("mercuriale_supplier", filters or {}, limit)
+
+    def get_mercuriale_supplier_by_id(self, id):
+        return next((r for r in DB["mercuriale_supplier"] if r.get("id") == id), None)
+
+    def create_mercuriale_supplier(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("mercuriale_supplier", data)
+
+    def update_mercuriale_supplier(self, id, payload: dict):
+        return _update("mercuriale_supplier", id, payload)
+
+    def delete_mercuriale_supplier(self, id):
+        return _delete("mercuriale_supplier", id)
+
+mercuriale_supplier_service = MercurialeSupplierService()
 
 
 class RecipeMarginService:
@@ -795,6 +883,28 @@ class MercurialeArticlesService:
         return _delete("mercuriale_articles", id)
 
 mercuriale_articles_service = MercurialeArticlesService()
+
+
+class MercurialeCategoriesService:
+    def get_all_mercuriale_categories(self, filters=None, limit=1000, page=1):
+        return _find("mercuriale_categories", filters or {}, limit)
+
+    def get_mercuriale_categories_by_id(self, id):
+        return next((r for r in DB["mercuriale_categories"] if r.get("id") == id), None)
+
+    def create_mercuriale_categories(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("mercuriale_categories", data)
+
+    def update_mercuriale_categories(self, id, payload: dict):
+        return _update("mercuriale_categories", id, payload)
+
+    def delete_mercuriale_categories(self, id):
+        return _delete("mercuriale_categories", id)
+
+mercuriale_categories_service = MercurialeCategoriesService()
 
 
 class VatRatesService:
@@ -1147,6 +1257,28 @@ class ImportJobService:
         return _delete("import_job", id)
 
 import_job_service = ImportJobService()
+
+
+class MercurialRequestService:
+    def get_all_mercurial_request(self, filters=None, limit=1000, page=1):
+        return _find("mercurial_request", filters or {}, limit)
+
+    def get_mercurial_request_by_id(self, id):
+        return next((r for r in DB["mercurial_request"] if r.get("id") == id), None)
+
+    def create_mercurial_request(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("mercurial_request", data)
+
+    def update_mercurial_request(self, id, payload: dict):
+        return _update("mercurial_request", id, payload)
+
+    def delete_mercurial_request(self, id):
+        return _delete("mercurial_request", id)
+
+mercurial_request_service = MercurialRequestService()
 
 
 class InvoicesService:

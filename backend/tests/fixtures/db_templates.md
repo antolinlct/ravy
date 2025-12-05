@@ -485,6 +485,8 @@ market_articles = fake_db.create_market_articles({
     "invoice_path": "string",
     "quantity": 0,
     "invoice_id": "uuid",
+    "total": 0,
+    "is_active": True,
 })
 
 # CREATION D'UNE MARKET_MASTER_ARTICLES
@@ -501,6 +503,7 @@ market_master_articles = fake_db.create_market_master_articles({
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "created_by": "uuid",
     "updated_by": "uuid",
+    "is_active": True,
 })
 
 # CREATION D'UNE MARKET_SUPPLIER_ALIAS
@@ -545,21 +548,80 @@ master_articles = fake_db.create_master_articles({
     "name": "string",
 })
 
+# CREATION D'UNE MERCURIAL_REQUEST
+## Table: mercurial_request
+
+mercurial_request = fake_db.create_mercurial_request({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "user_profile_id": user_profiles["id"],
+    "establishment_id": establishments["id"],
+    "message": "string",
+    "internal_notes": "string",
+})
+
 # CREATION D'UNE MERCURIALE_ARTICLES
 ## Table: mercuriale_articles
 
 mercuriale_articles = fake_db.create_mercuriale_articles({
     "id": uuid4(),
     "mercuriale_id": mercuriales["id"],
-    "market_master_article_id": "uuid",
-    "unit": "string",
+    "mercurial_master_article_id": mercuriale_master_article["id"],
     "price_standard": 0,
     "price_plus": 0,
     "price_premium": 0,
-    "vat_rate": 0,
     "active": True,
     "created_at": datetime(2025, 1, 1, 12, 00),
     "updated_at": datetime(2025, 1, 1, 12, 00),
+})
+
+# CREATION D'UNE MERCURIALE_CATEGORIES
+## Table: mercuriale_categories
+
+mercuriale_categories = fake_db.create_mercuriale_categories({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "name": "string",
+})
+
+# CREATION D'UNE MERCURIALE_MASTER_ARTICLE
+## Table: mercuriale_master_article
+
+mercuriale_master_article = fake_db.create_mercuriale_master_article({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "mercurial_supplier_id": "uuid",
+    "name": "string",
+    "unit": "string",
+    "vat_rate": 0,
+    "active": True,
+    "description": "string",
+    "notes": "string",
+    "market_master_article": "uuid",
+    "category_id": mercuriale_categories["id"],
+    "subcategory_id": mercuriale_subcategories["id"],
+    "race_name": "string",
+})
+
+# CREATION D'UNE MERCURIALE_SUBCATEGORIES
+## Table: mercuriale_subcategories
+
+mercuriale_subcategories = fake_db.create_mercuriale_subcategories({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "name": "string",
+    "category_id": mercuriale_categories["id"],
+})
+
+# CREATION D'UNE MERCURIALE_SUPPLIER
+## Table: mercuriale_supplier
+
+mercuriale_supplier = fake_db.create_mercuriale_supplier({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "market_supplier_id": "uuid",
+    "name": "uuid",
+    "label": "FOOD, BEVERAGES, FIXED COSTS, VARIABLE COSTS, OTHER",
 })
 
 # CREATION D'UNE MERCURIALES
@@ -567,7 +629,6 @@ mercuriale_articles = fake_db.create_mercuriale_articles({
 
 mercuriales = fake_db.create_mercuriales({
     "id": uuid4(),
-    "market_supplier_id": "uuid",
     "name": "string",
     "description": "string",
     "active": True,
@@ -575,6 +636,8 @@ mercuriales = fake_db.create_mercuriales({
     "effective_to": datetime(2025, 1, 1, 12, 00),
     "created_at": datetime(2025, 1, 1, 12, 00),
     "updated_at": datetime(2025, 1, 1, 12, 00),
+    "mercuriale_supplier_id": mercuriale_supplier["id"],
+    "market_supplier_id": "uuid",
 })
 
 # CREATION D'UNE MESSAGES
@@ -915,6 +978,18 @@ supplier_alias = fake_db.create_supplier_alias({
     "supplier_id": suppliers["id"],
 })
 
+# CREATION D'UNE SUPPLIER_MERGE_REQUEST
+## Table: supplier_merge_request
+
+supplier_merge_request = fake_db.create_supplier_merge_request({
+    "id": uuid4(),
+    "created_at": datetime(2025, 1, 1, 12, 00),
+    "status": "pending, to_confirm, accepted, resolved, refused",
+    "source_market_supplier_ids": {},
+    "target_market_supplier_id": "uuid",
+    "requesting_establishment_id": establishments["id"],
+})
+
 # CREATION D'UNE SUPPLIER_MERGE_SUGGESTIONS
 ## Table: supplier_merge_suggestions
 
@@ -923,10 +998,10 @@ supplier_merge_suggestions = fake_db.create_supplier_merge_suggestions({
     "created_at": datetime(2025, 1, 1, 12, 00),
     "reviewed_at": datetime(2025, 1, 1, 12, 00),
     "establishment_id": establishments["id"],
-    "source_supplier_id": suppliers["id"],
-    "target_supplier_id": suppliers["id"],
+    "target_market_supplier_id": suppliers["id"],
     "similarity_score": 0,
     "status": "pending, accepted, ignored, dismissed",
+    "source_market_supplier_ids": {},
 })
 
 # CREATION D'UNE SUPPLIERS

@@ -21,6 +21,7 @@ from app.services import (
     master_articles_service,
     recipes_service,
     suppliers_service,
+    market_articles_service
 )
 
 
@@ -127,7 +128,7 @@ def _delete_history_ingredients(ids: List[Any]) -> None:
     for hid in ids:
         history_ingredients_service.delete_history_ingredients(_safe_get(hid, "id", hid))
 
-
+# PLUS UTILISÉ DEPUIS LA PRISE EN COMPTE DES DELETE ON CASCADE
 def _delete_history_recipes(ids: List[Any]) -> None:
     for hid in ids:
         history_recipes_service.delete_history_recipes(_safe_get(hid, "id", hid))
@@ -196,6 +197,24 @@ def delete_invoice(
             update_payload["current_unit_price"] = latest_price
         master_articles_service.update_master_articles(master_id, update_payload)
         master_deleted_map[master_id] = False
+
+    # ------------------------------------------------------------------
+    # Étape 1 bis : mise à jour des market_articles liés à cette facture
+    # ------------------------------------------------------------------
+    market_articles_to_update = market_articles_service.get_all_market_articles(
+        filters={
+            "invoice_id": invoice_to_delete_id,
+            "establishment_id": establishment_id,
+        }
+    )
+
+    for ma in market_articles_to_update:
+        ma_id = _safe_get(ma, "id")
+        if ma_id:
+            market_articles_service.update_market_articles(
+                ma_id,
+                {"is_active": False}
+            )
 
     # ------------------------------------------------------------------
     # Étape 2 : mise à jour / suppression du supplier et supplier_alias
@@ -423,6 +442,6 @@ def delete_invoice(
     return {
         "deleted_master_articles": {mid for mid, deleted in master_deleted_map.items() if deleted},
         "deleted_recipes": deleted_recipe_ids,
-        "updated_recipes": recipe_ids_to_update | secondary_recipe_ids,
+        "updated_recipes": (recipe_ids_to_update | secondary_recipe_ids) - deleted_recipe_ids,
         "deleted_supplier": supplier_deleted,
     }

@@ -22,3 +22,5 @@ class MarketArticles(BaseModel):
     invoice_path: Optional[str] = None
     quantity: Optional[float] = None
     invoice_id: Optional[UUID] = None
+    total: Optional[float] = None
+    is_active: Optional[bool] = None

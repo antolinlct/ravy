@@ -1,0 +1,45 @@
+from fastapi import APIRouter, HTTPException
+from app.schemas.mercuriale_supplier import MercurialeSupplier
+from app.services import mercuriale_supplier_service
+
+router = APIRouter(prefix="/mercuriale_supplier", tags=["MercurialeSupplier"])
+
+@router.get("/", response_model=list[MercurialeSupplier])
+def list_mercuriale_supplier(
+    order_by: str | None = None,
+    direction: str | None = None,
+    limit: int | None = 200,
+    page: int | None = 1,
+):
+    filters = {
+        "order_by": order_by,
+        "direction": direction,
+        "limit": limit,
+        "page": page
+    }
+    filters = {k: v for k, v in filters.items() if v is not None}
+    return mercuriale_supplier_service.get_all_mercuriale_supplier(filters, limit=limit, page=page)
+
+@router.get("/{id}", response_model=MercurialeSupplier)
+def get_mercuriale_supplier(id: int):
+    item = mercuriale_supplier_service.get_mercuriale_supplier_by_id(id)
+    if not item:
+        raise HTTPException(status_code=404, detail="MercurialeSupplier not found")
+    return item
+
+@router.post("/", response_model=MercurialeSupplier)
+def create_mercuriale_supplier(data: MercurialeSupplier):
+    created = mercuriale_supplier_service.create_mercuriale_supplier(data.dict())
+    return MercurialeSupplier(**created)
+
+@router.patch("/{id}", response_model=MercurialeSupplier)
+def update_mercuriale_supplier(id: int, data: MercurialeSupplier):
+    updated = mercuriale_supplier_service.update_mercuriale_supplier(id, data.dict(exclude_unset=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="MercurialeSupplier not found")
+    return MercurialeSupplier(**updated)
+
+@router.delete("/{id}")
+def delete_mercuriale_supplier(id: int):
+    mercuriale_supplier_service.delete_mercuriale_supplier(id)
+    return {"deleted": True}

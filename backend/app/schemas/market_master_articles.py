@@ -16,3 +16,4 @@ class MarketMasterArticles(BaseModel):
     updated_at: Optional[datetime] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
+    is_active: Optional[bool] = None

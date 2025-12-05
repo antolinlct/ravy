@@ -18,6 +18,7 @@ from app.services import (
     ingredients_service,
     master_articles_service,
     recipes_service,
+    market_articles_service
 )
 
 
@@ -188,6 +189,43 @@ def edit_article(
             "impacted_ingredients": set(),
             "impacted_recipes": set(),
         }
+
+    # --------------------------------------------------------------
+    # Étape 1 bis : mise à jour du market_article lié
+    # --------------------------------------------------------------
+    # On récupère le master_article pour extraire market_master_article_id
+    master_article = master_articles_service.get_master_articles_by_id(master_article_id)
+    market_master_article_id = _safe_get(master_article, "market_master_article_id")
+
+    if market_master_article_id:
+        # On récupère tous les market_articles de la même facture
+        market_articles = market_articles_service.get_all_market_articles(
+            filters={"invoice_id": invoice_id},
+            limit=1000,
+        )
+
+        # On filtre pour trouver celui lié au même market_master_article
+        matching_market_articles = [
+            m
+            for m in market_articles
+            if _safe_get(m, "market_master_article_id") == market_master_article_id
+        ]
+
+        # On prend le premier market_article correspondant
+        if matching_market_articles:
+            market_article = matching_market_articles[0]
+            market_article_id = _safe_get(market_article, "id")
+
+            market_payload = {
+                "unit_price": _as_decimal(article_new_unit_price),
+                "unit": article_unit,
+                "discounts": _as_decimal(article_discounts),
+                "duties_and_taxes": _as_decimal(article_duties_and_taxes),
+                "quantity": _as_decimal(article_quantity),
+                "total": _as_decimal(article_total),
+            }
+
+            market_articles_service.update_market_articles(market_article_id, market_payload)
 
     # ------------------------------------------------------------------
     # Étape 2 : mise à jour des ingredients et history_ingredients

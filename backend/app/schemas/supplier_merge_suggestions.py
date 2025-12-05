@@ -11,7 +11,7 @@ class SupplierMergeSuggestions(BaseModel):
     created_at: Optional[datetime] = None
     reviewed_at: Optional[datetime] = None
     establishment_id: Optional[UUID] = None
-    source_supplier_id: Optional[UUID] = None
-    target_supplier_id: Optional[UUID] = None
+    target_market_supplier_id: Optional[UUID] = None
     similarity_score: Optional[float] = None
     status: Optional[Supplier_merge_suggestions_status] = None
+    source_market_supplier_ids: Optional[dict] = None

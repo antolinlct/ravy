@@ -19,6 +19,7 @@ from app.services import (
     ingredients_service,
     master_articles_service,
     recipes_service,
+    market_articles_service
 )
 
 
@@ -125,7 +126,7 @@ def _delete_history_ingredients(ids: List[Any]) -> None:
     for hid in ids:
         history_ingredients_service.delete_history_ingredients(_safe_get(hid, "id", hid))
 
-
+# PLUS UTILISÉ DEPUIS LA PRISE EN COMPTE DES DELETE ON CASCADE
 def _delete_history_recipes(ids: List[Any]) -> None:
     for hid in ids:
         history_recipes_service.delete_history_recipes(_safe_get(hid, "id", hid))
@@ -177,6 +178,36 @@ def delete_article(
         master_articles_service.update_master_articles(master_article_id, payload)
 
     # ------------------------------------------------------------------
+    # Étape 1 bis : mise à jour du market_article lié à cet article
+    # ------------------------------------------------------------------
+    # Récupération du market_master_article_id du master_article
+    market_master_article_id = _safe_get(
+        master_articles_service.get_master_articles_by_id(master_article_id),
+        "market_master_article_id"
+    )
+
+    if market_master_article_id:
+        # 1. Récupérer tous les market_article de cette facture
+        market_articles = market_articles_service.get_all_market_articles(
+            filters={"invoice_id": invoice_id}
+        )
+
+        # 2. Filtrer ceux dont le market_master_article_id correspond
+        matching = [
+            m for m in market_articles
+            if _safe_get(m, "market_master_article_id") == market_master_article_id
+        ]
+
+        # 3. Prendre le premier et le désactiver
+        if matching:
+            market_article_id = _safe_get(matching[0], "id")
+            market_articles_service.update_market_articles(
+                market_article_id,
+                {"is_active": False}
+            )
+
+
+    # ------------------------------------------------------------------
     # Étape 2 : mise à jour / suppression des ingredients et history_ingredients
     # ------------------------------------------------------------------
     article_ingredients = _paginate_ingredients(
@@ -197,11 +228,7 @@ def delete_article(
             impacted_recipe_ids.add(recipe_id)
 
         if master_deleted:
-            # Suppression complète de l'ingrédient et de ses historiques
-            histories = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ing_id, "establishment_id": establishment_id}
-            )
-            _delete_history_ingredients(histories)
+            # Suppression complète de l'ingrédient et de ses historiques via CASCADE
             if ing_id:
                 ingredients_service.delete_ingredients(ing_id)
             continue
@@ -273,10 +300,6 @@ def delete_article(
             filters={"recipe_id": rid, "establishment_id": establishment_id}
         )
         if not ingredients_left:
-            histories = history_recipes_service.get_all_history_recipes(
-                filters={"recipe_id": rid, "establishment_id": establishment_id}
-            )
-            _delete_history_recipes(histories)
             recipes_service.delete_recipes(rid)
             deleted_recipe_ids.add(rid)
             continue
@@ -317,10 +340,6 @@ def delete_article(
             parent_recipe_ids.add(parent_recipe_id)
 
         if sub_id in deleted_recipe_ids:
-            histories = history_ingredients_service.get_all_history_ingredients(
-                filters={"ingredient_id": ing_id, "establishment_id": establishment_id}
-            )
-            _delete_history_ingredients(histories)
             if ing_id:
                 ingredients_service.delete_ingredients(ing_id)
             continue
@@ -346,10 +365,6 @@ def delete_article(
             filters={"recipe_id": rid, "establishment_id": establishment_id}
         )
         if not ingredients_left:
-            histories = history_recipes_service.get_all_history_recipes(
-                filters={"recipe_id": rid, "establishment_id": establishment_id}
-            )
-            _delete_history_recipes(histories)
             recipes_service.delete_recipes(rid)
             deleted_recipe_ids.add(rid)
             continue
