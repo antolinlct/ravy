@@ -14,6 +14,7 @@ from app.services import (
     alert_logs_service,
     articles_service,
     establishments_service,
+    financial_reports_service,
     history_ingredients_service,
     history_recipes_service,
     import_job_service as import_jobs_service,
@@ -45,6 +46,10 @@ from app.logic.write.shared.recipes_history_recipes import (
     update_recipes_and_history_recipes,
 )
 from app.logic.write.shared.recipes_average_margins import recompute_recipe_margins
+from app.logic.write.shared.live_score import (
+    LiveScoreError,
+    create_or_update_live_score,
+)
 
 
 class LogicError(Exception):
@@ -738,5 +743,18 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
                                 _safe_get(variation, "id"),
                                 {"alert_logs_id": alert_id},
                             )
+
+    has_financial_report = bool(
+        financial_reports_service.get_all_financial_reports(
+            filters={"establishment_id": establishment_id},
+            limit=1,
+        )
+    )
+
+    if has_financial_report:
+        try:
+            create_or_update_live_score(establishment_id=establishment_id)
+        except LiveScoreError as exc:
+            raise LogicError(str(exc)) from exc
 
     import_jobs_service.update_import_job(import_job_id, {"status": "completed"})
