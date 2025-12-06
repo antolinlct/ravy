@@ -81,7 +81,18 @@ INVOICE_OCR_TEMPLATE: Dict[str, Any] = {
         "city": None,
         "country_code": None,
     },
-    "lines": [],
+    "lines": [
+        {
+            "product_name": None,
+            "quantity": None,
+            "unit": None,
+            "unit_price_excl_tax": None,
+            "line_total_excl_tax": None,
+            "discounts": None,
+            "duties_and_taxes": None,
+            "gross_unit-price": None,
+        }
+    ],
     "file": {
         "original_filename": None,
         "mime_type": None,
