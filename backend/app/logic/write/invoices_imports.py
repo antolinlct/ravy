@@ -18,6 +18,7 @@ from app.services import (
     history_ingredients_service,
     history_recipes_service,
     import_job_service as import_jobs_service,
+    invoices_rejected_service,
     ingredients_service,
     invoices_service,
     market_articles_service,
@@ -124,6 +125,24 @@ def _safe_get(obj: Any, key: str) -> Any:
     if isinstance(obj, dict):
         return obj.get(key)
     return getattr(obj, key, None)
+
+
+def _create_invoice_rejected(import_job: Any, reason: str) -> None:
+    payload = {
+        "file_path": _safe_get(import_job, "file_path"),
+        "rejection_reason": reason,
+        "created_by": _safe_get(import_job, "created_by"),
+        "updated_by": _safe_get(import_job, "updated_by"),
+    }
+    invoices_rejected_service.create_invoices_rejected(payload)
+
+
+def _reject_invoice_safely(import_job: Any, reason: str) -> None:
+    try:
+        _create_invoice_rejected(import_job, reason)
+    except Exception:
+        # La création d'une facture rejetée ne doit pas masquer l'erreur initiale
+        pass
 
 
 import unicodedata
@@ -338,15 +357,16 @@ def _unique(sequence: Iterable[UUID]) -> List[UUID]:
 # ---------------------------------------------------------------------------
 
 def import_invoice_from_import_job(import_job_id: UUID) -> None:
+    import_job = import_jobs_service.get_import_job_by_id(import_job_id)
     try:
-        _import_invoice_from_import_job(import_job_id)
-    except Exception:
+        _import_invoice_from_import_job(import_job_id, import_job)
+    except Exception as exc:
+        _reject_invoice_safely(import_job, str(exc))
         import_jobs_service.update_import_job(import_job_id, {"status": "error"})
         raise
 
 
-def _import_invoice_from_import_job(import_job_id: UUID) -> None:
-    import_job = import_jobs_service.get_import_job_by_id(import_job_id)
+def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> None:
     if not import_job:
         raise LogicError("Import job introuvable")
 
