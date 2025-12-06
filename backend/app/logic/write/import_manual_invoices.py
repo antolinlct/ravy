@@ -244,6 +244,7 @@ def import_manual_invoice(invoice_id: UUID) -> Dict[str, Any]:
     if not invoice_date:
         raise LogicError("Date de facture manquante")
 
+    # Lignes d'articles reliées à la facture
     invoice_articles = articles_service.get_all_articles(
         filters={"invoice_id": invoice_id},
         limit=10000,
@@ -251,6 +252,7 @@ def import_manual_invoice(invoice_id: UUID) -> Dict[str, Any]:
     if not invoice_articles:
         raise LogicError("Facture sans lignes d'articles")
 
+    # Cohérence établissement ↔ articles
     invalid_articles = [
         art
         for art in invoice_articles
@@ -260,17 +262,27 @@ def import_manual_invoice(invoice_id: UUID) -> Dict[str, Any]:
     if invalid_articles:
         raise LogicError("Lignes de facture non reliées à l'établissement")
 
+    # master_article_ids de la facture (sans None)
     master_article_ids = _unique(
-        _safe_get(article, "master_article_id") for article in invoice_articles
+        [
+            _safe_get(article, "master_article_id")
+            for article in invoice_articles
+            if _safe_get(article, "master_article_id") is not None
+        ]
     )
     if not master_article_ids:
         raise LogicError("Aucun master article relié à la facture")
 
-    master_articles = master_articles_service.get_all_master_articles(
-        filters={"establishment_id": establishment_id},
-        limit=10000,
-    )
-    master_ids_for_establishment = {_safe_get(master, "id") for master in master_articles}
+    # Master articles appartenant à l'établissement
+    master_ids_for_establishment = {
+        _safe_get(m, "id")
+        for m in master_articles_service.get_all_master_articles(
+            filters={"establishment_id": establishment_id},
+            limit=10000,
+        )
+    }
+
+    # Validation de la présence des master_articles de la facture
     missing_master_ids = [mid for mid in master_article_ids if mid not in master_ids_for_establishment]
     if missing_master_ids:
         raise LogicError("Master articles manquants pour l'établissement")
