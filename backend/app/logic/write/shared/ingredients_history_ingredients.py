@@ -44,10 +44,25 @@ def _as_decimal(value: Any) -> Optional[Decimal]:
         raw = value.strip()
         if not raw:
             return None
+
+        # Cas FR avec virgule décimale
+        if "," in raw:
+            # Séparer décimal
+            parts = raw.rsplit(",", 1)
+            integer_part = parts[0]
+            decimal_part = parts[1]
+
+            # Supprimer tous les points dans la partie entière (séparateurs milliers FR)
+            integer_part = integer_part.replace(".", "")
+
+            # Recomposer en format US
+            raw = integer_part + "." + decimal_part
+
         try:
             return Decimal(raw)
         except InvalidOperation:
             return None
+
     return None
 
 

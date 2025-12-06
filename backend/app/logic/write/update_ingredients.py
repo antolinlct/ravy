@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional, Set
 from uuid import UUID
 
@@ -38,13 +38,28 @@ def _as_decimal(value: Any) -> Optional[Decimal]:
     if isinstance(value, (int, float)):
         return Decimal(str(value))
     if isinstance(value, str):
-        value_str = value.strip()
-        if not value_str:
+        raw = value.strip()
+        if not raw:
             return None
+
+        # Cas FR avec virgule décimale
+        if "," in raw:
+            # Séparer décimal
+            parts = raw.rsplit(",", 1)
+            integer_part = parts[0]
+            decimal_part = parts[1]
+
+            # Supprimer tous les points dans la partie entière (séparateurs milliers FR)
+            integer_part = integer_part.replace(".", "")
+
+            # Recomposer en format US
+            raw = integer_part + "." + decimal_part
+
         try:
-            return Decimal(value_str)
-        except Exception:
+            return Decimal(raw)
+        except InvalidOperation:
             return None
+
     return None
 
 
