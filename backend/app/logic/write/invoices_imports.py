@@ -24,9 +24,6 @@ from app.services import (
     market_supplier_alias_service,
     market_suppliers_service,
     master_articles_service,
-    recipe_margin_category_service,
-    recipe_margin_service,
-    recipe_margin_subcategory_service,
     recipes_service,
     regex_patterns_service,
     suppliers_service,
@@ -566,91 +563,6 @@ def _import_invoice_from_import_job(import_job_id: UUID) -> None:
         recipe_ids=list(set(impacted_article_recipes) | set(impacted_sub_recipes)),
         target_date=invoice_date,
     )
-
-    # CALCULES DES MARGES MOYENNES
-    impacted_for_margins = set(impacted_article_recipes) | set(impacted_sub_recipes) #FUSIONNE LES 2 TYÊS DE RECETTES IMPACTÉS
-    impacted_recipes_saleable = [
-        recipes_cache[rid]
-        for rid in impacted_for_margins
-        if rid in recipes_cache
-        and _safe_get(recipes_cache[rid], "saleable")
-        and _safe_get(recipes_cache[rid], "active")
-    ]
-
-    if impacted_recipes_saleable:
-        all_saleable_recipes = [
-            recipe
-            for recipe in recipes_cache.values()
-            if _safe_get(recipe, "saleable") and _safe_get(recipe, "active")
-        ]
-
-        def _upsert_margin(service_get, service_create, service_update, base_filters: Dict[str, Any], avg_margin: Optional[Decimal]) -> None:
-            if avg_margin is None:
-                return
-            payload = {
-                **base_filters,
-                "average_margin": avg_margin,
-                "date": invoice_date,
-            }
-            filters = {**base_filters, "order_by": "date", "direction": "desc"}
-            existing = service_get(filters=filters, limit=1)
-            if existing:
-                existing_date = _as_date(_safe_get(existing[0], "date"))
-                if existing_date and existing_date >= invoice_date:
-                    service_update(_safe_get(existing[0], "id"), payload)
-                    return
-            service_create(payload)
-
-        # MISE A JOUR DE LA MARGE MOYENNE
-        avg_global = _mean([
-            _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
-            for recipe in all_saleable_recipes
-        ])
-        _upsert_margin(
-            recipe_margin_service.get_all_recipe_margin,
-            recipe_margin_service.create_recipe_margin,
-            recipe_margin_service.update_recipe_margin,
-            {"establishment_id": establishment_id},
-            avg_global,
-        )
-
-        # MISE A JOUR DE LA MARGE MOYENNE PAR CATEGORIE
-        category_ids = _unique(
-            _safe_get(recipe, "category_id") for recipe in impacted_recipes_saleable if _safe_get(recipe, "category_id")
-        )
-        for category_id in category_ids:
-            avg = _mean([
-                _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
-                for recipe in impacted_recipes_saleable
-                if _safe_get(recipe, "category_id") == category_id
-            ])
-            _upsert_margin(
-                recipe_margin_category_service.get_all_recipe_margin_category,
-                recipe_margin_category_service.create_recipe_margin_category,
-                recipe_margin_category_service.update_recipe_margin_category,
-                {"establishment_id": establishment_id, "category_id": category_id},
-                avg,
-            )
-
-        # MISE A JOUR DE LA MARGE MOYENNE PAR SOUS-CATEGORIE
-        subcategory_ids = _unique(
-            _safe_get(recipe, "subcategory_id")
-            for recipe in impacted_recipes_saleable
-            if _safe_get(recipe, "subcategory_id")
-        )
-        for subcategory_id in subcategory_ids:
-            avg = _mean([
-                _as_decimal(_safe_get(recipe, "current_margin")) or Decimal("0")
-                for recipe in impacted_recipes_saleable
-                if _safe_get(recipe, "subcategory_id") == subcategory_id
-            ])
-            _upsert_margin(
-                recipe_margin_subcategory_service.get_all_recipe_margin_subcategory,
-                recipe_margin_subcategory_service.create_recipe_margin_subcategory,
-                recipe_margin_subcategory_service.update_recipe_margin_subcategory,
-                {"establishment_id": establishment_id, "subcategory_id": subcategory_id},
-                avg,
-            )
 
     # CREATION DES VARIATIONS POUR LES SMS
     variations_created = []
