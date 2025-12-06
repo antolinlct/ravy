@@ -22,3 +22,4 @@ class Articles(BaseModel):
     updated_by: Optional[UUID] = None
     discounts: Optional[float] = None
     duties_and_taxes: Optional[float] = None
+    gross_unit_price: Optional[float] = None

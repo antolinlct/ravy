@@ -149,6 +149,7 @@ class ArticleEntry:
     article_id: Optional[UUID]
     master_article_id: UUID
     unit_price: Optional[Decimal]
+    gross_unit_price: Optional[Decimal]
     quantity: Optional[Decimal]
     line_total: Optional[Decimal]
     discounts: Optional[Decimal]
@@ -255,6 +256,7 @@ def create_articles_from_lines(
         line_total = _as_decimal(line.get("line_total_excl_tax"))
         discounts = _as_decimal(line.get("discounts"))
         duties = _as_decimal(line.get("duties_and_taxes"))
+        gross_unit_price = _as_decimal(line.get("gross_unit-price"))
 
         market_articles_service.create_market_articles(
             {
@@ -269,6 +271,7 @@ def create_articles_from_lines(
                 "invoice_path": invoice_path,
                 "quantity": quantity,
                 "invoices_id": invoice_id,
+                "gross_unit_price": gross_unit_price,
             }
         )
 
@@ -285,6 +288,7 @@ def create_articles_from_lines(
                 "total": line_total,
                 "discounts": discounts,
                 "duties_and_taxes": duties,
+                "gross_unit_price": gross_unit_price,
             }
         )
         article_id = _safe_get(article, "id")
@@ -301,6 +305,7 @@ def create_articles_from_lines(
             duties=duties,
             date=invoice_date_parsed,
             unit=line.get("unit"),
+            gross_unit_price=gross_unit_price
         )
         articles_by_master[master_article_id].append(entry)
         articles_created.append(entry)

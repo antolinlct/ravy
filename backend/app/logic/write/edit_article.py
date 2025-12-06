@@ -138,6 +138,7 @@ def edit_article(
     article_id: UUID,
     article_unit: str,
     article_quantity: Any,
+    article_gross_unit_price: Any,
     article_new_unit_price: Any,
     article_old_unit_price: Any,
     article_total: Any,
@@ -150,6 +151,7 @@ def edit_article(
     target_date = _as_date(invoice_date) or date.today()
     new_unit_price = _as_decimal(article_new_unit_price)
     old_unit_price = _as_decimal(article_old_unit_price)
+    gross_unit_price = _as_decimal(article_gross_unit_price)
 
     # ------------------------------------------------------------------
     # Étape 1 : mise à jour de l'article et du master_article
@@ -161,6 +163,7 @@ def edit_article(
         "total": _as_decimal(article_total),
         "discounts": _as_decimal(article_discounts),
         "duties_and_taxes": _as_decimal(article_duties_and_taxes),
+        "gross_unit_price": gross_unit_price
     }
     articles_service.update_articles(article_id, article_payload)
 

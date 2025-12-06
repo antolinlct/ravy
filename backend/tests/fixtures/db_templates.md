@@ -43,6 +43,7 @@ articles = fake_db.create_articles({
     "updated_by": user_profiles["id"],
     "discounts": 0,
     "duties_and_taxes": 0,
+    "gross_unit_price": 0,
 })
 
 # CREATION D'UNE BILLING_ACCOUNT

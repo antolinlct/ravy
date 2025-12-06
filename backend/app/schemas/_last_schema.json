@@ -615,6 +615,11 @@
       "column": "duties_and_taxes",
       "data_type": "numeric",
       "udt_name": "numeric"
+    },
+    {
+      "column": "gross_unit_price",
+      "data_type": "numeric",
+      "udt_name": "numeric"
     }
   ],
   "billing_account": [
