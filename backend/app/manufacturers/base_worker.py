@@ -98,9 +98,15 @@ def list_running_establishment_ids() -> Set[Optional[UUID]]:
 def claim_next_pending_import_job(
     *, excluded_establishment_ids: Iterable[Optional[UUID]] | None = None, batch_size: int = 10
 ) -> Optional[ImportJob]:
-    """Attempt to claim the next pending import job."""
+    """Attempt to claim the next pending import job.
 
-    exclusion_set: Set[Optional[UUID]] = set(excluded_establishment_ids or [])
+    The claim is optimistic but defensive: each attempt refreshes the list of
+    running establishments to avoid picking a job for an establishment already
+    handled by another worker mid-loop, and the update is guarded by the
+    `status = pending` predicate to prevent double-claiming the same row.
+    """
+
+    base_exclusions: Set[Optional[UUID]] = set(excluded_establishment_ids or [])
 
     pending_jobs = import_job_service.get_all_import_job(
         filters={"status": "pending", "order_by": "invoice_date", "direction": "asc"},
@@ -109,10 +115,12 @@ def claim_next_pending_import_job(
     )
 
     for job in pending_jobs:
+        live_exclusions = base_exclusions | list_running_establishment_ids()
+
         job_id = job.id
         establishment_id = _normalize_uuid(job.establishment_id)
 
-        if establishment_id in exclusion_set:
+        if establishment_id in live_exclusions:
             continue
 
         if not job_id:

@@ -101,6 +101,76 @@ def test_claim_next_pending_import_job_respects_exclusions(monkeypatch):
     assert fake_rows[1]["status"] == "running"
 
 
+def test_claim_next_pending_import_job_refreshes_running_view(monkeypatch):
+    establishment = uuid4()
+    job_one_id = uuid4()
+    job_two_id = uuid4()
+    fake_rows = [
+        {"id": str(job_one_id), "status": "pending", "establishment_id": str(establishment)},
+        {"id": str(job_two_id), "status": "pending", "establishment_id": str(establishment)},
+    ]
+    fake_supabase = FakeSupabase(fake_rows)
+    monkeypatch.setattr(base_worker, "supabase", fake_supabase)
+
+    def fake_get_all_import_job(filters, limit, page):
+        return [
+            ImportJob(**row)
+            for row in fake_rows
+            if row.get("status") == filters.get("status")
+        ]
+
+    running_views = [set(), {establishment}]
+
+    def fake_list_running_establishment_ids():
+        if running_views:
+            return running_views.pop(0)
+        return {establishment}
+
+    monkeypatch.setattr(base_worker, "list_running_establishment_ids", fake_list_running_establishment_ids)
+    monkeypatch.setattr(base_worker.import_job_service, "get_all_import_job", fake_get_all_import_job)
+
+    claimed = base_worker.claim_next_pending_import_job()
+
+    assert claimed is not None
+    assert claimed.id == job_one_id
+    assert fake_rows[0]["status"] == "running"
+    assert fake_rows[1]["status"] == "pending"  # second job skipped because establishment now busy
+
+
+def test_claim_next_pending_import_job_prefers_oldest_invoice(monkeypatch):
+    job_old_id = uuid4()
+    job_new_id = uuid4()
+    fake_rows = [
+        {
+            "id": str(job_old_id),
+            "status": "pending",
+            "establishment_id": None,
+            "invoice_date": "2021-01-01",
+        },
+        {
+            "id": str(job_new_id),
+            "status": "pending",
+            "establishment_id": None,
+            "invoice_date": "2023-01-01",
+        },
+    ]
+    fake_supabase = FakeSupabase(fake_rows)
+    monkeypatch.setattr(base_worker, "supabase", fake_supabase)
+
+    def fake_get_all_import_job(filters, limit, page):
+        ordered = sorted(
+            [ImportJob(**row) for row in fake_rows if row.get("status") == filters.get("status")],
+            key=lambda job: job.invoice_date,
+        )
+        return ordered
+
+    monkeypatch.setattr(base_worker.import_job_service, "get_all_import_job", fake_get_all_import_job)
+
+    claimed = base_worker.claim_next_pending_import_job()
+
+    assert claimed is not None
+    assert claimed.id == job_old_id
+
 def test_worker_run_uses_suffix_in_telegrams(monkeypatch):
     establishment_one = uuid4()
     establishment_two = uuid4()
