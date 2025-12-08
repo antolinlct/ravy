@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.messages_ia import MessagesIa
 from app.services import messages_ia_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/messages_ia", tags=["MessagesIa"])
 
 @router.get("/", response_model=list[MessagesIa])
 def list_messages_ia(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

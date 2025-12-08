@@ -145,6 +145,11 @@
       "column": "is_beverage",
       "data_type": "boolean",
       "udt_name": "bool"
+    },
+    {
+      "column": "invoice_date",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
     }
   ],
   "logs": [

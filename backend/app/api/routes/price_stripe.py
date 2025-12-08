@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.price_stripe import PriceStripe
 from app.services import price_stripe_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/price_stripe", tags=["PriceStripe"])
 
 @router.get("/", response_model=list[PriceStripe])
 def list_price_stripe(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

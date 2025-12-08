@@ -1,3 +1,9 @@
+import os
+
+MANUFACTURERS_KEY = os.getenv("RAVY_MANUFCATURERS_KEY")
+if not MANUFACTURERS_KEY:
+    raise RuntimeError("Missing env var: RAVY_MANUFCATURERS_KEY")
+
 """
 Manufacturers Configuration
 ===========================
@@ -116,7 +122,7 @@ Mais par précaution, on ajoute deux couches de sécurité :
 """
 
 # 1️⃣ Clé d’accès interne — utilisée dans le header HTTP des wakeuppers
-INTERNAL_ACCESS_KEY = "ravy_workers_2025_prod_JxT4!d9vQ2mZn#L8sR"  # ⚠️ à remplacer par une vraie clé forte
+#INTERNAL_ACCESS_KEY = "ravy_workers_2025_prod_JxT4!d9vQ2mZn#L8sR"  # ⚠️ à remplacer par une vraie clé forte
 
 # 2️⃣ Liste blanche d’IPs autorisées (par défaut, uniquement la machine locale)
 ALLOWED_IPS = ["127.0.0.1", "localhost"]

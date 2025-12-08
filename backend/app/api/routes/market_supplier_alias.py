@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.market_supplier_alias import MarketSupplierAlias
 from app.services import market_supplier_alias_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/market_supplier_alias", tags=["MarketSupplierAlias"]
 
 @router.get("/", response_model=list[MarketSupplierAlias])
 def list_market_supplier_alias(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

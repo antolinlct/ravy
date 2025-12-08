@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.recipe_categories import RecipeCategories
 from app.services import recipe_categories_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/recipe_categories", tags=["RecipeCategories"])
 
 @router.get("/", response_model=list[RecipeCategories])
 def list_recipe_categories(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

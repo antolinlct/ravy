@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.regex_patterns import RegexPatterns
 from app.services import regex_patterns_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/regex_patterns", tags=["RegexPatterns"])
 
 @router.get("/", response_model=list[RegexPatterns])
 def list_regex_patterns(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

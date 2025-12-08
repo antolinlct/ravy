@@ -15,3 +15,4 @@ class ImportJob(BaseModel):
     ocr_result_json: Optional[dict] = None
     updated_at: Optional[datetime] = None
     is_beverage: Optional[bool] = None
+    invoice_date: Optional[datetime] = None

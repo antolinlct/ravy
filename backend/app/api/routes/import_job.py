@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.import_job import ImportJob
 from app.services import import_job_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/import_job", tags=["ImportJob"])
 
 @router.get("/", response_model=list[ImportJob])
 def list_import_job(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.user_mercuriale_access import UserMercurialeAccess
 from app.services import user_mercuriale_access_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/user_mercuriale_access", tags=["UserMercurialeAccess
 
 @router.get("/", response_model=list[UserMercurialeAccess])
 def list_user_mercuriale_access(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

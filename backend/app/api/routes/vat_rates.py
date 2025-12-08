@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.vat_rates import VatRates
 from app.services import vat_rates_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/vat_rates", tags=["VatRates"])
 
 @router.get("/", response_model=list[VatRates])
 def list_vat_rates(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

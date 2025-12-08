@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.usage_counters import UsageCounters
 from app.services import usage_counters_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/usage_counters", tags=["UsageCounters"])
 
 @router.get("/", response_model=list[UsageCounters])
 def list_usage_counters(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

@@ -344,6 +344,7 @@ import_job = fake_db.create_import_job({
     "ocr_result_json": {},
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "is_beverage": True,
+    "invoice_date": datetime(2025, 1, 1, 12, 00),
 })
 
 # CREATION D'UN INGREDIENTS

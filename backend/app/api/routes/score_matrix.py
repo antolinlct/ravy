@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.score_matrix import ScoreMatrix
 from app.services import score_matrix_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/score_matrix", tags=["ScoreMatrix"])
 
 @router.get("/", response_model=list[ScoreMatrix])
 def list_score_matrix(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

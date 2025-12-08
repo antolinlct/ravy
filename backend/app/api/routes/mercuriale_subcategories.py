@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.mercuriale_subcategories import MercurialeSubcategories
 from app.services import mercuriale_subcategories_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/mercuriale_subcategories", tags=["MercurialeSubcateg
 
 @router.get("/", response_model=list[MercurialeSubcategories])
 def list_mercuriale_subcategories(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

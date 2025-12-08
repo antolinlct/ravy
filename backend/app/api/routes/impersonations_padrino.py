@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.impersonations_padrino import ImpersonationsPadrino
 from app.services import impersonations_padrino_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/impersonations_padrino", tags=["ImpersonationsPadrin
 
 @router.get("/", response_model=list[ImpersonationsPadrino])
 def list_impersonations_padrino(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

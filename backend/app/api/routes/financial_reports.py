@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.financial_reports import FinancialReports
 from app.services import financial_reports_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/financial_reports", tags=["FinancialReports"])
 
 @router.get("/", response_model=list[FinancialReports])
 def list_financial_reports(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

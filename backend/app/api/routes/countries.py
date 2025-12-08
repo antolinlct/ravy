@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.countries import Countries
 from app.services import countries_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/countries", tags=["Countries"])
 
 @router.get("/", response_model=list[Countries])
 def list_countries(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,

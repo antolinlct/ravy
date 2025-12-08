@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.billing_account import BillingAccount
 from app.services import billing_account_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/billing_account", tags=["BillingAccount"])
 
 @router.get("/", response_model=list[BillingAccount])
 def list_billing_account(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

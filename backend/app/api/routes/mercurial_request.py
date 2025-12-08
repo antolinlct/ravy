@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.mercurial_request import MercurialRequest
 from app.services import mercurial_request_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/mercurial_request", tags=["MercurialRequest"])
 
 @router.get("/", response_model=list[MercurialRequest])
 def list_mercurial_request(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

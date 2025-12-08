@@ -37,7 +37,7 @@ for route_file in routes_dir.glob("*.py"):
         print(f"  ❌ Supprimé : {route_file.name}")
 print("  ✅ Dossiers 'read/' et 'write/' conservés.\n")
 
-# === TEMPLATE SERVICE avec filtres intelligents ===
+# === TEMPLATE SERVICE ===
 service_template = """from app.core.supabase_client import supabase
 from app.schemas.{name} import {class_name}
 
@@ -96,8 +96,9 @@ def delete_{name}(id: int):
     return {{"deleted": True}}
 """
 
-# === TEMPLATE ROUTE (avec filtres dynamiques détectés) ===
+# === TEMPLATE ROUTE ===
 route_template = """from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.{name} import {class_name}
 from app.services import {name}_service
 
@@ -105,10 +106,10 @@ router = APIRouter(prefix="/{name}", tags=["{class_name}"])
 
 @router.get("/", response_model=list[{class_name}])
 def list_{name}(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,{dynamic_filters}
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1{dynamic_filters}
 ):
     filters = {{
         "order_by": order_by,
@@ -164,23 +165,36 @@ for schema_file in schema_files:
                 available_fields = list(model["fields"].keys())
                 break
 
-    # 🔧 Construction du bloc de filtres structurels (service)
+    # --- Filtres structurels (service) + filtres dynamiques (routes) ---
     filter_lines = []
     ignored_fields = []
-    dynamic_filters = []
+    dynamic_filter_cols = []
     filters_mapping = ""
 
     for col in ["establishment_id", "supplier_id"]:
         if col in available_fields:
-            filter_lines.append(f'    if "{col}" in filters:\n        query = query.eq("{col}", filters["{col}"])\n')
-            dynamic_filters.append(f"\n    {col}: str | None = None")
+            # service : filtre eq
+            filter_lines.append(
+                f'    if "{col}" in filters:\n        query = query.eq("{col}", filters["{col}"])\n'
+            )
+            # route : param dynamique
+            dynamic_filter_cols.append(col)
+            # mapping filters
             filters_mapping += f', "{col}": {col}'
             ignored_fields.append(f'"{col}"')
 
     filter_block = "".join(filter_lines) if filter_lines else "    # Aucun filtre structurel spécifique\n"
     ignored_fields_str = ", ".join(ignored_fields) if ignored_fields else ""
 
-    # 📄 Écriture du service
+    # construction propre de dynamic_filters pour la signature
+    if dynamic_filter_cols:
+        dynamic_filters_str = ",\n    " + ",\n    ".join(
+            f"{col}: Optional[str] = None" for col in dynamic_filter_cols
+        )
+    else:
+        dynamic_filters_str = ""
+
+    # 📄 Service
     service_path = services_dir / f"{name}_service.py"
     service_code = service_template.format(
         name=name,
@@ -191,12 +205,12 @@ for schema_file in schema_files:
     service_path.write_text(service_code)
     print(f"✅ Service régénéré : {service_path.name}")
 
-    # 📄 Écriture de la route
+    # 📄 Route
     route_path = routes_dir / f"{name}.py"
     route_code = route_template.format(
         name=name,
         class_name=class_name,
-        dynamic_filters="".join(dynamic_filters),
+        dynamic_filters=dynamic_filters_str,
         filters_mapping=filters_mapping
     )
     route_path.write_text(route_code)

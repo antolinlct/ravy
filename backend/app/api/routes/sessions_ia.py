@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.sessions_ia import SessionsIa
 from app.services import sessions_ia_service
 
@@ -6,11 +7,11 @@ router = APIRouter(prefix="/sessions_ia", tags=["SessionsIa"])
 
 @router.get("/", response_model=list[SessionsIa])
 def list_sessions_ia(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
-    establishment_id: str | None = None
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1,
+    establishment_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,

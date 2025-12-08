@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional
 from app.schemas.supplier_merge_request import SupplierMergeRequest
 from app.services import supplier_merge_request_service
 
@@ -6,10 +7,10 @@ router = APIRouter(prefix="/supplier_merge_request", tags=["SupplierMergeRequest
 
 @router.get("/", response_model=list[SupplierMergeRequest])
 def list_supplier_merge_request(
-    order_by: str | None = None,
-    direction: str | None = None,
-    limit: int | None = 200,
-    page: int | None = 1,
+    order_by: Optional[str] = None,
+    direction: Optional[str] = None,
+    limit: Optional[int] = 200,
+    page: Optional[int] = 1
 ):
     filters = {
         "order_by": order_by,
