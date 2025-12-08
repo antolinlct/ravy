@@ -24,3 +24,4 @@ class MarketArticles(BaseModel):
     invoice_id: Optional[UUID] = None
     total: Optional[float] = None
     is_active: Optional[bool] = None
+    gross_unit_price: Optional[float] = None

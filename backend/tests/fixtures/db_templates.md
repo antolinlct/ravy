@@ -488,6 +488,7 @@ market_articles = fake_db.create_market_articles({
     "invoice_id": "uuid",
     "total": 0,
     "is_active": True,
+    "gross_unit_price": 0,
 })
 
 # CREATION D'UNE MARKET_MASTER_ARTICLES

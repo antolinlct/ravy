@@ -10,9 +10,7 @@ from app.api.routes import sessions_ia
 from app.api.routes import logs_ia
 from app.api.routes import messages_ia
 from app.api.routes import regex_patterns
-from app.api.routes import price
 from app.api.routes import supplier_alias
-from app.api.routes import product
 from app.api.routes import recipe_categories
 from app.api.routes import import_job
 from app.api.routes import recipes_subcategories
@@ -29,7 +27,6 @@ from app.api.routes import live_score
 from app.api.routes import score_matrix
 from app.api.routes import market_supplier_alias
 from app.api.routes import recommendations_ai
-from app.api.routes import label_supplier
 from app.api.routes import recipe_margin_category
 from app.api.routes import market_suppliers
 from app.api.routes import invoices_rejected
@@ -125,7 +122,6 @@ app.include_router(recipe_margin_subcategory.router)
 app.include_router(invoices_rejected.router)
 app.include_router(market_suppliers.router)
 app.include_router(recipe_margin_category.router)
-app.include_router(label_supplier.router)
 app.include_router(recipe_margin.router)
 app.include_router(recommendations_ai.router)
 app.include_router(market_supplier_alias.router)
@@ -143,9 +139,7 @@ app.include_router(logs.router)
 app.include_router(recipes_subcategories.router)
 app.include_router(import_job.router)
 app.include_router(recipe_categories.router)
-app.include_router(product.router)
 app.include_router(supplier_alias.router)
-app.include_router(price.router)
 app.include_router(regex_patterns.router)
 app.include_router(messages_ia.router)
 app.include_router(logs_ia.router)

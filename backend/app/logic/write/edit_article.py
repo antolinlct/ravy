@@ -241,6 +241,8 @@ def edit_article(
                 "duties_and_taxes": _as_decimal(article_duties_and_taxes),
                 "quantity": _as_decimal(article_quantity),
                 "total": _as_decimal(article_total),
+                "gross_unit_price": _as_decimal(gross_unit_price),
+
             }
 
             market_articles_service.update_market_articles(market_article_id, market_payload)
