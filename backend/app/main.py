@@ -91,7 +91,7 @@ app.include_router(market_database_overview_read.router)
 # Routes de logique métier /WRITE ONLY
 
 
-# Routes TELEGRAM
+# Routes WAKEUPPERS
 from app.api.routes.wakeuppers import wake_invoice
 app.include_router(wake_invoice.router)
 
