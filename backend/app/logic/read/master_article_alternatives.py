@@ -1,4 +1,5 @@
 import re
+import re
 import unidecode
 from typing import Dict, Any, Optional, List
 from rapidfuzz import fuzz
@@ -51,6 +52,13 @@ def clean_name(name: str) -> str:
 
     name = re.sub(r"\s+", "", name)
     return name.strip()
+
+    # Indications :
+    # - Ajouter l'import re manquant pour éviter une NameError et maintenir cette normalisation synchronisée avec la logique front de recherche.
+    # - Ajuster la liste des mots à exclure selon les nouveaux schémas produits et tracer les tokens retirés pour diagnostiquer les faux positifs.
+    # Tests robustes :
+    # - Injecter des libellés contenant accents, quantités, caractères spéciaux et unités en double pour vérifier la normalisation sans crash regex.
+    # - Couvrir un libellé vide ou None pour contrôler le fallback "".
 
 
 def master_article_alternatives(
@@ -171,3 +179,11 @@ def master_article_alternatives(
             "limit": limit,
         },
     }
+
+    # Indications :
+    # - Valider les labels fournisseurs (ENUM label_supplier.label) via le schéma et gérer les erreurs Supabase (requêtes chaînées).
+    # - Mentionner la modification à prévoir : contrôler le score_min pour éviter un overflow de résultats et ajuster les filtres supplier_labels/supplier_filter_id.
+    # - Remonter en option un score de confiance et le volume d'achats récents pour chaque alternative ; signaler les incohérences supplier_id/establishment_id.
+    # Tests robustes :
+    # - Mocker Supabase pour renvoyer des fournisseurs vides, des master_articles sans supplier_id et des scores de similarité sous/au-dessus du seuil afin de vérifier la filtration, le tri et les limites de pagination.
+    # - Vérifier le comportement lorsque aucun candidat n'est retourné ou lorsque score_min est supérieur à 100.

@@ -12,6 +12,13 @@ def get_month_bounds(target_date: Optional[date] = None):
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
 
+    # Indications :
+    # - Ajouter l'import from datetime import date manquant pour éviter une NameError et aligner ces bornes avec les filtres des autres analyses recettes.
+    # - Vérifier le fuseau horaire pour éviter des variations incohérentes dans history_ingredients.
+    # Tests robustes :
+    # - Contrôler le calcul des bornes sur changement de mois/année et sur des dates explicites passées par le service recettes.
+    # - Simuler des bornes inversées pour confirmer la validation amont.
+
 
 def recipe_ingredients_analysis(
     recipe_id: str,
@@ -193,3 +200,11 @@ def recipe_ingredients_analysis(
         "ingredients": results,
         "period": {"start": str(start_date), "end": str(end_date)},
     }
+
+    # Indications :
+    # - Contrôler les ingrédients sans coûts/quantités pour éviter des divisions par zéro et ajouter l'import datetime.date manquant.
+    # - Vérifier l'appartenance de recipe_id à l'établissement (public.recipes.establishment_id) et remonter le coût total recette recalculé pour croiser avec purchase_cost_per_portion.
+    # - Signaler les incohérences de mapping master_article_id/subrecipe_id avec les services d'import et tracer les ingrédients sans history_ingredients.
+    # Tests robustes :
+    # - Mocker des recettes sans ingrédients, des ingrédients ARTICLE sans history_ingredients et des SUBRECIPE sans recette liée pour vérifier la stabilité des coûts, des variations et des pourcentages retournés.
+    # - Injecter portions à 0 ou None et des unit_cost None/strings pour valider la robustesse des calculs et la gestion des types.
