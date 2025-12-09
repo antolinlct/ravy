@@ -1,7 +1,18 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import List, Optional, Dict, Any
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+
+
+def _safe_decimal(value: Any) -> Decimal:
+    """Convertit en Decimal pour préserver la précision des montants."""
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal("0")
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -11,6 +22,14 @@ def get_month_bounds(target_date: Optional[date] = None):
     next_month = first_day + relativedelta(months=1)
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
+
+    # Indications :
+    # - Ajouter l'import from datetime import date manquant pour éviter un NameError lors de l'appel depuis les services.
+    # - Valider que la date passée est timezone aware et alignée avec la périodicité attendue pour éviter les chevauchements de périodes.
+    # - Journaliser les bornes calculées pour les comparer aux exports financiers et prévoir un garde-fou lorsque start_date > end_date.
+    # Tests robustes :
+    # - Couvrir la génération des bornes sur changement d'année/mois et avec des dates explicites fournies par le front.
+    # - Simuler une date naïve vs. timezone pour vérifier l'homogénéité des bornes dans les services consommateurs.
 
 
 def invoices_sum(
@@ -34,6 +53,8 @@ def invoices_sum(
     # --- 1. Déterminer la période cible (mois courant si non précisée) ---
     if not start_date or not end_date:
         start_date, end_date = get_month_bounds()
+    if start_date > end_date:
+        raise ValueError("start_date cannot be after end_date")
 
     # --- 2. Construction de la requête principale ---
     query = (
@@ -67,9 +88,12 @@ def invoices_sum(
     invoices = result.data or []
 
     # --- 6. Calculs totaux sécurisés ---
-    sum_ht = sum(inv.get("total_ht", 0) or 0 for inv in invoices)
-    sum_tva = sum(inv.get("total_tva", 0) or 0 for inv in invoices)
-    sum_ttc = sum(inv.get("total_ttc", 0) or 0 for inv in invoices)
+    sum_ht = sum(_safe_decimal(inv.get("total_ht", 0)) for inv in invoices)
+    sum_tva = sum(_safe_decimal(inv.get("total_tva", 0)) for inv in invoices)
+    sum_ttc = sum(_safe_decimal(inv.get("total_ttc", 0)) for inv in invoices)
+
+    def _quantize(value: Decimal, exp: str = "0.01") -> float:
+        return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
     # --- 7. Résultat final ---
     return {
@@ -81,10 +105,18 @@ def invoices_sum(
             "supplier_labels": supplier_labels or [],
         },
         "totals": {
-            "sum_ht": round(sum_ht, 2),
-            "sum_tva": round(sum_tva, 2),
-            "sum_ttc": round(sum_ttc, 2),
+            "sum_ht": _quantize(sum_ht),
+            "sum_tva": _quantize(sum_tva),
+            "sum_ttc": _quantize(sum_ttc),
         },
         "count": len(invoices),
         "invoices": invoices,
     }
+
+    # Indications :
+    # - Sécuriser les filtres fournis (listes non vides, labels ENUM existants dans label_supplier.label) et gérer explicitement les erreurs Supabase.
+    # - Vérifier le mapping establishment_id/supplier_id avec le schéma public.suppliers et tracer les factures rejetées (dates hors plage, fournisseurs inconnus).
+    # - Mentionner l'ajout souhaité d'un total moyen par facture et la normalisation des valeurs nulles/strings avant agrégation pour rester cohérent avec la DB.
+    # Tests robustes :
+    # - Simuler des périodes partielles et des filtres cumulés (ids + labels), y compris des ids incohérents avec l'établissement.
+    # - Mocker Supabase pour injecter des factures avec totaux null, strings ou doublons et vérifier la stabilité des sommes/arrondis et du comptage.

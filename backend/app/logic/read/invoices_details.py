@@ -1,6 +1,14 @@
 from typing import Dict, Any, List
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any, default: str = "0") -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal(default)
 
 
 def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
@@ -49,7 +57,8 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     # --- 3. Calcul des variations de prix ---
     for article in articles:
         master_article_id = article.get("master_article_id")
-        current_price = article.get("unit_price") or 0
+        current_price = _to_decimal(article.get("unit_price"))
+        current_price = current_price.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
         previous_article = None
 
         if master_article_id and invoice_date:
@@ -68,21 +77,27 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
                 previous_article = previous_data[0]
 
         if previous_article:
-            previous_price = previous_article.get("unit_price", 0)
-            variation_euro = round(current_price - previous_price, 3)
+            previous_price = _to_decimal(previous_article.get("unit_price", 0))
+            previous_price = previous_price.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
+            variation_euro = (current_price - previous_price).quantize(
+                Decimal("0.001"), rounding=ROUND_HALF_UP
+            )
             variation_percent = (
-                round(((current_price - previous_price) / previous_price * 100), 2)
-                if previous_price
-                else 0
+                (
+                    (current_price - previous_price)
+                    / previous_price
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                if previous_price != 0
+                else Decimal("0")
             )
         else:
             previous_price = None
-            variation_euro = 0
-            variation_percent = 0
+            variation_euro = Decimal("0")
+            variation_percent = Decimal("0")
 
         article["previous_unit_price"] = previous_price
-        article["variation_euro"] = variation_euro
-        article["variation_percent"] = variation_percent
+        article["variation_euro"] = float(variation_euro)
+        article["variation_percent"] = float(variation_percent)
 
     # --- 4. Résultat final ---
     result = {
@@ -92,3 +107,13 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     }
 
     return result
+
+    # Indications :
+    # - Vérifier que l'ID facture correspond à l'établissement connecté (mapping invoices.establishment_id) et journaliser les appels Supabase.
+    # - Sécuriser la conversion de dates ISO et ajouter un contrôle de type sur unit_price pour éviter des variations erronées (prix None ou string).
+    # - Prévoir un fallback lorsque l'article précédent n'existe pas ou lorsque la colonne articles.date est absente ; mentionner dans les logs pour affiner le mapping.
+    # - Remonter en option le prix moyen/écart-type des articles de la facture et signaler si la colonne establishment_id manque côté articles (cohérence schéma DB).
+    # Tests robustes :
+    # - Mocker Supabase pour couvrir factures inexistantes, dates invalides et articles sans master_article_id.
+    # - Injecter des unit_price à 0, None ou string pour vérifier le calcul variation_euro/% et l'absence de crash.
+    # - Vérifier qu'un article lié à un autre établissement est rejeté et que le comptage d'articles reste exact.

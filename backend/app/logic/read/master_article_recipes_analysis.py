@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Dict, Any, Optional
+from datetime import date
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
 
@@ -11,6 +12,13 @@ def get_month_bounds(target_date: Optional[date] = None):
     next_month = first_day + relativedelta(months=1)
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
+
+    # Indications :
+    # - Ajouter l'import from datetime import date manquant pour éviter une NameError et harmoniser ces bornes avec les périodes utilisées côté service recettes.
+    # - Vérifier la timezone stockée dans history_ingredients.date pour éviter des écarts d'analyse.
+    # Tests robustes :
+    # - Vérifier les bornes sur changement de mois/année et sur des périodes custom pour garantir la cohérence des historiques.
+    # - Simuler des bornes inversées pour tester la validation amont.
 
 
 def master_article_impact_analysis(
@@ -202,3 +210,11 @@ def master_article_impact_analysis(
         "period": {"start": str(start_date), "end": str(end_date)},
         "recipes": results,
     }
+
+    # Indications :
+    # - Sécuriser la récupération des recettes (vérifier recipes.establishment_id) et noter la correction à prévoir : importer datetime.date pour éviter un NameError.
+    # - Annoter si des sous-recettes manquent dans ingredients.subrecipe_id pour traçabilité et remonter le coût total recette (purchase_cost_per_portion × portions) pour comparaison front.
+    # - Consigner les cas où history_ingredients est vide et vérifier la cohérence des quantités/portions.
+    # Tests robustes :
+    # - Mocker des recettes sans ingrédients, des sous-recettes manquantes et des historiques vides pour valider la résilience des calculs (variations, coût par portion) et la forme du retour minimal.
+    # - Injecter des unités de portions à 0 ou None pour confirmer la protection contre division par zéro.

@@ -1,10 +1,24 @@
 from __future__ import annotations
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any) -> Optional[Decimal]:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _quantize(value: Optional[Decimal], exp: str = "0.001") -> float:
+    if value is None:
+        return 0.0
+    return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
 
 # =============================
@@ -19,6 +33,13 @@ def _period_last_months(months: int, today: Optional[date] = None) -> Tuple[date
     next_month = today.replace(day=1) + relativedelta(months=1)
     end = next_month - relativedelta(days=1)
     return start, end
+
+    # Indications :
+    # - Garder ce calcul aligné avec les attentes des services (mois civil complet) et préciser le pas de temps utilisé pour les exports marché.
+    # - Mentionner la vérification à ajouter lorsque start/end sont fournis partiellement (aujourd'hui priorité sur dates explicites?).
+    # Tests robustes :
+    # - Couvrir les bascules décembre/janvier et les valeurs months personnalisées pour s’assurer du respect des bornes inclusives.
+    # - Simuler une timezone différente pour confirmer que la borne jour reste cohérente avec Supabase.
 
 
 def _ensure_period(
@@ -35,6 +56,14 @@ def _ensure_period(
     months = period_range if period_range in (3, 6, 12) else 3
     return _period_last_months(months)
 
+    # Indications :
+    # - Valider les dates entrantes (start <= end) et journaliser le fallback automatique pour traçabilité métier.
+    # - Noter la modification à prévoir : accepter un start_date sans end_date (ou l'inverse) au lieu d'ignorer la date fournie.
+    # - Tracer le period_range retenu pour comparer avec les requêtes front.
+    # Tests robustes :
+    # - Simuler des entrées partiellement fournies (start sans end) et des period_range hors liste pour vérifier le fallback par défaut.
+    # - Couvrir des dates inversées pour s'assurer que la validation amont rejette la plage.
+
 
 # =============================
 # Fetchers
@@ -46,6 +75,13 @@ def _fetch_market_suppliers(supplier_id: Optional[str]) -> List[Dict[str, Any]]:
         q = q.eq("id", supplier_id).limit(1)
     res = q.execute()
     return res.data or []
+
+    # Indications :
+    # - Contrôler les erreurs de requête Supabase et vérifier la cohérence des IDs avec le schéma marché (market_suppliers.id).
+    # - Ajouter un log métier lorsque aucun fournisseur n'est retourné pour alerter les flux d'import.
+    # Tests robustes :
+    # - Mocker Supabase pour renvoyer une erreur, un fournisseur unique et une liste vide afin de valider les chemins de retour.
+    # - Simuler un supplier_id non présent en base pour vérifier le comportement du limit(1).
 
 
 def _fetch_market_articles(
@@ -64,7 +100,17 @@ def _fetch_market_articles(
         .order("date")
         .execute()
     )
-    return res.data or []
+    rows = res.data or []
+    rows = [r for r in rows if r.get("date")]
+    rows.sort(key=lambda r: r.get("date"))
+    return rows
+
+    # Indications :
+    # - S'assurer que les filtres fournisseur/produit sont validés en amont et que les dates sont au format ISO pour éviter des résultats vides.
+    # - Noter la modification à prévoir : remonter le nombre d'observations pour chaque produit afin d'évaluer la fiabilité.
+    # Tests robustes :
+    # - Injecter des dates invalides et des IDs inexistants pour vérifier la gestion des réponses vides et la robustesse des filtres.
+    # - Couvrir des plages inversées (start > end) pour confirmer le rejet amont.
 
 
 def _fetch_user_articles_for_product(
@@ -93,7 +139,16 @@ def _fetch_user_articles_for_product(
         .order("date")
         .execute()
     )
-    return res.data or []
+    rows = res.data or []
+    rows = [r for r in rows if r.get("date")]
+    rows.sort(key=lambda r: r.get("date"))
+    return rows
+
+    # Indications :
+    # - Vérifier la correspondance des master_articles avec l'établissement (public.master_articles.establishment_id) et traiter les réponses vides sans interrompre l'appel principal.
+    # - Ajouter un log si aucun master_article n'est mappé (modification nécessaire) pour faciliter les corrections de mapping.
+    # Tests robustes :
+    # - Mocker une absence de master_articles, des dates hors plage ou des prix None pour confirmer que la fonction retourne bien une liste vide sans lever d'erreur.
 
 
 # =============================
@@ -104,17 +159,27 @@ def _daily_avg_series(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Série quotidienne moyenne (utile pour un graph lissé, 1 point/jour)."""
     if not rows:
         return []
-    by_day: Dict[str, List[float]] = defaultdict(list)
+    by_day: Dict[str, List[Decimal]] = defaultdict(list)
     for r in rows:
         p = r.get("unit_price")
         d = r.get("date")
         if p is None or not d:
             continue
-        by_day[d].append(p)
+        price = _to_decimal(p)
+        if price is None:
+            continue
+        by_day[d].append(price)
     return [
-        {"date": d, "avg_unit_price": round(sum(vals) / len(vals), 3)}
+        {"date": d, "avg_unit_price": _quantize(sum(vals) / len(vals))}
         for d, vals in sorted(by_day.items())
     ]
+
+    # Indications :
+    # - Filtrer en amont les données sans date ou prix et envisager de forcer l'ordre chronologique avant l'agrégation.
+    # - Prévoir des métriques de performance sur de gros volumes pour anticiper la latence côté front.
+    # Tests robustes :
+    # - Vérifier que les doublons de dates sont bien moyennés et que les séries non triées produisent une sortie triée chronologiquement.
+    # - Simuler des prix à 0/None pour confirmer leur exclusion contrôlée.
 
 
 def _stats_basic(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -129,53 +194,87 @@ def _stats_basic(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             "count_purchases": 0,
             "volatility_range": None,
         }
-    prices = [r["unit_price"] for r in rows if r.get("unit_price") is not None]
+    rows_sorted = sorted(rows, key=lambda r: r.get("date") or "")
+    prices = []
+    for r in rows_sorted:
+        if r.get("unit_price") is None:
+            continue
+        price = _to_decimal(r.get("unit_price"))
+        if price is None:
+            continue
+        prices.append(price)
     if not prices:
         return {
             "avg_unit_price": 0,
             "min_unit_price": None,
             "max_unit_price": None,
             "last_unit_price": None,
-            "last_purchase_date": None,
-            "count_purchases": len(rows),
+            "last_purchase_date": rows_sorted[-1].get("date") if rows_sorted else None,
+            "count_purchases": len(rows_sorted),
             "volatility_range": None,
         }
-    avg_price = round(sum(prices) / len(prices), 3)
-    min_price = round(min(prices), 3)
-    max_price = round(max(prices), 3)
-    last_row = rows[-1]
+    avg_price = _quantize(sum(prices) / len(prices))
+    min_price = _quantize(min(prices))
+    max_price = _quantize(max(prices))
+    last_row = rows_sorted[-1]
     return {
         "avg_unit_price": avg_price,
         "min_unit_price": min_price,
         "max_unit_price": max_price,
-        "last_unit_price": round(last_row["unit_price"], 3),
+        "last_unit_price": _quantize(_to_decimal(last_row["unit_price"])),
         "last_purchase_date": last_row["date"],
-        "count_purchases": len(rows),
+        "count_purchases": len(rows_sorted),
         "volatility_range": f"{min_price}€ → {max_price}€",
     }
+
+    # Indications :
+    # - Couvrir les cas de listes vides ou prix None et aligner les arrondis avec les attentes front.
+    # - Mentionner la modification à prévoir : renvoyer médiane/écart-type et un compteur d'observations utilisés pour les stats.
+    # Tests robustes :
+    # - Simuler des prix négatifs, None ou à 0 et valider le formatage des stats renvoyées (arrondis, last_purchase_date) même avec un seul enregistrement.
+    # - Vérifier que count_purchases reflète bien le nombre de lignes initiales (y compris celles sans prix).
 
 
 def _variation_over_period(rows: List[Dict[str, Any]]) -> Tuple[Optional[float], Optional[float]]:
     """Variation entre le 1er et le dernier enregistrements de la période."""
     if not rows or len(rows) < 2:
         return None, None
-    first = rows[0].get("unit_price")
-    last = rows[-1].get("unit_price")
+    rows_sorted = sorted(rows, key=lambda r: r.get("date") or "")
+    first = _to_decimal(rows_sorted[0].get("unit_price"))
+    last = _to_decimal(rows_sorted[-1].get("unit_price"))
     if first is None or last is None:
         return None, None
-    diff = round(last - first, 3)
-    pct = round(((last - first) / first * 100), 2) if first else None
+    diff = _quantize(last - first)
+    pct = (
+        float(((last - first) / first * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        if first
+        else None
+    )
     return diff, pct
+
+    # Indications :
+    # - Garantir que les lignes sont triées chronologiquement (sinon trier ici) et gérer les prix nuls pour éviter des pourcentages infinis.
+    # - Consigner la date des premiers/derniers points pour vérifier la cohérence avec le périmètre demandé.
+    # Tests robustes :
+    # - Injecter des lignes désordonnées et des prix zéro pour s'assurer que diff/pct restent stables et que None est renvoyé si insuffisant.
+    # - Tester une seule observation pour vérifier le retour (None, None).
 
 
 def _market_volatility_index(stats: Dict[str, Any]) -> Optional[float]:
     """(max - min) / avg → indice de volatilité relatif (0 = très stable)."""
-    avg_p = stats.get("avg_unit_price") or 0
-    min_p = stats.get("min_unit_price")
-    max_p = stats.get("max_unit_price")
+    avg_p = _to_decimal(stats.get("avg_unit_price"))
+    min_p = _to_decimal(stats.get("min_unit_price")) if stats.get("min_unit_price") is not None else None
+    max_p = _to_decimal(stats.get("max_unit_price")) if stats.get("max_unit_price") is not None else None
     if not avg_p or min_p is None or max_p is None:
         return None
-    return round((max_p - min_p) / avg_p, 3)
+    return _quantize((max_p - min_p) / avg_p)
+
+    # Indications :
+    # - Valider que les stats proviennent de _stats_basic et ajouter un garde-fou explicite pour avg_p proche de zéro.
+    # - Envisager d'exposer un niveau de confiance basé sur le volume d'observations.
+    # Tests robustes :
+    # - Couvrir les cas avg_unit_price=0 ou None pour vérifier que l'indice retourne None et ne lève pas d'exception.
+    # - Injecter des valeurs min/max identiques pour vérifier l'indice 0.
 
 
 def _trend_label(variation_eur: Optional[float]) -> str:
@@ -187,33 +286,69 @@ def _trend_label(variation_eur: Optional[float]) -> str:
         return "DOWN"
     return "STABLE"
 
+    # Indications :
+    # - Garder la convention de libellés en phase avec le front et documenter les seuils utilisés pour les alertes produit.
+    # - Mentionner la modification à prévoir : externaliser les seuils dans la config produit pour éviter les valeurs en dur.
+    # Tests robustes :
+    # - Vérifier le retour sur variations positives, négatives, nulles et None afin d'assurer la stabilité des badges front.
+
 
 def _days_since_last(last_date_str: Optional[str]) -> Optional[int]:
     if not last_date_str:
         return None
     try:
-        y, m, d = map(int, last_date_str.split("-"))
-        return (date.today() - date(y, m, d)).days
+        parsed = date.fromisoformat(last_date_str)
+        return (date.today() - parsed).days
     except Exception:
         return None
+
+    # Indications :
+    # - Valider le format de date (YYYY-MM-DD) avant appel, gérer la timezone côté service et prévoir un fallback si la date est invalide.
+    # - Mentionner la modification à prévoir : utiliser datetime.fromisoformat pour limiter les split() manuels et améliorer la robustesse.
+    # Tests robustes :
+    # - Injecter des dates invalides et des strings vides pour vérifier que None est renvoyé sans casser l'analyse.
+    # - Simuler une date future pour vérifier le nombre de jours négatif.
 
 
 def _user_vs_market(user_avg: Optional[float], market_avg: Optional[float]) -> Tuple[Optional[float], Optional[float]]:
     """Diff utilisateur vs marché (€, %) – safe contre None/0."""
     if user_avg is None or market_avg in (None, 0):
         return None, None
-    diff_eur = round(user_avg - market_avg, 3)
-    diff_pct = round(((user_avg - market_avg) / market_avg * 100), 2)
+    diff_eur = _quantize(_to_decimal(user_avg) - _to_decimal(market_avg))
+    diff_pct = float(
+        (
+            (_to_decimal(user_avg) - _to_decimal(market_avg))
+            / _to_decimal(market_avg)
+            * Decimal("100")
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    )
     return diff_eur, diff_pct
+
+    # Indications :
+    # - Protéger contre les valeurs négatives inattendues et consigner l'usage de market_avg=0 pour éviter des divisions par zéro.
+    # - Envisager d'exposer la différence absolue en plus du pourcentage pour améliorer la lisibilité front.
+    # Tests robustes :
+    # - Couvrir user_avg None, market_avg=0 et des valeurs négatives pour garantir des retours None sécurisés ou des pourcentages cohérents.
+    # - Vérifier la cohérence des arrondis avec les exports.
 
 
 def _deal_score(user_vs_market_percent: Optional[float], volatility_index: Optional[float]) -> Optional[float]:
     """Score composite ∈ [0,1] (1 = excellent) basé sur écart relatif et volatilité."""
     if user_vs_market_percent is None or volatility_index is None:
         return None
-    vol = max(0.0, min(1.0, float(volatility_index)))
-    rel = max(0.0, min(1.0, abs(float(user_vs_market_percent)) / 100.0))
-    return round((1 - rel) * (1 - vol), 3)
+    vol = max(Decimal("0"), min(Decimal("1"), _to_decimal(volatility_index)))
+    rel = max(
+        Decimal("0"),
+        min(Decimal("1"), abs(_to_decimal(user_vs_market_percent)) / Decimal("100")),
+    )
+    return _quantize((Decimal("1") - rel) * (Decimal("1") - vol))
+
+    # Indications :
+    # - Valider l'intervalle [0,1] attendu pour les entrées et synchroniser la formule avec la logique métier des badges front.
+    # - Tracer le score brut pour suivre les évolutions et mentionner la possibilité de pondérer par le volume d'observations.
+    # Tests robustes :
+    # - Injecter des valeurs limites (0, 1, >1) pour volatility_index et user_vs_market_percent afin de vérifier le clamp et les arrondis.
+    # - Couvrir des valeurs négatives pour confirmer le clamp à 0.
 
 
 def _recommendation_badge(
@@ -231,6 +366,13 @@ def _recommendation_badge(
         return "Données anciennes"
     return None
 
+    # Indications :
+    # - Aligner les seuils (-5%, +5%, >30 jours) avec les spécifications produit et prévoir une localisation éventuelle des textes.
+    # - Mentionner la modification à prévoir : exposer la source des données (utilisateur vs marché) pour aider le front dans l'affichage.
+    # Tests robustes :
+    # - Couvrir toutes les branches (écart < -5, > 5, volatilité > 0.2, données anciennes) pour garantir l'ordre des priorités.
+    # - Tester des combinaisons où plusieurs conditions sont vraies pour vérifier la priorité actuelle.
+
 
 def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 14) -> Optional[bool]:
     """
@@ -241,14 +383,21 @@ def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 
     """
     if not series_daily:
         return None
-    prices = [p.get("avg_unit_price") for p in series_daily if p.get("avg_unit_price") is not None]
+    prices = []
+    for p in series_daily:
+        if p.get("avg_unit_price") is None:
+            continue
+        dec_price = _to_decimal(p.get("avg_unit_price"))
+        if dec_price is None:
+            continue
+        prices.append(dec_price)
     if not prices:
         return None
-    period_avg = sum(prices) / len(prices)
+    period_avg = _to_decimal(sum(prices) / len(prices))
     tail = prices[-min(window_days, len(prices)):]
     if not tail:
         return None
-    tail_avg = sum(tail) / len(tail)
+    tail_avg = _to_decimal(sum(tail) / len(tail))
     if period_avg == 0:
         return None
     delta = (tail_avg - period_avg) / period_avg
@@ -257,6 +406,13 @@ def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 
     if delta >= 0.03:
         return False
     return None
+
+    # Indications :
+    # - Vérifier que la série est déjà triée et ajuster le seuil 3% selon la stratégie achat ; renvoyer en option la moyenne glissante utilisée pour audit.
+    # - Mentionner la modification à prévoir : gérer explicitement les séries avec moins de deux points pour éviter des tails vides.
+    # Tests robustes :
+    # - Simuler des séries courtes, des window_days > longueur et des prix constants ou oscillants pour confirmer le retour True/False/None attendu.
+    # - Injecter des valeurs None ou 0 dans avg_unit_price pour vérifier l'exclusion contrôlée.
 
 
 # =============================
@@ -345,17 +501,30 @@ def market_database_overview(
                         end=end,
                     )
                     if user_rows:
-                        user_prices = [r["unit_price"] for r in user_rows if r.get("unit_price") is not None]
+                        user_prices = []
+                        for r in user_rows:
+                            if r.get("unit_price") is None:
+                                continue
+                            price = _to_decimal(r.get("unit_price"))
+                            if price is None:
+                                continue
+                            user_prices.append(price)
                         if user_prices:
-                            user_avg = round(sum(user_prices) / len(user_prices), 3)
-                            user_last = round(user_rows[-1]["unit_price"], 3)
+                            user_avg_dec = sum(user_prices) / len(user_prices)
+                            user_avg = _quantize(user_avg_dec)
+                            user_last = _quantize(_to_decimal(user_rows[-1]["unit_price"]))
                             user_vs_eur, user_vs_pct = _user_vs_market(
                                 user_avg,
                                 stats.get("avg_unit_price") or 0,
                             )
                             # Économie potentielle simple: si l'utilisateur paye + cher que la moyenne marché
                             if user_vs_eur is not None and user_vs_eur > 0 and len(user_rows) > 0:
-                                potential_saving = round(user_vs_eur * len(user_rows), 2)
+                                potential_saving = float(
+                                    (
+                                        Decimal(str(user_vs_eur))
+                                        * Decimal(len(user_rows))
+                                    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                )
 
                 deal = _deal_score(user_vs_pct, vol_index)
                 badge = _recommendation_badge(user_vs_pct, vol_index, days_last)
@@ -387,3 +556,11 @@ def market_database_overview(
         result_suppliers.append({"market_supplier": sup, "products": products_block})
 
     return {"period": {"start": str(start), "end": str(end)}, "suppliers": result_suppliers}
+
+    # Indications :
+    # - Sécuriser l'entrée establishment_id (cohérent avec l'auth) et tracer les erreurs Supabase par fournisseur/produit.
+    # - Mentionner la modification à prévoir : paginer les produits si la liste est volumineuse et exposer le nombre d'observations marché/utilisateur pour juger la fiabilité.
+    # - Tester include_user_comparison=False pour éviter des requêtes inutiles et signaler toute incohérence de mapping market_master_article_id entre market_articles et master_articles.
+    # Tests robustes :
+    # - Mocker des fournisseurs sans produits, des séries marché vides et des user_rows absents pour vérifier la résilience des blocs produits et la stabilité des statistiques (deal_score, badges, is_good_time_to_buy).
+    # - Simuler des produits avec meta manquantes ou des chunks >500 pour confirmer le découpage et la robustesse des retours.
