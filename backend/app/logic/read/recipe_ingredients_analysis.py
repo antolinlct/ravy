@@ -12,7 +12,6 @@ def get_month_bounds(target_date: Optional[date] = None):
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
 
-
 def recipe_ingredients_analysis(
     recipe_id: str,
     establishment_id: str,

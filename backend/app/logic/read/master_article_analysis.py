@@ -1,7 +1,21 @@
 from datetime import date
 from typing import Dict, Any, Optional
+from datetime import date
+from typing import Dict, Any, List, Optional
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any, default: str = "0") -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal(default)
+
+
+def _quantize(value: Decimal, exp: str = "0.001") -> float:
+    return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -84,19 +98,31 @@ def master_article_analysis(
         }
 
     # --- 5. Calculs statistiques ---
-    prices = [a["unit_price"] for a in articles if a.get("unit_price") is not None]
-    quantities = [a["quantity"] for a in articles if a.get("quantity") is not None]
+    prices = [
+        _to_decimal(a.get("unit_price"))
+        for a in articles
+        if a.get("unit_price") is not None
+    ]
+    quantities = [
+        _to_decimal(a.get("quantity"))
+        for a in articles
+        if a.get("quantity") is not None
+    ]
 
-    total_quantity = round(sum(quantities), 3)
-    avg_quantity = round(sum(quantities) / len(quantities), 3) if quantities else 0
-    avg_unit_price = round(sum(prices) / len(prices), 3) if prices else 0
-    min_price = round(min(prices), 3) if prices else None
-    max_price = round(max(prices), 3) if prices else None
-    total_spent = round(sum(p * q for p, q in zip(prices, quantities)), 2) if prices and quantities else 0
+    total_quantity = _quantize(sum(quantities)) if quantities else 0.0
+    avg_quantity = _quantize(sum(quantities) / len(quantities)) if quantities else 0.0
+    avg_unit_price = _quantize(sum(prices) / len(prices)) if prices else 0.0
+    min_price = _quantize(min(prices)) if prices else None
+    max_price = _quantize(max(prices)) if prices else None
+    total_spent = (
+        float((sum(p * q for p, q in zip(prices, quantities))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        if prices and quantities
+        else 0
+    )
 
     # --- Évolution prix : premier et dernier article ---
-    price_first = prices[-1] if len(prices) > 0 else None
-    price_last = prices[0] if len(prices) > 0 else None
+    price_first = _quantize(prices[-1]) if len(prices) > 0 else None
+    price_last = _quantize(prices[0]) if len(prices) > 0 else None
 
     stats = {
         "count_articles": len(articles),

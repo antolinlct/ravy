@@ -1,8 +1,22 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Dict, Any, Optional
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any) -> Optional[Decimal]:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _quantize(value: Optional[Decimal], exp: str = "0.001") -> float:
+    if value is None:
+        return 0.0
+    return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -12,6 +26,7 @@ def get_month_bounds(target_date: Optional[date] = None):
     next_month = first_day + relativedelta(months=1)
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
+
 
 
 def _fetch_product_data(
@@ -64,6 +79,16 @@ def _fetch_product_data(
             )
             rows = resp.data or []
 
+    # Normaliser l'ordre chronologique et filtrer les prix non numériques
+    rows = [r for r in rows if r.get("date")]
+    rows.sort(key=lambda r: r.get("date"))
+    price_rows = []
+    for r in rows:
+        price = _to_decimal(r.get("unit_price"))
+        if price is None:
+            continue
+        price_rows.append({**r, "unit_price": price})
+
     if not rows:
         return {
             "series_daily": [],
@@ -80,16 +105,15 @@ def _fetch_product_data(
 
     # --- Agrégation journalière ---
     grouped = defaultdict(list)
-    for r in rows:
+    for r in price_rows:
         grouped[r["date"]].append(r["unit_price"])
 
     series_daily = [
-        {"date": d, "avg_unit_price": round(sum(v) / len(v), 3)}
+        {"date": d, "avg_unit_price": _quantize(sum(v) / len(v))}
         for d, v in sorted(grouped.items())
     ]
 
-    prices = [r["unit_price"] for r in rows if r.get("unit_price") is not None]
-    if not prices:
+    if not price_rows:
         return {
             "series_daily": series_daily,
             "stats": {
@@ -97,17 +121,18 @@ def _fetch_product_data(
                 "min_unit_price": None,
                 "max_unit_price": None,
                 "last_unit_price": None,
-                "last_purchase_date": None,
+                "last_purchase_date": rows[-1]["date"] if rows else None,
                 "count_purchases": len(rows),
                 "volatility_range": None,
             },
         }
 
-    avg_price = round(sum(prices) / len(prices), 3)
-    min_price = round(min(prices), 3)
-    max_price = round(max(prices), 3)
-    last_entry = rows[-1]
-    last_price = round(last_entry["unit_price"], 3)
+    prices = [r["unit_price"] for r in price_rows]
+    avg_price = _quantize(sum(prices) / len(prices))
+    min_price = _quantize(min(prices))
+    max_price = _quantize(max(prices))
+    last_entry = price_rows[-1]
+    last_price = _quantize(last_entry["unit_price"])
     last_date = last_entry["date"]
 
     return {
@@ -180,11 +205,15 @@ def market_comparator(
     )
 
     # --- 5. Comparaison directionnelle (Produit 2 vs Produit 1) ---
-    avg1 = product1_data["stats"]["avg_unit_price"] or 0
-    avg2 = product2_data["stats"]["avg_unit_price"] or 0
+    avg1 = Decimal(str(product1_data["stats"]["avg_unit_price"] or 0))
+    avg2 = Decimal(str(product2_data["stats"]["avg_unit_price"] or 0))
 
-    diff_avg_eur = round(avg2 - avg1, 3)
-    diff_avg_pct = round(((avg2 - avg1) / avg1 * 100), 2) if avg1 else None
+    diff_avg_eur = _quantize(avg2 - avg1)
+    diff_avg_pct = (
+        float(((avg2 - avg1) / avg1 * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        if avg1
+        else None
+    )
 
     # --- 6. Résultat final ---
     return {

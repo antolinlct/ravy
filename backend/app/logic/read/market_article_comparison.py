@@ -1,7 +1,19 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Dict, Any, Optional
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any, default: str = "0") -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal(default)
+
+
+def _quantize(value: Decimal, exp: str = "0.001") -> float:
+    return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -11,6 +23,13 @@ def get_month_bounds(target_date: Optional[date] = None):
     next_month = first_day + relativedelta(months=1)
     last_day = next_month - relativedelta(days=1)
     return first_day, last_day
+
+    # Indications :
+    # - Ajouter l'import from datetime import date manquant pour éviter une erreur NameError et valider le format ISO côté service front.
+    # - Tracer la période retenue pour synchroniser les graphiques front/market et éviter les bornes incohérentes.
+    # Tests robustes :
+    # - Vérifier le calcul sur plusieurs mois consécutifs, y compris le passage d'année, et sur des dates explicites fournies par le front.
+    # - Simuler un start_date > end_date pour s'assurer que la validation amont bloque les bornes inversées.
 
 
 def market_article_comparison(
@@ -87,22 +106,47 @@ def market_article_comparison(
     market_articles = market_articles_resp.data or []
 
     # --- 6. Stats utilisateur ---
-    user_prices = [a["unit_price"] for a in user_articles if a.get("unit_price")]
-    user_qtys = [a["quantity"] for a in user_articles if a.get("quantity")]
-    user_avg_price = round(sum(user_prices) / len(user_prices), 3) if user_prices else 0
-    user_total_qty = round(sum(user_qtys), 3) if user_qtys else 0
+    user_prices = [
+        _to_decimal(a.get("unit_price"))
+        for a in user_articles
+        if a.get("unit_price") is not None
+    ]
+    user_qtys = [
+        _to_decimal(a.get("quantity"))
+        for a in user_articles
+        if a.get("quantity") is not None
+    ]
+    user_avg_price = (
+        _quantize(sum(user_prices) / len(user_prices)) if user_prices else 0.0
+    )
+    user_total_qty = _quantize(sum(user_qtys)) if user_qtys else 0.0
 
     # --- 7. Stats marché ---
-    market_prices = [a["unit_price"] for a in market_articles if a.get("unit_price")]
-    market_avg_price = round(sum(market_prices) / len(market_prices), 3) if market_prices else 0
-    market_min_price = round(min(market_prices), 3) if market_prices else None
-    market_max_price = round(max(market_prices), 3) if market_prices else None
+    market_prices = [
+        _to_decimal(a.get("unit_price"))
+        for a in market_articles
+        if a.get("unit_price") is not None
+    ]
+    market_avg_price = (
+        _quantize(sum(market_prices) / len(market_prices)) if market_prices else 0.0
+    )
+    market_min_price = _quantize(min(market_prices)) if market_prices else None
+    market_max_price = _quantize(max(market_prices)) if market_prices else None
     market_count = len(market_prices)
 
     # --- 8. Comparaison et économies ---
-    diff_avg_price = round(user_avg_price - market_avg_price, 3) if market_avg_price else None
+    diff_avg_price = (
+        _quantize(Decimal(str(user_avg_price)) - Decimal(str(market_avg_price)))
+        if market_avg_price
+        else None
+    )
     potential_savings = (
-        round((user_avg_price - market_avg_price) * user_total_qty, 2)
+        float(
+            (
+                (Decimal(str(user_avg_price)) - Decimal(str(market_avg_price)))
+                * Decimal(str(user_total_qty))
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        )
         if market_avg_price and user_total_qty
         else 0
     )

@@ -1,10 +1,24 @@
 from __future__ import annotations
 from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Tuple
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 from app.core.supabase_client import supabase
+
+
+def _to_decimal(value: Any) -> Optional[Decimal]:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def _quantize(value: Optional[Decimal], exp: str = "0.001") -> float:
+    if value is None:
+        return 0.0
+    return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
 
 # =============================
@@ -19,6 +33,7 @@ def _period_last_months(months: int, today: Optional[date] = None) -> Tuple[date
     next_month = today.replace(day=1) + relativedelta(months=1)
     end = next_month - relativedelta(days=1)
     return start, end
+
 
 
 def _ensure_period(
@@ -36,6 +51,7 @@ def _ensure_period(
     return _period_last_months(months)
 
 
+
 # =============================
 # Fetchers
 # =============================
@@ -46,6 +62,7 @@ def _fetch_market_suppliers(supplier_id: Optional[str]) -> List[Dict[str, Any]]:
         q = q.eq("id", supplier_id).limit(1)
     res = q.execute()
     return res.data or []
+
 
 
 def _fetch_market_articles(
@@ -64,7 +81,11 @@ def _fetch_market_articles(
         .order("date")
         .execute()
     )
-    return res.data or []
+    rows = res.data or []
+    rows = [r for r in rows if r.get("date")]
+    rows.sort(key=lambda r: r.get("date"))
+    return rows
+
 
 
 def _fetch_user_articles_for_product(
@@ -93,7 +114,11 @@ def _fetch_user_articles_for_product(
         .order("date")
         .execute()
     )
-    return res.data or []
+    rows = res.data or []
+    rows = [r for r in rows if r.get("date")]
+    rows.sort(key=lambda r: r.get("date"))
+    return rows
+
 
 
 # =============================
@@ -104,17 +129,21 @@ def _daily_avg_series(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Série quotidienne moyenne (utile pour un graph lissé, 1 point/jour)."""
     if not rows:
         return []
-    by_day: Dict[str, List[float]] = defaultdict(list)
+    by_day: Dict[str, List[Decimal]] = defaultdict(list)
     for r in rows:
         p = r.get("unit_price")
         d = r.get("date")
         if p is None or not d:
             continue
-        by_day[d].append(p)
+        price = _to_decimal(p)
+        if price is None:
+            continue
+        by_day[d].append(price)
     return [
-        {"date": d, "avg_unit_price": round(sum(vals) / len(vals), 3)}
+        {"date": d, "avg_unit_price": _quantize(sum(vals) / len(vals))}
         for d, vals in sorted(by_day.items())
     ]
+
 
 
 def _stats_basic(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -129,53 +158,69 @@ def _stats_basic(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
             "count_purchases": 0,
             "volatility_range": None,
         }
-    prices = [r["unit_price"] for r in rows if r.get("unit_price") is not None]
+    rows_sorted = sorted(rows, key=lambda r: r.get("date") or "")
+    prices = []
+    for r in rows_sorted:
+        if r.get("unit_price") is None:
+            continue
+        price = _to_decimal(r.get("unit_price"))
+        if price is None:
+            continue
+        prices.append(price)
     if not prices:
         return {
             "avg_unit_price": 0,
             "min_unit_price": None,
             "max_unit_price": None,
             "last_unit_price": None,
-            "last_purchase_date": None,
-            "count_purchases": len(rows),
+            "last_purchase_date": rows_sorted[-1].get("date") if rows_sorted else None,
+            "count_purchases": len(rows_sorted),
             "volatility_range": None,
         }
-    avg_price = round(sum(prices) / len(prices), 3)
-    min_price = round(min(prices), 3)
-    max_price = round(max(prices), 3)
-    last_row = rows[-1]
+    avg_price = _quantize(sum(prices) / len(prices))
+    min_price = _quantize(min(prices))
+    max_price = _quantize(max(prices))
+    last_row = rows_sorted[-1]
     return {
         "avg_unit_price": avg_price,
         "min_unit_price": min_price,
         "max_unit_price": max_price,
-        "last_unit_price": round(last_row["unit_price"], 3),
+        "last_unit_price": _quantize(_to_decimal(last_row["unit_price"])),
         "last_purchase_date": last_row["date"],
-        "count_purchases": len(rows),
+        "count_purchases": len(rows_sorted),
         "volatility_range": f"{min_price}€ → {max_price}€",
     }
+
 
 
 def _variation_over_period(rows: List[Dict[str, Any]]) -> Tuple[Optional[float], Optional[float]]:
     """Variation entre le 1er et le dernier enregistrements de la période."""
     if not rows or len(rows) < 2:
         return None, None
-    first = rows[0].get("unit_price")
-    last = rows[-1].get("unit_price")
+    rows_sorted = sorted(rows, key=lambda r: r.get("date") or "")
+    first = _to_decimal(rows_sorted[0].get("unit_price"))
+    last = _to_decimal(rows_sorted[-1].get("unit_price"))
     if first is None or last is None:
         return None, None
-    diff = round(last - first, 3)
-    pct = round(((last - first) / first * 100), 2) if first else None
+    diff = _quantize(last - first)
+    pct = (
+        float(((last - first) / first * Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        if first
+        else None
+    )
     return diff, pct
+
 
 
 def _market_volatility_index(stats: Dict[str, Any]) -> Optional[float]:
     """(max - min) / avg → indice de volatilité relatif (0 = très stable)."""
-    avg_p = stats.get("avg_unit_price") or 0
-    min_p = stats.get("min_unit_price")
-    max_p = stats.get("max_unit_price")
+    avg_p = _to_decimal(stats.get("avg_unit_price"))
+    min_p = _to_decimal(stats.get("min_unit_price")) if stats.get("min_unit_price") is not None else None
+    max_p = _to_decimal(stats.get("max_unit_price")) if stats.get("max_unit_price") is not None else None
     if not avg_p or min_p is None or max_p is None:
         return None
-    return round((max_p - min_p) / avg_p, 3)
+    return _quantize((max_p - min_p) / avg_p)
+
 
 
 def _trend_label(variation_eur: Optional[float]) -> str:
@@ -188,12 +233,13 @@ def _trend_label(variation_eur: Optional[float]) -> str:
     return "STABLE"
 
 
+
 def _days_since_last(last_date_str: Optional[str]) -> Optional[int]:
     if not last_date_str:
         return None
     try:
-        y, m, d = map(int, last_date_str.split("-"))
-        return (date.today() - date(y, m, d)).days
+        parsed = date.fromisoformat(last_date_str)
+        return (date.today() - parsed).days
     except Exception:
         return None
 
@@ -202,18 +248,29 @@ def _user_vs_market(user_avg: Optional[float], market_avg: Optional[float]) -> T
     """Diff utilisateur vs marché (€, %) – safe contre None/0."""
     if user_avg is None or market_avg in (None, 0):
         return None, None
-    diff_eur = round(user_avg - market_avg, 3)
-    diff_pct = round(((user_avg - market_avg) / market_avg * 100), 2)
+    diff_eur = _quantize(_to_decimal(user_avg) - _to_decimal(market_avg))
+    diff_pct = float(
+        (
+            (_to_decimal(user_avg) - _to_decimal(market_avg))
+            / _to_decimal(market_avg)
+            * Decimal("100")
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    )
     return diff_eur, diff_pct
+
 
 
 def _deal_score(user_vs_market_percent: Optional[float], volatility_index: Optional[float]) -> Optional[float]:
     """Score composite ∈ [0,1] (1 = excellent) basé sur écart relatif et volatilité."""
     if user_vs_market_percent is None or volatility_index is None:
         return None
-    vol = max(0.0, min(1.0, float(volatility_index)))
-    rel = max(0.0, min(1.0, abs(float(user_vs_market_percent)) / 100.0))
-    return round((1 - rel) * (1 - vol), 3)
+    vol = max(Decimal("0"), min(Decimal("1"), _to_decimal(volatility_index)))
+    rel = max(
+        Decimal("0"),
+        min(Decimal("1"), abs(_to_decimal(user_vs_market_percent)) / Decimal("100")),
+    )
+    return _quantize((Decimal("1") - rel) * (Decimal("1") - vol))
+
 
 
 def _recommendation_badge(
@@ -232,6 +289,7 @@ def _recommendation_badge(
     return None
 
 
+
 def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 14) -> Optional[bool]:
     """
     Heuristique : compare la moyenne des 14 derniers jours à la moyenne globale.
@@ -241,14 +299,21 @@ def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 
     """
     if not series_daily:
         return None
-    prices = [p.get("avg_unit_price") for p in series_daily if p.get("avg_unit_price") is not None]
+    prices = []
+    for p in series_daily:
+        if p.get("avg_unit_price") is None:
+            continue
+        dec_price = _to_decimal(p.get("avg_unit_price"))
+        if dec_price is None:
+            continue
+        prices.append(dec_price)
     if not prices:
         return None
-    period_avg = sum(prices) / len(prices)
+    period_avg = _to_decimal(sum(prices) / len(prices))
     tail = prices[-min(window_days, len(prices)):]
     if not tail:
         return None
-    tail_avg = sum(tail) / len(tail)
+    tail_avg = _to_decimal(sum(tail) / len(tail))
     if period_avg == 0:
         return None
     delta = (tail_avg - period_avg) / period_avg
@@ -257,7 +322,6 @@ def _is_good_time_to_buy(series_daily: List[Dict[str, Any]], window_days: int = 
     if delta >= 0.03:
         return False
     return None
-
 
 # =============================
 # Main logic
@@ -345,17 +409,30 @@ def market_database_overview(
                         end=end,
                     )
                     if user_rows:
-                        user_prices = [r["unit_price"] for r in user_rows if r.get("unit_price") is not None]
+                        user_prices = []
+                        for r in user_rows:
+                            if r.get("unit_price") is None:
+                                continue
+                            price = _to_decimal(r.get("unit_price"))
+                            if price is None:
+                                continue
+                            user_prices.append(price)
                         if user_prices:
-                            user_avg = round(sum(user_prices) / len(user_prices), 3)
-                            user_last = round(user_rows[-1]["unit_price"], 3)
+                            user_avg_dec = sum(user_prices) / len(user_prices)
+                            user_avg = _quantize(user_avg_dec)
+                            user_last = _quantize(_to_decimal(user_rows[-1]["unit_price"]))
                             user_vs_eur, user_vs_pct = _user_vs_market(
                                 user_avg,
                                 stats.get("avg_unit_price") or 0,
                             )
                             # Économie potentielle simple: si l'utilisateur paye + cher que la moyenne marché
                             if user_vs_eur is not None and user_vs_eur > 0 and len(user_rows) > 0:
-                                potential_saving = round(user_vs_eur * len(user_rows), 2)
+                                potential_saving = float(
+                                    (
+                                        Decimal(str(user_vs_eur))
+                                        * Decimal(len(user_rows))
+                                    ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                )
 
                 deal = _deal_score(user_vs_pct, vol_index)
                 badge = _recommendation_badge(user_vs_pct, vol_index, days_last)
