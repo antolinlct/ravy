@@ -3,6 +3,7 @@
 import requests
 from app.manufacturers.base_wakeupper import BaseWakeupper
 from app.manufacturers.config import WORKERS, MANUFACTURERS_KEY
+from app.services import maintenance_service
 from app.services.telegram.gordon_service import GordonTelegram
 
 
@@ -21,6 +22,12 @@ class InvoiceWakeupper(BaseWakeupper):
         self.telegram = GordonTelegram()
 
     def wake(self):
+        maintenance_entries = maintenance_service.get_all_maintenance(limit=1)
+        maintenance_entry = maintenance_entries[0] if maintenance_entries else None
+
+        if maintenance_entry and maintenance_entry.is_active:
+            self.telegram.send_text("⏰ Réveil impossible - Maintenance en cours ☠︎")
+            return {"status": "maintenance"}
         # 1) Message unique : annonce du réveil
         worker_count = len(self.worker_entries)
         self.telegram.send_text(
