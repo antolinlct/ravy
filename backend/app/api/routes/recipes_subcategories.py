@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipes_subcategories import RecipesSubcategories
 from app.services import recipes_subcategories_service
@@ -31,12 +34,14 @@ def get_recipes_subcategories(id: UUID):
 
 @router.post("/", response_model=RecipesSubcategories)
 def create_recipes_subcategories(data: RecipesSubcategories):
-    created = recipes_subcategories_service.create_recipes_subcategories(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recipes_subcategories_service.create_recipes_subcategories(payload)
     return RecipesSubcategories(**created)
 
 @router.patch("/{id}", response_model=RecipesSubcategories)
-def update_recipes_subcategories(id: int, data: RecipesSubcategories):
-    updated = recipes_subcategories_service.update_recipes_subcategories(id, data.dict(exclude_unset=True))
+def update_recipes_subcategories(id: UUID, data: RecipesSubcategories):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recipes_subcategories_service.update_recipes_subcategories(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RecipesSubcategories not found")
     return RecipesSubcategories(**updated)

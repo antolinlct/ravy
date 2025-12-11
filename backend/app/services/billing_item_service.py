@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.billing_item import BillingItem
 
@@ -38,20 +42,22 @@ def get_all_billing_item(filters: dict | None = None, limit: int = 200, page: in
 
 
 def get_billing_item_by_id(id: UUID):
-    response = supabase.table("billing_item").select("*").eq("id", id).single().execute()
+    response = supabase.table("billing_item").select("*").eq("id", str(id)).single().execute()
     return BillingItem(**response.data) if response.data else None
 
 
 def create_billing_item(payload: dict):
-    response = supabase.table("billing_item").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("billing_item").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_billing_item(id: UUID, payload: dict):
-    response = supabase.table("billing_item").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("billing_item").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_billing_item(id: UUID):
-    supabase.table("billing_item").delete().eq("id", id).execute()
+    supabase.table("billing_item").delete().eq("id", str(id)).execute()
     return {"deleted": True}

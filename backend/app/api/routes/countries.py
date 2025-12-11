@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.countries import Countries
 from app.services import countries_service
@@ -30,12 +33,14 @@ def get_countries(id: UUID):
 
 @router.post("/", response_model=Countries)
 def create_countries(data: Countries):
-    created = countries_service.create_countries(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = countries_service.create_countries(payload)
     return Countries(**created)
 
 @router.patch("/{id}", response_model=Countries)
-def update_countries(id: int, data: Countries):
-    updated = countries_service.update_countries(id, data.dict(exclude_unset=True))
+def update_countries(id: UUID, data: Countries):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = countries_service.update_countries(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Countries not found")
     return Countries(**updated)

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.live_score import LiveScore
 from app.services import live_score_service
@@ -31,12 +34,14 @@ def get_live_score(id: UUID):
 
 @router.post("/", response_model=LiveScore)
 def create_live_score(data: LiveScore):
-    created = live_score_service.create_live_score(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = live_score_service.create_live_score(payload)
     return LiveScore(**created)
 
 @router.patch("/{id}", response_model=LiveScore)
-def update_live_score(id: int, data: LiveScore):
-    updated = live_score_service.update_live_score(id, data.dict(exclude_unset=True))
+def update_live_score(id: UUID, data: LiveScore):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = live_score_service.update_live_score(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="LiveScore not found")
     return LiveScore(**updated)

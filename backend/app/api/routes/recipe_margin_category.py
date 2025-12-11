@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipe_margin_category import RecipeMarginCategory
 from app.services import recipe_margin_category_service
@@ -31,12 +34,14 @@ def get_recipe_margin_category(id: UUID):
 
 @router.post("/", response_model=RecipeMarginCategory)
 def create_recipe_margin_category(data: RecipeMarginCategory):
-    created = recipe_margin_category_service.create_recipe_margin_category(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recipe_margin_category_service.create_recipe_margin_category(payload)
     return RecipeMarginCategory(**created)
 
 @router.patch("/{id}", response_model=RecipeMarginCategory)
-def update_recipe_margin_category(id: int, data: RecipeMarginCategory):
-    updated = recipe_margin_category_service.update_recipe_margin_category(id, data.dict(exclude_unset=True))
+def update_recipe_margin_category(id: UUID, data: RecipeMarginCategory):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recipe_margin_category_service.update_recipe_margin_category(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RecipeMarginCategory not found")
     return RecipeMarginCategory(**updated)

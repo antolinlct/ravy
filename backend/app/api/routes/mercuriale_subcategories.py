@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.mercuriale_subcategories import MercurialeSubcategories
 from app.services import mercuriale_subcategories_service
@@ -30,12 +33,14 @@ def get_mercuriale_subcategories(id: UUID):
 
 @router.post("/", response_model=MercurialeSubcategories)
 def create_mercuriale_subcategories(data: MercurialeSubcategories):
-    created = mercuriale_subcategories_service.create_mercuriale_subcategories(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = mercuriale_subcategories_service.create_mercuriale_subcategories(payload)
     return MercurialeSubcategories(**created)
 
 @router.patch("/{id}", response_model=MercurialeSubcategories)
-def update_mercuriale_subcategories(id: int, data: MercurialeSubcategories):
-    updated = mercuriale_subcategories_service.update_mercuriale_subcategories(id, data.dict(exclude_unset=True))
+def update_mercuriale_subcategories(id: UUID, data: MercurialeSubcategories):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = mercuriale_subcategories_service.update_mercuriale_subcategories(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MercurialeSubcategories not found")
     return MercurialeSubcategories(**updated)

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.impersonations_padrino import ImpersonationsPadrino
 from app.services import impersonations_padrino_service
@@ -30,12 +33,14 @@ def get_impersonations_padrino(id: UUID):
 
 @router.post("/", response_model=ImpersonationsPadrino)
 def create_impersonations_padrino(data: ImpersonationsPadrino):
-    created = impersonations_padrino_service.create_impersonations_padrino(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = impersonations_padrino_service.create_impersonations_padrino(payload)
     return ImpersonationsPadrino(**created)
 
 @router.patch("/{id}", response_model=ImpersonationsPadrino)
-def update_impersonations_padrino(id: int, data: ImpersonationsPadrino):
-    updated = impersonations_padrino_service.update_impersonations_padrino(id, data.dict(exclude_unset=True))
+def update_impersonations_padrino(id: UUID, data: ImpersonationsPadrino):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = impersonations_padrino_service.update_impersonations_padrino(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="ImpersonationsPadrino not found")
     return ImpersonationsPadrino(**updated)

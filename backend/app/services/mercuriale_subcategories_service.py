@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.mercuriale_subcategories import MercurialeSubcategories
 
@@ -38,20 +42,22 @@ def get_all_mercuriale_subcategories(filters: dict | None = None, limit: int = 2
 
 
 def get_mercuriale_subcategories_by_id(id: UUID):
-    response = supabase.table("mercuriale_subcategories").select("*").eq("id", id).single().execute()
+    response = supabase.table("mercuriale_subcategories").select("*").eq("id", str(id)).single().execute()
     return MercurialeSubcategories(**response.data) if response.data else None
 
 
 def create_mercuriale_subcategories(payload: dict):
-    response = supabase.table("mercuriale_subcategories").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercuriale_subcategories").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_mercuriale_subcategories(id: UUID, payload: dict):
-    response = supabase.table("mercuriale_subcategories").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercuriale_subcategories").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_mercuriale_subcategories(id: UUID):
-    supabase.table("mercuriale_subcategories").delete().eq("id", id).execute()
+    supabase.table("mercuriale_subcategories").delete().eq("id", str(id)).execute()
     return {"deleted": True}

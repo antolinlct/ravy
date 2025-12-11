@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.recipes import Recipes
 
@@ -39,20 +43,22 @@ def get_all_recipes(filters: dict | None = None, limit: int = 200, page: int = 1
 
 
 def get_recipes_by_id(id: UUID):
-    response = supabase.table("recipes").select("*").eq("id", id).single().execute()
+    response = supabase.table("recipes").select("*").eq("id", str(id)).single().execute()
     return Recipes(**response.data) if response.data else None
 
 
 def create_recipes(payload: dict):
-    response = supabase.table("recipes").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipes").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_recipes(id: UUID, payload: dict):
-    response = supabase.table("recipes").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipes").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_recipes(id: UUID):
-    supabase.table("recipes").delete().eq("id", id).execute()
+    supabase.table("recipes").delete().eq("id", str(id)).execute()
     return {"deleted": True}

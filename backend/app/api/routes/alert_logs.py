@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.alert_logs import AlertLogs
 from app.services import alert_logs_service
@@ -31,12 +34,14 @@ def get_alert_logs(id: UUID):
 
 @router.post("/", response_model=AlertLogs)
 def create_alert_logs(data: AlertLogs):
-    created = alert_logs_service.create_alert_logs(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = alert_logs_service.create_alert_logs(payload)
     return AlertLogs(**created)
 
 @router.patch("/{id}", response_model=AlertLogs)
-def update_alert_logs(id: int, data: AlertLogs):
-    updated = alert_logs_service.update_alert_logs(id, data.dict(exclude_unset=True))
+def update_alert_logs(id: UUID, data: AlertLogs):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = alert_logs_service.update_alert_logs(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="AlertLogs not found")
     return AlertLogs(**updated)

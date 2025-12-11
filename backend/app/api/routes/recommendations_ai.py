@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recommendations_ai import RecommendationsAi
 from app.services import recommendations_ai_service
@@ -31,12 +34,14 @@ def get_recommendations_ai(id: UUID):
 
 @router.post("/", response_model=RecommendationsAi)
 def create_recommendations_ai(data: RecommendationsAi):
-    created = recommendations_ai_service.create_recommendations_ai(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recommendations_ai_service.create_recommendations_ai(payload)
     return RecommendationsAi(**created)
 
 @router.patch("/{id}", response_model=RecommendationsAi)
-def update_recommendations_ai(id: int, data: RecommendationsAi):
-    updated = recommendations_ai_service.update_recommendations_ai(id, data.dict(exclude_unset=True))
+def update_recommendations_ai(id: UUID, data: RecommendationsAi):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recommendations_ai_service.update_recommendations_ai(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RecommendationsAi not found")
     return RecommendationsAi(**updated)

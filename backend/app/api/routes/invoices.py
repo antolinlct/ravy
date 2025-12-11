@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.invoices import Invoices
 from app.services import invoices_service
@@ -32,12 +35,14 @@ def get_invoices(id: UUID):
 
 @router.post("/", response_model=Invoices)
 def create_invoices(data: Invoices):
-    created = invoices_service.create_invoices(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = invoices_service.create_invoices(payload)
     return Invoices(**created)
 
 @router.patch("/{id}", response_model=Invoices)
-def update_invoices(id: int, data: Invoices):
-    updated = invoices_service.update_invoices(id, data.dict(exclude_unset=True))
+def update_invoices(id: UUID, data: Invoices):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = invoices_service.update_invoices(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Invoices not found")
     return Invoices(**updated)

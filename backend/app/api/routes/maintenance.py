@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.maintenance import Maintenance
 from app.services import maintenance_service
@@ -30,12 +33,14 @@ def get_maintenance(id: UUID):
 
 @router.post("/", response_model=Maintenance)
 def create_maintenance(data: Maintenance):
-    created = maintenance_service.create_maintenance(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = maintenance_service.create_maintenance(payload)
     return Maintenance(**created)
 
 @router.patch("/{id}", response_model=Maintenance)
-def update_maintenance(id: int, data: Maintenance):
-    updated = maintenance_service.update_maintenance(id, data.dict(exclude_unset=True))
+def update_maintenance(id: UUID, data: Maintenance):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = maintenance_service.update_maintenance(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Maintenance not found")
     return Maintenance(**updated)

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.logs_ia import LogsIa
 from app.services import logs_ia_service
@@ -30,12 +33,14 @@ def get_logs_ia(id: UUID):
 
 @router.post("/", response_model=LogsIa)
 def create_logs_ia(data: LogsIa):
-    created = logs_ia_service.create_logs_ia(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = logs_ia_service.create_logs_ia(payload)
     return LogsIa(**created)
 
 @router.patch("/{id}", response_model=LogsIa)
-def update_logs_ia(id: int, data: LogsIa):
-    updated = logs_ia_service.update_logs_ia(id, data.dict(exclude_unset=True))
+def update_logs_ia(id: UUID, data: LogsIa):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = logs_ia_service.update_logs_ia(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="LogsIa not found")
     return LogsIa(**updated)

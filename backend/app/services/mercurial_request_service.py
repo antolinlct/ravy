@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.mercurial_request import MercurialRequest
 
@@ -39,20 +43,22 @@ def get_all_mercurial_request(filters: dict | None = None, limit: int = 200, pag
 
 
 def get_mercurial_request_by_id(id: UUID):
-    response = supabase.table("mercurial_request").select("*").eq("id", id).single().execute()
+    response = supabase.table("mercurial_request").select("*").eq("id", str(id)).single().execute()
     return MercurialRequest(**response.data) if response.data else None
 
 
 def create_mercurial_request(payload: dict):
-    response = supabase.table("mercurial_request").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercurial_request").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_mercurial_request(id: UUID, payload: dict):
-    response = supabase.table("mercurial_request").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercurial_request").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_mercurial_request(id: UUID):
-    supabase.table("mercurial_request").delete().eq("id", id).execute()
+    supabase.table("mercurial_request").delete().eq("id", str(id)).execute()
     return {"deleted": True}

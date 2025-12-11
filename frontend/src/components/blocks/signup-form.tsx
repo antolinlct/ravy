@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabaseClient"
 import logo from "@/assets/branding/logo_og.svg"
+import { CheckCircle } from "lucide-react"
 
 
 import { cn } from "@/lib/utils"
@@ -26,9 +26,10 @@ export function SignupForm({
   ...props
 }: React.ComponentProps<"div">) {
 
-  const navigate = useNavigate()
+  const loginUrl = `${window.location.origin}/login`
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,8 +47,8 @@ export function SignupForm({
     const password = form.get("password")?.toString()
     const confirm = form.get("confirm-password")?.toString()
 
-    if (!firstName || !lastName || !email || !password || !confirm) {
-      setError("All fields are required.")
+    if (!firstName || !lastName || !email || !phoneSms || !password || !confirm) {
+      setError("Tous les champs sont obligatoires.")
       setLoading(false)
       return
     }
@@ -66,54 +67,85 @@ export function SignupForm({
 
     const fullName = `${firstName} ${lastName}`.trim()
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: loginUrl,
+          data: {
+            full_name: fullName,
+            first_name: firstName,
+            last_name: lastName,
+            phone_sms: phoneSms,
+          },
+        },
+      })
+
+      if (signUpError) {
+        const alreadyRegistered =
+          signUpError.message?.toLowerCase().includes("registered") ||
+          signUpError.message?.toLowerCase().includes("exists")
+
+        setError(
+          alreadyRegistered
+            ? "Un compte existe déjà avec cet email."
+            : "Impossible de créer ce compte. Contactez le support."
+        )
+        return
+      }
+
+      const user = data?.user
+      const existingIdentity = user && Array.isArray(user.identities) && user.identities.length === 0
+
+      if (!user || existingIdentity) {
+        setError("Un compte existe déjà avec cet email.")
+        return
+      }
+
+      const profileRes = await fetch(`${API_URL}/user_profiles/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: user.id,
           first_name: firstName,
           last_name: lastName,
+          intern_notes: null,
           phone_sms: phoneSms || null,
-        },
-      },
-    })
+        }),
+      })
 
-    if (signUpError) {
-      setError(signUpError.message)
+      if (!profileRes.ok) {
+        const err = await profileRes.json().catch(() => ({}))
+        setError(err?.detail || "Profile creation failed.")
+        return
+      }
+
+      setEmailSent(true)
+    } catch (err) {
+      console.error("Signup error:", err)
+      setError("Une erreur est survenue. Veuillez réessayer.")
+    } finally {
       setLoading(false)
-      return
     }
-
-    const user = data.user
-    if (!user) {
-      setError("Unable to retrieve created user.")
-      setLoading(false)
-      return
-    }
-    const profileRes = await fetch(`${API_URL}/user_profiles/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      intern_notes: null,
-      phone_sms: phoneSms || null,
-    }),
-  })
-
-  if (!profileRes.ok) {
-    const err = await profileRes.json()
-    setError(err.detail || "Profile creation failed.")
-    setLoading(false)
-    return
   }
 
-
-    navigate("/dashboard")
+  if (emailSent) {
+    return (
+      <div className={cn("flex flex-col gap-4 items-center", className)}>
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center flex flex-col items-center">
+            <CheckCircle className="w-8 h-8" />
+            <CardTitle className="text-2xl">Vérifiez votre adresse email</CardTitle>
+            <CardDescription>
+              L'e-mail de confirmation vous a été envoyé ! Cliquez sur le lien pour finaliser la création de votre compte.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -134,7 +166,7 @@ export function SignupForm({
             <FieldGroup>
 
               {error && (
-                <div className="text-sm text-red-600">{error}</div>
+                <div className="-text-sm text-red-600">{error}</div>
               )}
 
               {/* FULL NAME SEPARATED */}
@@ -217,7 +249,7 @@ export function SignupForm({
                   {loading ? "Creating..." : "Create Account"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Already have an account? <a href="/login">Sign in</a>
+                  Already have an account? <a href={loginUrl}>Sign in</a>
                 </FieldDescription>
               </Field>
 

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.sessions_ia import SessionsIa
 from app.services import sessions_ia_service
@@ -31,12 +34,14 @@ def get_sessions_ia(id: UUID):
 
 @router.post("/", response_model=SessionsIa)
 def create_sessions_ia(data: SessionsIa):
-    created = sessions_ia_service.create_sessions_ia(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = sessions_ia_service.create_sessions_ia(payload)
     return SessionsIa(**created)
 
 @router.patch("/{id}", response_model=SessionsIa)
-def update_sessions_ia(id: int, data: SessionsIa):
-    updated = sessions_ia_service.update_sessions_ia(id, data.dict(exclude_unset=True))
+def update_sessions_ia(id: UUID, data: SessionsIa):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = sessions_ia_service.update_sessions_ia(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="SessionsIa not found")
     return SessionsIa(**updated)

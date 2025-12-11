@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.mercuriales import Mercuriales
 from app.services import mercuriales_service
@@ -30,12 +33,14 @@ def get_mercuriales(id: UUID):
 
 @router.post("/", response_model=Mercuriales)
 def create_mercuriales(data: Mercuriales):
-    created = mercuriales_service.create_mercuriales(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = mercuriales_service.create_mercuriales(payload)
     return Mercuriales(**created)
 
 @router.patch("/{id}", response_model=Mercuriales)
-def update_mercuriales(id: int, data: Mercuriales):
-    updated = mercuriales_service.update_mercuriales(id, data.dict(exclude_unset=True))
+def update_mercuriales(id: UUID, data: Mercuriales):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = mercuriales_service.update_mercuriales(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Mercuriales not found")
     return Mercuriales(**updated)

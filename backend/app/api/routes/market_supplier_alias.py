@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.market_supplier_alias import MarketSupplierAlias
 from app.services import market_supplier_alias_service
@@ -30,12 +33,14 @@ def get_market_supplier_alias(id: UUID):
 
 @router.post("/", response_model=MarketSupplierAlias)
 def create_market_supplier_alias(data: MarketSupplierAlias):
-    created = market_supplier_alias_service.create_market_supplier_alias(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = market_supplier_alias_service.create_market_supplier_alias(payload)
     return MarketSupplierAlias(**created)
 
 @router.patch("/{id}", response_model=MarketSupplierAlias)
-def update_market_supplier_alias(id: int, data: MarketSupplierAlias):
-    updated = market_supplier_alias_service.update_market_supplier_alias(id, data.dict(exclude_unset=True))
+def update_market_supplier_alias(id: UUID, data: MarketSupplierAlias):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = market_supplier_alias_service.update_market_supplier_alias(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MarketSupplierAlias not found")
     return MarketSupplierAlias(**updated)

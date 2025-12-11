@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.billing_account import BillingAccount
 from app.services import billing_account_service
@@ -31,12 +34,14 @@ def get_billing_account(id: UUID):
 
 @router.post("/", response_model=BillingAccount)
 def create_billing_account(data: BillingAccount):
-    created = billing_account_service.create_billing_account(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = billing_account_service.create_billing_account(payload)
     return BillingAccount(**created)
 
 @router.patch("/{id}", response_model=BillingAccount)
-def update_billing_account(id: int, data: BillingAccount):
-    updated = billing_account_service.update_billing_account(id, data.dict(exclude_unset=True))
+def update_billing_account(id: UUID, data: BillingAccount):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = billing_account_service.update_billing_account(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="BillingAccount not found")
     return BillingAccount(**updated)

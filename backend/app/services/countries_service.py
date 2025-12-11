@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.countries import Countries
 
@@ -38,20 +42,22 @@ def get_all_countries(filters: dict | None = None, limit: int = 200, page: int =
 
 
 def get_countries_by_id(id: UUID):
-    response = supabase.table("countries").select("*").eq("id", id).single().execute()
+    response = supabase.table("countries").select("*").eq("id", str(id)).single().execute()
     return Countries(**response.data) if response.data else None
 
 
 def create_countries(payload: dict):
-    response = supabase.table("countries").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("countries").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_countries(id: UUID, payload: dict):
-    response = supabase.table("countries").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("countries").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_countries(id: UUID):
-    supabase.table("countries").delete().eq("id", id).execute()
+    supabase.table("countries").delete().eq("id", str(id)).execute()
     return {"deleted": True}

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.billing_item import BillingItem
 from app.services import billing_item_service
@@ -30,12 +33,14 @@ def get_billing_item(id: UUID):
 
 @router.post("/", response_model=BillingItem)
 def create_billing_item(data: BillingItem):
-    created = billing_item_service.create_billing_item(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = billing_item_service.create_billing_item(payload)
     return BillingItem(**created)
 
 @router.patch("/{id}", response_model=BillingItem)
-def update_billing_item(id: int, data: BillingItem):
-    updated = billing_item_service.update_billing_item(id, data.dict(exclude_unset=True))
+def update_billing_item(id: UUID, data: BillingItem):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = billing_item_service.update_billing_item(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="BillingItem not found")
     return BillingItem(**updated)

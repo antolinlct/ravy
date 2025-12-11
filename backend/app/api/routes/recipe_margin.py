@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipe_margin import RecipeMargin
 from app.services import recipe_margin_service
@@ -31,12 +34,14 @@ def get_recipe_margin(id: UUID):
 
 @router.post("/", response_model=RecipeMargin)
 def create_recipe_margin(data: RecipeMargin):
-    created = recipe_margin_service.create_recipe_margin(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recipe_margin_service.create_recipe_margin(payload)
     return RecipeMargin(**created)
 
 @router.patch("/{id}", response_model=RecipeMargin)
-def update_recipe_margin(id: int, data: RecipeMargin):
-    updated = recipe_margin_service.update_recipe_margin(id, data.dict(exclude_unset=True))
+def update_recipe_margin(id: UUID, data: RecipeMargin):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recipe_margin_service.update_recipe_margin(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RecipeMargin not found")
     return RecipeMargin(**updated)

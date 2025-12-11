@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.billing_account import BillingAccount
 
@@ -39,20 +43,22 @@ def get_all_billing_account(filters: dict | None = None, limit: int = 200, page:
 
 
 def get_billing_account_by_id(id: UUID):
-    response = supabase.table("billing_account").select("*").eq("id", id).single().execute()
+    response = supabase.table("billing_account").select("*").eq("id", str(id)).single().execute()
     return BillingAccount(**response.data) if response.data else None
 
 
 def create_billing_account(payload: dict):
-    response = supabase.table("billing_account").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("billing_account").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_billing_account(id: UUID, payload: dict):
-    response = supabase.table("billing_account").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("billing_account").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_billing_account(id: UUID):
-    supabase.table("billing_account").delete().eq("id", id).execute()
+    supabase.table("billing_account").delete().eq("id", str(id)).execute()
     return {"deleted": True}

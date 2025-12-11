@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.usage_counters import UsageCounters
 from app.services import usage_counters_service
@@ -31,12 +34,14 @@ def get_usage_counters(id: UUID):
 
 @router.post("/", response_model=UsageCounters)
 def create_usage_counters(data: UsageCounters):
-    created = usage_counters_service.create_usage_counters(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = usage_counters_service.create_usage_counters(payload)
     return UsageCounters(**created)
 
 @router.patch("/{id}", response_model=UsageCounters)
-def update_usage_counters(id: int, data: UsageCounters):
-    updated = usage_counters_service.update_usage_counters(id, data.dict(exclude_unset=True))
+def update_usage_counters(id: UUID, data: UsageCounters):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = usage_counters_service.update_usage_counters(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="UsageCounters not found")
     return UsageCounters(**updated)

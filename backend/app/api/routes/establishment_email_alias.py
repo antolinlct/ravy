@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.establishment_email_alias import EstablishmentEmailAlias
 from app.services import establishment_email_alias_service
@@ -31,12 +34,14 @@ def get_establishment_email_alias(id: UUID):
 
 @router.post("/", response_model=EstablishmentEmailAlias)
 def create_establishment_email_alias(data: EstablishmentEmailAlias):
-    created = establishment_email_alias_service.create_establishment_email_alias(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = establishment_email_alias_service.create_establishment_email_alias(payload)
     return EstablishmentEmailAlias(**created)
 
 @router.patch("/{id}", response_model=EstablishmentEmailAlias)
-def update_establishment_email_alias(id: int, data: EstablishmentEmailAlias):
-    updated = establishment_email_alias_service.update_establishment_email_alias(id, data.dict(exclude_unset=True))
+def update_establishment_email_alias(id: UUID, data: EstablishmentEmailAlias):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = establishment_email_alias_service.update_establishment_email_alias(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="EstablishmentEmailAlias not found")
     return EstablishmentEmailAlias(**updated)

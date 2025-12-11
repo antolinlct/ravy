@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.mercuriale_master_article import MercurialeMasterArticle
 from app.services import mercuriale_master_article_service
@@ -30,12 +33,14 @@ def get_mercuriale_master_article(id: UUID):
 
 @router.post("/", response_model=MercurialeMasterArticle)
 def create_mercuriale_master_article(data: MercurialeMasterArticle):
-    created = mercuriale_master_article_service.create_mercuriale_master_article(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = mercuriale_master_article_service.create_mercuriale_master_article(payload)
     return MercurialeMasterArticle(**created)
 
 @router.patch("/{id}", response_model=MercurialeMasterArticle)
-def update_mercuriale_master_article(id: int, data: MercurialeMasterArticle):
-    updated = mercuriale_master_article_service.update_mercuriale_master_article(id, data.dict(exclude_unset=True))
+def update_mercuriale_master_article(id: UUID, data: MercurialeMasterArticle):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = mercuriale_master_article_service.update_mercuriale_master_article(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MercurialeMasterArticle not found")
     return MercurialeMasterArticle(**updated)

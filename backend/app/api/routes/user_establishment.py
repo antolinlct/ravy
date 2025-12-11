@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.user_establishment import UserEstablishment
 from app.services import user_establishment_service
@@ -31,12 +34,14 @@ def get_user_establishment(id: UUID):
 
 @router.post("/", response_model=UserEstablishment)
 def create_user_establishment(data: UserEstablishment):
-    created = user_establishment_service.create_user_establishment(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = user_establishment_service.create_user_establishment(payload)
     return UserEstablishment(**created)
 
 @router.patch("/{id}", response_model=UserEstablishment)
-def update_user_establishment(id: int, data: UserEstablishment):
-    updated = user_establishment_service.update_user_establishment(id, data.dict(exclude_unset=True))
+def update_user_establishment(id: UUID, data: UserEstablishment):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = user_establishment_service.update_user_establishment(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="UserEstablishment not found")
     return UserEstablishment(**updated)

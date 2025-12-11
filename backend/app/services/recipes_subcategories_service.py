@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.recipes_subcategories import RecipesSubcategories
 
@@ -39,20 +43,22 @@ def get_all_recipes_subcategories(filters: dict | None = None, limit: int = 200,
 
 
 def get_recipes_subcategories_by_id(id: UUID):
-    response = supabase.table("recipes_subcategories").select("*").eq("id", id).single().execute()
+    response = supabase.table("recipes_subcategories").select("*").eq("id", str(id)).single().execute()
     return RecipesSubcategories(**response.data) if response.data else None
 
 
 def create_recipes_subcategories(payload: dict):
-    response = supabase.table("recipes_subcategories").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipes_subcategories").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_recipes_subcategories(id: UUID, payload: dict):
-    response = supabase.table("recipes_subcategories").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipes_subcategories").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_recipes_subcategories(id: UUID):
-    supabase.table("recipes_subcategories").delete().eq("id", id).execute()
+    supabase.table("recipes_subcategories").delete().eq("id", str(id)).execute()
     return {"deleted": True}

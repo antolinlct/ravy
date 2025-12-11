@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.mercurial_request import MercurialRequest
 from app.services import mercurial_request_service
@@ -31,12 +34,14 @@ def get_mercurial_request(id: UUID):
 
 @router.post("/", response_model=MercurialRequest)
 def create_mercurial_request(data: MercurialRequest):
-    created = mercurial_request_service.create_mercurial_request(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = mercurial_request_service.create_mercurial_request(payload)
     return MercurialRequest(**created)
 
 @router.patch("/{id}", response_model=MercurialRequest)
-def update_mercurial_request(id: int, data: MercurialRequest):
-    updated = mercurial_request_service.update_mercurial_request(id, data.dict(exclude_unset=True))
+def update_mercurial_request(id: UUID, data: MercurialRequest):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = mercurial_request_service.update_mercurial_request(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MercurialRequest not found")
     return MercurialRequest(**updated)

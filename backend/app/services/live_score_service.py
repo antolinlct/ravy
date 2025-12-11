@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.live_score import LiveScore
 
@@ -39,20 +43,22 @@ def get_all_live_score(filters: dict | None = None, limit: int = 200, page: int 
 
 
 def get_live_score_by_id(id: UUID):
-    response = supabase.table("live_score").select("*").eq("id", id).single().execute()
+    response = supabase.table("live_score").select("*").eq("id", str(id)).single().execute()
     return LiveScore(**response.data) if response.data else None
 
 
 def create_live_score(payload: dict):
-    response = supabase.table("live_score").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("live_score").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_live_score(id: UUID, payload: dict):
-    response = supabase.table("live_score").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("live_score").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_live_score(id: UUID):
-    supabase.table("live_score").delete().eq("id", id).execute()
+    supabase.table("live_score").delete().eq("id", str(id)).execute()
     return {"deleted": True}

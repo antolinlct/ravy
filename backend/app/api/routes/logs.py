@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.logs import Logs
 from app.services import logs_service
@@ -31,12 +34,14 @@ def get_logs(id: UUID):
 
 @router.post("/", response_model=Logs)
 def create_logs(data: Logs):
-    created = logs_service.create_logs(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = logs_service.create_logs(payload)
     return Logs(**created)
 
 @router.patch("/{id}", response_model=Logs)
-def update_logs(id: int, data: Logs):
-    updated = logs_service.update_logs(id, data.dict(exclude_unset=True))
+def update_logs(id: UUID, data: Logs):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = logs_service.update_logs(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Logs not found")
     return Logs(**updated)

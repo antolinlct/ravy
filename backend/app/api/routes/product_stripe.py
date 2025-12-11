@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.product_stripe import ProductStripe
 from app.services import product_stripe_service
@@ -30,12 +33,14 @@ def get_product_stripe(id: UUID):
 
 @router.post("/", response_model=ProductStripe)
 def create_product_stripe(data: ProductStripe):
-    created = product_stripe_service.create_product_stripe(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = product_stripe_service.create_product_stripe(payload)
     return ProductStripe(**created)
 
 @router.patch("/{id}", response_model=ProductStripe)
-def update_product_stripe(id: int, data: ProductStripe):
-    updated = product_stripe_service.update_product_stripe(id, data.dict(exclude_unset=True))
+def update_product_stripe(id: UUID, data: ProductStripe):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = product_stripe_service.update_product_stripe(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="ProductStripe not found")
     return ProductStripe(**updated)

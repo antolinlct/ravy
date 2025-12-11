@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.regex_patterns import RegexPatterns
 
@@ -38,20 +42,22 @@ def get_all_regex_patterns(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_regex_patterns_by_id(id: UUID):
-    response = supabase.table("regex_patterns").select("*").eq("id", id).single().execute()
+    response = supabase.table("regex_patterns").select("*").eq("id", str(id)).single().execute()
     return RegexPatterns(**response.data) if response.data else None
 
 
 def create_regex_patterns(payload: dict):
-    response = supabase.table("regex_patterns").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("regex_patterns").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_regex_patterns(id: UUID, payload: dict):
-    response = supabase.table("regex_patterns").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("regex_patterns").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_regex_patterns(id: UUID):
-    supabase.table("regex_patterns").delete().eq("id", id).execute()
+    supabase.table("regex_patterns").delete().eq("id", str(id)).execute()
     return {"deleted": True}

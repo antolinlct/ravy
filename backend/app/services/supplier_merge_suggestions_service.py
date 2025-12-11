@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.supplier_merge_suggestions import SupplierMergeSuggestions
 
@@ -39,20 +43,22 @@ def get_all_supplier_merge_suggestions(filters: dict | None = None, limit: int =
 
 
 def get_supplier_merge_suggestions_by_id(id: UUID):
-    response = supabase.table("supplier_merge_suggestions").select("*").eq("id", id).single().execute()
+    response = supabase.table("supplier_merge_suggestions").select("*").eq("id", str(id)).single().execute()
     return SupplierMergeSuggestions(**response.data) if response.data else None
 
 
 def create_supplier_merge_suggestions(payload: dict):
-    response = supabase.table("supplier_merge_suggestions").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("supplier_merge_suggestions").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_supplier_merge_suggestions(id: UUID, payload: dict):
-    response = supabase.table("supplier_merge_suggestions").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("supplier_merge_suggestions").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_supplier_merge_suggestions(id: UUID):
-    supabase.table("supplier_merge_suggestions").delete().eq("id", id).execute()
+    supabase.table("supplier_merge_suggestions").delete().eq("id", str(id)).execute()
     return {"deleted": True}

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipe_margin_subcategory import RecipeMarginSubcategory
 from app.services import recipe_margin_subcategory_service
@@ -31,12 +34,14 @@ def get_recipe_margin_subcategory(id: UUID):
 
 @router.post("/", response_model=RecipeMarginSubcategory)
 def create_recipe_margin_subcategory(data: RecipeMarginSubcategory):
-    created = recipe_margin_subcategory_service.create_recipe_margin_subcategory(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recipe_margin_subcategory_service.create_recipe_margin_subcategory(payload)
     return RecipeMarginSubcategory(**created)
 
 @router.patch("/{id}", response_model=RecipeMarginSubcategory)
-def update_recipe_margin_subcategory(id: int, data: RecipeMarginSubcategory):
-    updated = recipe_margin_subcategory_service.update_recipe_margin_subcategory(id, data.dict(exclude_unset=True))
+def update_recipe_margin_subcategory(id: UUID, data: RecipeMarginSubcategory):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recipe_margin_subcategory_service.update_recipe_margin_subcategory(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RecipeMarginSubcategory not found")
     return RecipeMarginSubcategory(**updated)

@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.market_suppliers import MarketSuppliers
 
@@ -38,20 +42,22 @@ def get_all_market_suppliers(filters: dict | None = None, limit: int = 200, page
 
 
 def get_market_suppliers_by_id(id: UUID):
-    response = supabase.table("market_suppliers").select("*").eq("id", id).single().execute()
+    response = supabase.table("market_suppliers").select("*").eq("id", str(id)).single().execute()
     return MarketSuppliers(**response.data) if response.data else None
 
 
 def create_market_suppliers(payload: dict):
-    response = supabase.table("market_suppliers").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("market_suppliers").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_market_suppliers(id: UUID, payload: dict):
-    response = supabase.table("market_suppliers").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("market_suppliers").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_market_suppliers(id: UUID):
-    supabase.table("market_suppliers").delete().eq("id", id).execute()
+    supabase.table("market_suppliers").delete().eq("id", str(id)).execute()
     return {"deleted": True}

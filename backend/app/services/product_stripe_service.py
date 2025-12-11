@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.product_stripe import ProductStripe
 
@@ -38,20 +42,22 @@ def get_all_product_stripe(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_product_stripe_by_id(id: UUID):
-    response = supabase.table("product_stripe").select("*").eq("id", id).single().execute()
+    response = supabase.table("product_stripe").select("*").eq("id", str(id)).single().execute()
     return ProductStripe(**response.data) if response.data else None
 
 
 def create_product_stripe(payload: dict):
-    response = supabase.table("product_stripe").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("product_stripe").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_product_stripe(id: UUID, payload: dict):
-    response = supabase.table("product_stripe").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("product_stripe").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_product_stripe(id: UUID):
-    supabase.table("product_stripe").delete().eq("id", id).execute()
+    supabase.table("product_stripe").delete().eq("id", str(id)).execute()
     return {"deleted": True}

@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.user_establishment import UserEstablishment
 
@@ -39,20 +43,22 @@ def get_all_user_establishment(filters: dict | None = None, limit: int = 200, pa
 
 
 def get_user_establishment_by_id(id: UUID):
-    response = supabase.table("user_establishment").select("*").eq("id", id).single().execute()
+    response = supabase.table("user_establishment").select("*").eq("id", str(id)).single().execute()
     return UserEstablishment(**response.data) if response.data else None
 
 
 def create_user_establishment(payload: dict):
-    response = supabase.table("user_establishment").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("user_establishment").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_user_establishment(id: UUID, payload: dict):
-    response = supabase.table("user_establishment").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("user_establishment").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_user_establishment(id: UUID):
-    supabase.table("user_establishment").delete().eq("id", id).execute()
+    supabase.table("user_establishment").delete().eq("id", str(id)).execute()
     return {"deleted": True}

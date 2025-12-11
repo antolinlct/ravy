@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipes import Recipes
 from app.services import recipes_service
@@ -31,12 +34,14 @@ def get_recipes(id: UUID):
 
 @router.post("/", response_model=Recipes)
 def create_recipes(data: Recipes):
-    created = recipes_service.create_recipes(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = recipes_service.create_recipes(payload)
     return Recipes(**created)
 
 @router.patch("/{id}", response_model=Recipes)
-def update_recipes(id: int, data: Recipes):
-    updated = recipes_service.update_recipes(id, data.dict(exclude_unset=True))
+def update_recipes(id: UUID, data: Recipes):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = recipes_service.update_recipes(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Recipes not found")
     return Recipes(**updated)

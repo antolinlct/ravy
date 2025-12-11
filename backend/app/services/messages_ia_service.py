@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.messages_ia import MessagesIa
 
@@ -38,20 +42,22 @@ def get_all_messages_ia(filters: dict | None = None, limit: int = 200, page: int
 
 
 def get_messages_ia_by_id(id: UUID):
-    response = supabase.table("messages_ia").select("*").eq("id", id).single().execute()
+    response = supabase.table("messages_ia").select("*").eq("id", str(id)).single().execute()
     return MessagesIa(**response.data) if response.data else None
 
 
 def create_messages_ia(payload: dict):
-    response = supabase.table("messages_ia").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("messages_ia").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_messages_ia(id: UUID, payload: dict):
-    response = supabase.table("messages_ia").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("messages_ia").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_messages_ia(id: UUID):
-    supabase.table("messages_ia").delete().eq("id", id).execute()
+    supabase.table("messages_ia").delete().eq("id", str(id)).execute()
     return {"deleted": True}

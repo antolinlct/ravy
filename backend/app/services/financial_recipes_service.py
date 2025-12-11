@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.financial_recipes import FinancialRecipes
 
@@ -39,20 +43,22 @@ def get_all_financial_recipes(filters: dict | None = None, limit: int = 200, pag
 
 
 def get_financial_recipes_by_id(id: UUID):
-    response = supabase.table("financial_recipes").select("*").eq("id", id).single().execute()
+    response = supabase.table("financial_recipes").select("*").eq("id", str(id)).single().execute()
     return FinancialRecipes(**response.data) if response.data else None
 
 
 def create_financial_recipes(payload: dict):
-    response = supabase.table("financial_recipes").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("financial_recipes").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_financial_recipes(id: UUID, payload: dict):
-    response = supabase.table("financial_recipes").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("financial_recipes").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_financial_recipes(id: UUID):
-    supabase.table("financial_recipes").delete().eq("id", id).execute()
+    supabase.table("financial_recipes").delete().eq("id", str(id)).execute()
     return {"deleted": True}

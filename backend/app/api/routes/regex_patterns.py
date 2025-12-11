@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.regex_patterns import RegexPatterns
 from app.services import regex_patterns_service
@@ -30,12 +33,14 @@ def get_regex_patterns(id: UUID):
 
 @router.post("/", response_model=RegexPatterns)
 def create_regex_patterns(data: RegexPatterns):
-    created = regex_patterns_service.create_regex_patterns(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = regex_patterns_service.create_regex_patterns(payload)
     return RegexPatterns(**created)
 
 @router.patch("/{id}", response_model=RegexPatterns)
-def update_regex_patterns(id: int, data: RegexPatterns):
-    updated = regex_patterns_service.update_regex_patterns(id, data.dict(exclude_unset=True))
+def update_regex_patterns(id: UUID, data: RegexPatterns):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = regex_patterns_service.update_regex_patterns(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="RegexPatterns not found")
     return RegexPatterns(**updated)

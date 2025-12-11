@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.supplier_alias import SupplierAlias
 
@@ -41,20 +45,22 @@ def get_all_supplier_alias(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_supplier_alias_by_id(id: UUID):
-    response = supabase.table("supplier_alias").select("*").eq("id", id).single().execute()
+    response = supabase.table("supplier_alias").select("*").eq("id", str(id)).single().execute()
     return SupplierAlias(**response.data) if response.data else None
 
 
 def create_supplier_alias(payload: dict):
-    response = supabase.table("supplier_alias").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("supplier_alias").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_supplier_alias(id: UUID, payload: dict):
-    response = supabase.table("supplier_alias").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("supplier_alias").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_supplier_alias(id: UUID):
-    supabase.table("supplier_alias").delete().eq("id", id).execute()
+    supabase.table("supplier_alias").delete().eq("id", str(id)).execute()
     return {"deleted": True}

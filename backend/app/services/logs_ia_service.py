@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.logs_ia import LogsIa
 
@@ -38,20 +42,22 @@ def get_all_logs_ia(filters: dict | None = None, limit: int = 200, page: int = 1
 
 
 def get_logs_ia_by_id(id: UUID):
-    response = supabase.table("logs_ia").select("*").eq("id", id).single().execute()
+    response = supabase.table("logs_ia").select("*").eq("id", str(id)).single().execute()
     return LogsIa(**response.data) if response.data else None
 
 
 def create_logs_ia(payload: dict):
-    response = supabase.table("logs_ia").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("logs_ia").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_logs_ia(id: UUID, payload: dict):
-    response = supabase.table("logs_ia").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("logs_ia").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_logs_ia(id: UUID):
-    supabase.table("logs_ia").delete().eq("id", id).execute()
+    supabase.table("logs_ia").delete().eq("id", str(id)).execute()
     return {"deleted": True}

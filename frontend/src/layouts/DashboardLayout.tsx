@@ -14,6 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { OnboardingGate } from "@/features/onboarding/OnboardingGate"
 
 export default function DashboardLayout() {
   return (
@@ -43,8 +44,9 @@ export default function DashboardLayout() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                    <Outlet/>
+          <Outlet/>
         </div>
+        <OnboardingGate />
       </SidebarInset>
     </SidebarProvider>
   )

@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.articles import Articles
 
@@ -41,20 +45,22 @@ def get_all_articles(filters: dict | None = None, limit: int = 200, page: int = 
 
 
 def get_articles_by_id(id: UUID):
-    response = supabase.table("articles").select("*").eq("id", id).single().execute()
+    response = supabase.table("articles").select("*").eq("id", str(id)).single().execute()
     return Articles(**response.data) if response.data else None
 
 
 def create_articles(payload: dict):
-    response = supabase.table("articles").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("articles").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_articles(id: UUID, payload: dict):
-    response = supabase.table("articles").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("articles").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_articles(id: UUID):
-    supabase.table("articles").delete().eq("id", id).execute()
+    supabase.table("articles").delete().eq("id", str(id)).execute()
     return {"deleted": True}

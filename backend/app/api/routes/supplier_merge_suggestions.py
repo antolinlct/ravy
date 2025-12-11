@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.supplier_merge_suggestions import SupplierMergeSuggestions
 from app.services import supplier_merge_suggestions_service
@@ -31,12 +34,14 @@ def get_supplier_merge_suggestions(id: UUID):
 
 @router.post("/", response_model=SupplierMergeSuggestions)
 def create_supplier_merge_suggestions(data: SupplierMergeSuggestions):
-    created = supplier_merge_suggestions_service.create_supplier_merge_suggestions(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = supplier_merge_suggestions_service.create_supplier_merge_suggestions(payload)
     return SupplierMergeSuggestions(**created)
 
 @router.patch("/{id}", response_model=SupplierMergeSuggestions)
-def update_supplier_merge_suggestions(id: int, data: SupplierMergeSuggestions):
-    updated = supplier_merge_suggestions_service.update_supplier_merge_suggestions(id, data.dict(exclude_unset=True))
+def update_supplier_merge_suggestions(id: UUID, data: SupplierMergeSuggestions):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = supplier_merge_suggestions_service.update_supplier_merge_suggestions(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="SupplierMergeSuggestions not found")
     return SupplierMergeSuggestions(**updated)

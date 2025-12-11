@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.user_profiles import UserProfiles
 from app.services import user_profiles_service
@@ -30,12 +33,14 @@ def get_user_profiles(id: UUID):
 
 @router.post("/", response_model=UserProfiles)
 def create_user_profiles(data: UserProfiles):
-    created = user_profiles_service.create_user_profiles(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = user_profiles_service.create_user_profiles(payload)
     return UserProfiles(**created)
 
 @router.patch("/{id}", response_model=UserProfiles)
-def update_user_profiles(id: int, data: UserProfiles):
-    updated = user_profiles_service.update_user_profiles(id, data.dict(exclude_unset=True))
+def update_user_profiles(id: UUID, data: UserProfiles):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = user_profiles_service.update_user_profiles(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="UserProfiles not found")
     return UserProfiles(**updated)

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.import_job import ImportJob
 from app.services import import_job_service
@@ -31,12 +34,14 @@ def get_import_job(id: UUID):
 
 @router.post("/", response_model=ImportJob)
 def create_import_job(data: ImportJob):
-    created = import_job_service.create_import_job(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = import_job_service.create_import_job(payload)
     return ImportJob(**created)
 
 @router.patch("/{id}", response_model=ImportJob)
-def update_import_job(id: int, data: ImportJob):
-    updated = import_job_service.update_import_job(id, data.dict(exclude_unset=True))
+def update_import_job(id: UUID, data: ImportJob):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = import_job_service.update_import_job(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="ImportJob not found")
     return ImportJob(**updated)

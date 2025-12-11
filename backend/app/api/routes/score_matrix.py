@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.score_matrix import ScoreMatrix
 from app.services import score_matrix_service
@@ -30,12 +33,14 @@ def get_score_matrix(id: UUID):
 
 @router.post("/", response_model=ScoreMatrix)
 def create_score_matrix(data: ScoreMatrix):
-    created = score_matrix_service.create_score_matrix(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = score_matrix_service.create_score_matrix(payload)
     return ScoreMatrix(**created)
 
 @router.patch("/{id}", response_model=ScoreMatrix)
-def update_score_matrix(id: int, data: ScoreMatrix):
-    updated = score_matrix_service.update_score_matrix(id, data.dict(exclude_unset=True))
+def update_score_matrix(id: UUID, data: ScoreMatrix):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = score_matrix_service.update_score_matrix(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="ScoreMatrix not found")
     return ScoreMatrix(**updated)

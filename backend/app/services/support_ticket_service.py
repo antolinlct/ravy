@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.support_ticket import SupportTicket
 
@@ -39,20 +43,22 @@ def get_all_support_ticket(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_support_ticket_by_id(id: UUID):
-    response = supabase.table("support_ticket").select("*").eq("id", id).single().execute()
+    response = supabase.table("support_ticket").select("*").eq("id", str(id)).single().execute()
     return SupportTicket(**response.data) if response.data else None
 
 
 def create_support_ticket(payload: dict):
-    response = supabase.table("support_ticket").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("support_ticket").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_support_ticket(id: UUID, payload: dict):
-    response = supabase.table("support_ticket").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("support_ticket").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_support_ticket(id: UUID):
-    supabase.table("support_ticket").delete().eq("id", id).execute()
+    supabase.table("support_ticket").delete().eq("id", str(id)).execute()
     return {"deleted": True}

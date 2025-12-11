@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.supplier_alias import SupplierAlias
 from app.services import supplier_alias_service
@@ -32,12 +35,14 @@ def get_supplier_alias(id: UUID):
 
 @router.post("/", response_model=SupplierAlias)
 def create_supplier_alias(data: SupplierAlias):
-    created = supplier_alias_service.create_supplier_alias(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = supplier_alias_service.create_supplier_alias(payload)
     return SupplierAlias(**created)
 
 @router.patch("/{id}", response_model=SupplierAlias)
-def update_supplier_alias(id: int, data: SupplierAlias):
-    updated = supplier_alias_service.update_supplier_alias(id, data.dict(exclude_unset=True))
+def update_supplier_alias(id: UUID, data: SupplierAlias):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = supplier_alias_service.update_supplier_alias(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="SupplierAlias not found")
     return SupplierAlias(**updated)

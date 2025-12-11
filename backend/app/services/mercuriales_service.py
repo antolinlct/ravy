@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.mercuriales import Mercuriales
 
@@ -38,20 +42,22 @@ def get_all_mercuriales(filters: dict | None = None, limit: int = 200, page: int
 
 
 def get_mercuriales_by_id(id: UUID):
-    response = supabase.table("mercuriales").select("*").eq("id", id).single().execute()
+    response = supabase.table("mercuriales").select("*").eq("id", str(id)).single().execute()
     return Mercuriales(**response.data) if response.data else None
 
 
 def create_mercuriales(payload: dict):
-    response = supabase.table("mercuriales").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercuriales").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_mercuriales(id: UUID, payload: dict):
-    response = supabase.table("mercuriales").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("mercuriales").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_mercuriales(id: UUID):
-    supabase.table("mercuriales").delete().eq("id", id).execute()
+    supabase.table("mercuriales").delete().eq("id", str(id)).execute()
     return {"deleted": True}

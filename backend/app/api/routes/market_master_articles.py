@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.market_master_articles import MarketMasterArticles
 from app.services import market_master_articles_service
@@ -30,12 +33,14 @@ def get_market_master_articles(id: UUID):
 
 @router.post("/", response_model=MarketMasterArticles)
 def create_market_master_articles(data: MarketMasterArticles):
-    created = market_master_articles_service.create_market_master_articles(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = market_master_articles_service.create_market_master_articles(payload)
     return MarketMasterArticles(**created)
 
 @router.patch("/{id}", response_model=MarketMasterArticles)
-def update_market_master_articles(id: int, data: MarketMasterArticles):
-    updated = market_master_articles_service.update_market_master_articles(id, data.dict(exclude_unset=True))
+def update_market_master_articles(id: UUID, data: MarketMasterArticles):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = market_master_articles_service.update_market_master_articles(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MarketMasterArticles not found")
     return MarketMasterArticles(**updated)

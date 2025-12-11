@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.price_stripe import PriceStripe
 
@@ -38,20 +42,22 @@ def get_all_price_stripe(filters: dict | None = None, limit: int = 200, page: in
 
 
 def get_price_stripe_by_id(id: UUID):
-    response = supabase.table("price_stripe").select("*").eq("id", id).single().execute()
+    response = supabase.table("price_stripe").select("*").eq("id", str(id)).single().execute()
     return PriceStripe(**response.data) if response.data else None
 
 
 def create_price_stripe(payload: dict):
-    response = supabase.table("price_stripe").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("price_stripe").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_price_stripe(id: UUID, payload: dict):
-    response = supabase.table("price_stripe").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("price_stripe").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_price_stripe(id: UUID):
-    supabase.table("price_stripe").delete().eq("id", id).execute()
+    supabase.table("price_stripe").delete().eq("id", str(id)).execute()
     return {"deleted": True}

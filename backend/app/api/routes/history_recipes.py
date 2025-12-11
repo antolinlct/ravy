@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.history_recipes import HistoryRecipes
 from app.services import history_recipes_service
@@ -31,12 +34,14 @@ def get_history_recipes(id: UUID):
 
 @router.post("/", response_model=HistoryRecipes)
 def create_history_recipes(data: HistoryRecipes):
-    created = history_recipes_service.create_history_recipes(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = history_recipes_service.create_history_recipes(payload)
     return HistoryRecipes(**created)
 
 @router.patch("/{id}", response_model=HistoryRecipes)
-def update_history_recipes(id: int, data: HistoryRecipes):
-    updated = history_recipes_service.update_history_recipes(id, data.dict(exclude_unset=True))
+def update_history_recipes(id: UUID, data: HistoryRecipes):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = history_recipes_service.update_history_recipes(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="HistoryRecipes not found")
     return HistoryRecipes(**updated)

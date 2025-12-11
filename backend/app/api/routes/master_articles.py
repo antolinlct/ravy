@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.master_articles import MasterArticles
 from app.services import master_articles_service
@@ -32,12 +35,14 @@ def get_master_articles(id: UUID):
 
 @router.post("/", response_model=MasterArticles)
 def create_master_articles(data: MasterArticles):
-    created = master_articles_service.create_master_articles(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = master_articles_service.create_master_articles(payload)
     return MasterArticles(**created)
 
 @router.patch("/{id}", response_model=MasterArticles)
-def update_master_articles(id: int, data: MasterArticles):
-    updated = master_articles_service.update_master_articles(id, data.dict(exclude_unset=True))
+def update_master_articles(id: UUID, data: MasterArticles):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = master_articles_service.update_master_articles(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MasterArticles not found")
     return MasterArticles(**updated)

@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.variations import Variations
 
@@ -39,20 +43,22 @@ def get_all_variations(filters: dict | None = None, limit: int = 200, page: int 
 
 
 def get_variations_by_id(id: UUID):
-    response = supabase.table("variations").select("*").eq("id", id).single().execute()
+    response = supabase.table("variations").select("*").eq("id", str(id)).single().execute()
     return Variations(**response.data) if response.data else None
 
 
 def create_variations(payload: dict):
-    response = supabase.table("variations").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("variations").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_variations(id: UUID, payload: dict):
-    response = supabase.table("variations").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("variations").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_variations(id: UUID):
-    supabase.table("variations").delete().eq("id", id).execute()
+    supabase.table("variations").delete().eq("id", str(id)).execute()
     return {"deleted": True}

@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.user_profiles import UserProfiles
 
@@ -38,20 +42,22 @@ def get_all_user_profiles(filters: dict | None = None, limit: int = 200, page: i
 
 
 def get_user_profiles_by_id(id: UUID):
-    response = supabase.table("user_profiles").select("*").eq("id", id).single().execute()
+    response = supabase.table("user_profiles").select("*").eq("id", str(id)).single().execute()
     return UserProfiles(**response.data) if response.data else None
 
 
 def create_user_profiles(payload: dict):
-    response = supabase.table("user_profiles").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("user_profiles").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_user_profiles(id: UUID, payload: dict):
-    response = supabase.table("user_profiles").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("user_profiles").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_user_profiles(id: UUID):
-    supabase.table("user_profiles").delete().eq("id", id).execute()
+    supabase.table("user_profiles").delete().eq("id", str(id)).execute()
     return {"deleted": True}

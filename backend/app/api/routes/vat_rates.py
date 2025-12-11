@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.vat_rates import VatRates
 from app.services import vat_rates_service
@@ -30,12 +33,14 @@ def get_vat_rates(id: UUID):
 
 @router.post("/", response_model=VatRates)
 def create_vat_rates(data: VatRates):
-    created = vat_rates_service.create_vat_rates(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = vat_rates_service.create_vat_rates(payload)
     return VatRates(**created)
 
 @router.patch("/{id}", response_model=VatRates)
-def update_vat_rates(id: int, data: VatRates):
-    updated = vat_rates_service.update_vat_rates(id, data.dict(exclude_unset=True))
+def update_vat_rates(id: UUID, data: VatRates):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = vat_rates_service.update_vat_rates(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="VatRates not found")
     return VatRates(**updated)

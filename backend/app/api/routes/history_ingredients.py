@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.history_ingredients import HistoryIngredients
 from app.services import history_ingredients_service
@@ -31,12 +34,14 @@ def get_history_ingredients(id: UUID):
 
 @router.post("/", response_model=HistoryIngredients)
 def create_history_ingredients(data: HistoryIngredients):
-    created = history_ingredients_service.create_history_ingredients(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = history_ingredients_service.create_history_ingredients(payload)
     return HistoryIngredients(**created)
 
 @router.patch("/{id}", response_model=HistoryIngredients)
-def update_history_ingredients(id: int, data: HistoryIngredients):
-    updated = history_ingredients_service.update_history_ingredients(id, data.dict(exclude_unset=True))
+def update_history_ingredients(id: UUID, data: HistoryIngredients):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = history_ingredients_service.update_history_ingredients(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="HistoryIngredients not found")
     return HistoryIngredients(**updated)

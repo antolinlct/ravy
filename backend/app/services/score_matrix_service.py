@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.score_matrix import ScoreMatrix
 
@@ -38,20 +42,22 @@ def get_all_score_matrix(filters: dict | None = None, limit: int = 200, page: in
 
 
 def get_score_matrix_by_id(id: UUID):
-    response = supabase.table("score_matrix").select("*").eq("id", id).single().execute()
+    response = supabase.table("score_matrix").select("*").eq("id", str(id)).single().execute()
     return ScoreMatrix(**response.data) if response.data else None
 
 
 def create_score_matrix(payload: dict):
-    response = supabase.table("score_matrix").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("score_matrix").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_score_matrix(id: UUID, payload: dict):
-    response = supabase.table("score_matrix").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("score_matrix").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_score_matrix(id: UUID):
-    supabase.table("score_matrix").delete().eq("id", id).execute()
+    supabase.table("score_matrix").delete().eq("id", str(id)).execute()
     return {"deleted": True}

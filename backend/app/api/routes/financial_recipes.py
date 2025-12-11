@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.financial_recipes import FinancialRecipes
 from app.services import financial_recipes_service
@@ -31,12 +34,14 @@ def get_financial_recipes(id: UUID):
 
 @router.post("/", response_model=FinancialRecipes)
 def create_financial_recipes(data: FinancialRecipes):
-    created = financial_recipes_service.create_financial_recipes(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = financial_recipes_service.create_financial_recipes(payload)
     return FinancialRecipes(**created)
 
 @router.patch("/{id}", response_model=FinancialRecipes)
-def update_financial_recipes(id: int, data: FinancialRecipes):
-    updated = financial_recipes_service.update_financial_recipes(id, data.dict(exclude_unset=True))
+def update_financial_recipes(id: UUID, data: FinancialRecipes):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = financial_recipes_service.update_financial_recipes(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="FinancialRecipes not found")
     return FinancialRecipes(**updated)

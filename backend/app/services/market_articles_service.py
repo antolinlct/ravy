@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.market_articles import MarketArticles
 
@@ -39,20 +43,22 @@ def get_all_market_articles(filters: dict | None = None, limit: int = 200, page:
 
 
 def get_market_articles_by_id(id: UUID):
-    response = supabase.table("market_articles").select("*").eq("id", id).single().execute()
+    response = supabase.table("market_articles").select("*").eq("id", str(id)).single().execute()
     return MarketArticles(**response.data) if response.data else None
 
 
 def create_market_articles(payload: dict):
-    response = supabase.table("market_articles").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("market_articles").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_market_articles(id: UUID, payload: dict):
-    response = supabase.table("market_articles").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("market_articles").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_market_articles(id: UUID):
-    supabase.table("market_articles").delete().eq("id", id).execute()
+    supabase.table("market_articles").delete().eq("id", str(id)).execute()
     return {"deleted": True}

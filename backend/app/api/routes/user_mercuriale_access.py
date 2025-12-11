@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.user_mercuriale_access import UserMercurialeAccess
 from app.services import user_mercuriale_access_service
@@ -30,12 +33,14 @@ def get_user_mercuriale_access(id: UUID):
 
 @router.post("/", response_model=UserMercurialeAccess)
 def create_user_mercuriale_access(data: UserMercurialeAccess):
-    created = user_mercuriale_access_service.create_user_mercuriale_access(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = user_mercuriale_access_service.create_user_mercuriale_access(payload)
     return UserMercurialeAccess(**created)
 
 @router.patch("/{id}", response_model=UserMercurialeAccess)
-def update_user_mercuriale_access(id: int, data: UserMercurialeAccess):
-    updated = user_mercuriale_access_service.update_user_mercuriale_access(id, data.dict(exclude_unset=True))
+def update_user_mercuriale_access(id: UUID, data: UserMercurialeAccess):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = user_mercuriale_access_service.update_user_mercuriale_access(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="UserMercurialeAccess not found")
     return UserMercurialeAccess(**updated)

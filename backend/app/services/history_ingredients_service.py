@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.history_ingredients import HistoryIngredients
 
@@ -39,20 +43,22 @@ def get_all_history_ingredients(filters: dict | None = None, limit: int = 200, p
 
 
 def get_history_ingredients_by_id(id: UUID):
-    response = supabase.table("history_ingredients").select("*").eq("id", id).single().execute()
+    response = supabase.table("history_ingredients").select("*").eq("id", str(id)).single().execute()
     return HistoryIngredients(**response.data) if response.data else None
 
 
 def create_history_ingredients(payload: dict):
-    response = supabase.table("history_ingredients").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("history_ingredients").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_history_ingredients(id: UUID, payload: dict):
-    response = supabase.table("history_ingredients").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("history_ingredients").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_history_ingredients(id: UUID):
-    supabase.table("history_ingredients").delete().eq("id", id).execute()
+    supabase.table("history_ingredients").delete().eq("id", str(id)).execute()
     return {"deleted": True}

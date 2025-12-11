@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.establishments import Establishments
 
@@ -38,20 +42,22 @@ def get_all_establishments(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_establishments_by_id(id: UUID):
-    response = supabase.table("establishments").select("*").eq("id", id).single().execute()
+    response = supabase.table("establishments").select("*").eq("id", str(id)).single().execute()
     return Establishments(**response.data) if response.data else None
 
 
 def create_establishments(payload: dict):
-    response = supabase.table("establishments").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("establishments").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_establishments(id: UUID, payload: dict):
-    response = supabase.table("establishments").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("establishments").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_establishments(id: UUID):
-    supabase.table("establishments").delete().eq("id", id).execute()
+    supabase.table("establishments").delete().eq("id", str(id)).execute()
     return {"deleted": True}

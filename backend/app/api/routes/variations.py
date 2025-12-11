@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.variations import Variations
 from app.services import variations_service
@@ -31,12 +34,14 @@ def get_variations(id: UUID):
 
 @router.post("/", response_model=Variations)
 def create_variations(data: Variations):
-    created = variations_service.create_variations(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = variations_service.create_variations(payload)
     return Variations(**created)
 
 @router.patch("/{id}", response_model=Variations)
-def update_variations(id: int, data: Variations):
-    updated = variations_service.update_variations(id, data.dict(exclude_unset=True))
+def update_variations(id: UUID, data: Variations):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = variations_service.update_variations(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Variations not found")
     return Variations(**updated)

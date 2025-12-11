@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.support_ticket import SupportTicket
 from app.services import support_ticket_service
@@ -31,12 +34,14 @@ def get_support_ticket(id: UUID):
 
 @router.post("/", response_model=SupportTicket)
 def create_support_ticket(data: SupportTicket):
-    created = support_ticket_service.create_support_ticket(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = support_ticket_service.create_support_ticket(payload)
     return SupportTicket(**created)
 
 @router.patch("/{id}", response_model=SupportTicket)
-def update_support_ticket(id: int, data: SupportTicket):
-    updated = support_ticket_service.update_support_ticket(id, data.dict(exclude_unset=True))
+def update_support_ticket(id: UUID, data: SupportTicket):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = support_ticket_service.update_support_ticket(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="SupportTicket not found")
     return SupportTicket(**updated)

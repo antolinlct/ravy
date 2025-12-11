@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.recipe_margin import RecipeMargin
 
@@ -39,20 +43,22 @@ def get_all_recipe_margin(filters: dict | None = None, limit: int = 200, page: i
 
 
 def get_recipe_margin_by_id(id: UUID):
-    response = supabase.table("recipe_margin").select("*").eq("id", id).single().execute()
+    response = supabase.table("recipe_margin").select("*").eq("id", str(id)).single().execute()
     return RecipeMargin(**response.data) if response.data else None
 
 
 def create_recipe_margin(payload: dict):
-    response = supabase.table("recipe_margin").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipe_margin").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_recipe_margin(id: UUID, payload: dict):
-    response = supabase.table("recipe_margin").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("recipe_margin").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_recipe_margin(id: UUID):
-    supabase.table("recipe_margin").delete().eq("id", id).execute()
+    supabase.table("recipe_margin").delete().eq("id", str(id)).execute()
     return {"deleted": True}

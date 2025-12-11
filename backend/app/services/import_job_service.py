@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.import_job import ImportJob
 
@@ -39,20 +43,22 @@ def get_all_import_job(filters: dict | None = None, limit: int = 200, page: int 
 
 
 def get_import_job_by_id(id: UUID):
-    response = supabase.table("import_job").select("*").eq("id", id).single().execute()
+    response = supabase.table("import_job").select("*").eq("id", str(id)).single().execute()
     return ImportJob(**response.data) if response.data else None
 
 
 def create_import_job(payload: dict):
-    response = supabase.table("import_job").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("import_job").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_import_job(id: UUID, payload: dict):
-    response = supabase.table("import_job").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("import_job").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_import_job(id: UUID):
-    supabase.table("import_job").delete().eq("id", id).execute()
+    supabase.table("import_job").delete().eq("id", str(id)).execute()
     return {"deleted": True}

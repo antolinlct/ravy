@@ -1,3 +1,7 @@
+from uuid import UUID
+
+from fastapi.encoders import jsonable_encoder
+
 from app.core.supabase_client import supabase
 from app.schemas.invoices_rejected import InvoicesRejected
 
@@ -38,20 +42,22 @@ def get_all_invoices_rejected(filters: dict | None = None, limit: int = 200, pag
 
 
 def get_invoices_rejected_by_id(id: UUID):
-    response = supabase.table("invoices_rejected").select("*").eq("id", id).single().execute()
+    response = supabase.table("invoices_rejected").select("*").eq("id", str(id)).single().execute()
     return InvoicesRejected(**response.data) if response.data else None
 
 
 def create_invoices_rejected(payload: dict):
-    response = supabase.table("invoices_rejected").insert(payload).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("invoices_rejected").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_invoices_rejected(id: UUID, payload: dict):
-    response = supabase.table("invoices_rejected").update(payload).eq("id", id).execute()
+    prepared = jsonable_encoder(payload)
+    response = supabase.table("invoices_rejected").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_invoices_rejected(id: UUID):
-    supabase.table("invoices_rejected").delete().eq("id", id).execute()
+    supabase.table("invoices_rejected").delete().eq("id", str(id)).execute()
     return {"deleted": True}

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.suppliers import Suppliers
 from app.services import suppliers_service
@@ -31,12 +34,14 @@ def get_suppliers(id: UUID):
 
 @router.post("/", response_model=Suppliers)
 def create_suppliers(data: Suppliers):
-    created = suppliers_service.create_suppliers(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = suppliers_service.create_suppliers(payload)
     return Suppliers(**created)
 
 @router.patch("/{id}", response_model=Suppliers)
-def update_suppliers(id: int, data: Suppliers):
-    updated = suppliers_service.update_suppliers(id, data.dict(exclude_unset=True))
+def update_suppliers(id: UUID, data: Suppliers):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = suppliers_service.update_suppliers(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Suppliers not found")
     return Suppliers(**updated)

@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.messages_ia import MessagesIa
 from app.services import messages_ia_service
@@ -30,12 +33,14 @@ def get_messages_ia(id: UUID):
 
 @router.post("/", response_model=MessagesIa)
 def create_messages_ia(data: MessagesIa):
-    created = messages_ia_service.create_messages_ia(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = messages_ia_service.create_messages_ia(payload)
     return MessagesIa(**created)
 
 @router.patch("/{id}", response_model=MessagesIa)
-def update_messages_ia(id: int, data: MessagesIa):
-    updated = messages_ia_service.update_messages_ia(id, data.dict(exclude_unset=True))
+def update_messages_ia(id: UUID, data: MessagesIa):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = messages_ia_service.update_messages_ia(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="MessagesIa not found")
     return MessagesIa(**updated)

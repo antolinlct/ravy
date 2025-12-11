@@ -1,4 +1,7 @@
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.establishments import Establishments
 from app.services import establishments_service
@@ -30,12 +33,14 @@ def get_establishments(id: UUID):
 
 @router.post("/", response_model=Establishments)
 def create_establishments(data: Establishments):
-    created = establishments_service.create_establishments(data.dict())
+    payload = jsonable_encoder(data.dict())
+    created = establishments_service.create_establishments(payload)
     return Establishments(**created)
 
 @router.patch("/{id}", response_model=Establishments)
-def update_establishments(id: int, data: Establishments):
-    updated = establishments_service.update_establishments(id, data.dict(exclude_unset=True))
+def update_establishments(id: UUID, data: Establishments):
+    payload = jsonable_encoder(data.dict(exclude_unset=True))
+    updated = establishments_service.update_establishments(id, payload)
     if not updated:
         raise HTTPException(status_code=404, detail="Establishments not found")
     return Establishments(**updated)
