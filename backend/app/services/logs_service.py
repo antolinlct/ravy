@@ -38,7 +38,7 @@ def get_all_logs(filters: dict | None = None, limit: int = 200, page: int = 1):
     return [Logs(**r) for r in (response.data or [])]
 
 
-def get_logs_by_id(id: int):
+def get_logs_by_id(id: UUID):
     response = supabase.table("logs").select("*").eq("id", id).single().execute()
     return Logs(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_logs(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_logs(id: int, payload: dict):
+def update_logs(id: UUID, payload: dict):
     response = supabase.table("logs").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_logs(id: int):
+def delete_logs(id: UUID):
     supabase.table("logs").delete().eq("id", id).execute()
     return {"deleted": True}

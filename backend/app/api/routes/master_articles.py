@@ -24,7 +24,7 @@ def list_master_articles(
     return master_articles_service.get_all_master_articles(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MasterArticles)
-def get_master_articles(id: int):
+def get_master_articles(id: UUID):
     item = master_articles_service.get_master_articles_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MasterArticles not found")
@@ -43,6 +43,6 @@ def update_master_articles(id: int, data: MasterArticles):
     return MasterArticles(**updated)
 
 @router.delete("/{id}")
-def delete_master_articles(id: int):
+def delete_master_articles(id: UUID):
     master_articles_service.delete_master_articles(id)
     return {"deleted": True}

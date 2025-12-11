@@ -23,7 +23,7 @@ def list_ingredients(
     return ingredients_service.get_all_ingredients(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Ingredients)
-def get_ingredients(id: int):
+def get_ingredients(id: UUID):
     item = ingredients_service.get_ingredients_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Ingredients not found")
@@ -42,6 +42,6 @@ def update_ingredients(id: int, data: Ingredients):
     return Ingredients(**updated)
 
 @router.delete("/{id}")
-def delete_ingredients(id: int):
+def delete_ingredients(id: UUID):
     ingredients_service.delete_ingredients(id)
     return {"deleted": True}

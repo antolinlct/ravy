@@ -22,7 +22,7 @@ def list_mercuriale_articles(
     return mercuriale_articles_service.get_all_mercuriale_articles(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MercurialeArticles)
-def get_mercuriale_articles(id: int):
+def get_mercuriale_articles(id: UUID):
     item = mercuriale_articles_service.get_mercuriale_articles_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MercurialeArticles not found")
@@ -41,6 +41,6 @@ def update_mercuriale_articles(id: int, data: MercurialeArticles):
     return MercurialeArticles(**updated)
 
 @router.delete("/{id}")
-def delete_mercuriale_articles(id: int):
+def delete_mercuriale_articles(id: UUID):
     mercuriale_articles_service.delete_mercuriale_articles(id)
     return {"deleted": True}

@@ -23,7 +23,7 @@ def list_support_ticket(
     return support_ticket_service.get_all_support_ticket(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=SupportTicket)
-def get_support_ticket(id: int):
+def get_support_ticket(id: UUID):
     item = support_ticket_service.get_support_ticket_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="SupportTicket not found")
@@ -42,6 +42,6 @@ def update_support_ticket(id: int, data: SupportTicket):
     return SupportTicket(**updated)
 
 @router.delete("/{id}")
-def delete_support_ticket(id: int):
+def delete_support_ticket(id: UUID):
     support_ticket_service.delete_support_ticket(id)
     return {"deleted": True}

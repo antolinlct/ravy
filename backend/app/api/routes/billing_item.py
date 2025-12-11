@@ -22,7 +22,7 @@ def list_billing_item(
     return billing_item_service.get_all_billing_item(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=BillingItem)
-def get_billing_item(id: int):
+def get_billing_item(id: UUID):
     item = billing_item_service.get_billing_item_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="BillingItem not found")
@@ -41,6 +41,6 @@ def update_billing_item(id: int, data: BillingItem):
     return BillingItem(**updated)
 
 @router.delete("/{id}")
-def delete_billing_item(id: int):
+def delete_billing_item(id: UUID):
     billing_item_service.delete_billing_item(id)
     return {"deleted": True}

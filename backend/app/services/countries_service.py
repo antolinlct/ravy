@@ -37,7 +37,7 @@ def get_all_countries(filters: dict | None = None, limit: int = 200, page: int =
     return [Countries(**r) for r in (response.data or [])]
 
 
-def get_countries_by_id(id: int):
+def get_countries_by_id(id: UUID):
     response = supabase.table("countries").select("*").eq("id", id).single().execute()
     return Countries(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_countries(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_countries(id: int, payload: dict):
+def update_countries(id: UUID, payload: dict):
     response = supabase.table("countries").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_countries(id: int):
+def delete_countries(id: UUID):
     supabase.table("countries").delete().eq("id", id).execute()
     return {"deleted": True}

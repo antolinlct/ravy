@@ -22,7 +22,7 @@ def list_mercuriale_master_article(
     return mercuriale_master_article_service.get_all_mercuriale_master_article(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MercurialeMasterArticle)
-def get_mercuriale_master_article(id: int):
+def get_mercuriale_master_article(id: UUID):
     item = mercuriale_master_article_service.get_mercuriale_master_article_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MercurialeMasterArticle not found")
@@ -41,6 +41,6 @@ def update_mercuriale_master_article(id: int, data: MercurialeMasterArticle):
     return MercurialeMasterArticle(**updated)
 
 @router.delete("/{id}")
-def delete_mercuriale_master_article(id: int):
+def delete_mercuriale_master_article(id: UUID):
     mercuriale_master_article_service.delete_mercuriale_master_article(id)
     return {"deleted": True}

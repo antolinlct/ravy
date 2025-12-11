@@ -23,7 +23,7 @@ def list_import_job(
     return import_job_service.get_all_import_job(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=ImportJob)
-def get_import_job(id: int):
+def get_import_job(id: UUID):
     item = import_job_service.get_import_job_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="ImportJob not found")
@@ -42,6 +42,6 @@ def update_import_job(id: int, data: ImportJob):
     return ImportJob(**updated)
 
 @router.delete("/{id}")
-def delete_import_job(id: int):
+def delete_import_job(id: UUID):
     import_job_service.delete_import_job(id)
     return {"deleted": True}

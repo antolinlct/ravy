@@ -38,7 +38,7 @@ def get_all_financial_recipes(filters: dict | None = None, limit: int = 200, pag
     return [FinancialRecipes(**r) for r in (response.data or [])]
 
 
-def get_financial_recipes_by_id(id: int):
+def get_financial_recipes_by_id(id: UUID):
     response = supabase.table("financial_recipes").select("*").eq("id", id).single().execute()
     return FinancialRecipes(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_financial_recipes(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_financial_recipes(id: int, payload: dict):
+def update_financial_recipes(id: UUID, payload: dict):
     response = supabase.table("financial_recipes").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_financial_recipes(id: int):
+def delete_financial_recipes(id: UUID):
     supabase.table("financial_recipes").delete().eq("id", id).execute()
     return {"deleted": True}

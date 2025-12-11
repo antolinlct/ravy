@@ -19,3 +19,10 @@ class Variations(BaseModel):
     is_viewed: Optional[bool] = None
     invoice_id: Optional[UUID] = None
     is_deleted: Optional[bool] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

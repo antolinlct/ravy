@@ -37,7 +37,7 @@ def get_all_market_suppliers(filters: dict | None = None, limit: int = 200, page
     return [MarketSuppliers(**r) for r in (response.data or [])]
 
 
-def get_market_suppliers_by_id(id: int):
+def get_market_suppliers_by_id(id: UUID):
     response = supabase.table("market_suppliers").select("*").eq("id", id).single().execute()
     return MarketSuppliers(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_market_suppliers(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_market_suppliers(id: int, payload: dict):
+def update_market_suppliers(id: UUID, payload: dict):
     response = supabase.table("market_suppliers").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_market_suppliers(id: int):
+def delete_market_suppliers(id: UUID):
     supabase.table("market_suppliers").delete().eq("id", id).execute()
     return {"deleted": True}

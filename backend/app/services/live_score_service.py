@@ -38,7 +38,7 @@ def get_all_live_score(filters: dict | None = None, limit: int = 200, page: int 
     return [LiveScore(**r) for r in (response.data or [])]
 
 
-def get_live_score_by_id(id: int):
+def get_live_score_by_id(id: UUID):
     response = supabase.table("live_score").select("*").eq("id", id).single().execute()
     return LiveScore(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_live_score(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_live_score(id: int, payload: dict):
+def update_live_score(id: UUID, payload: dict):
     response = supabase.table("live_score").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_live_score(id: int):
+def delete_live_score(id: UUID):
     supabase.table("live_score").delete().eq("id", id).execute()
     return {"deleted": True}

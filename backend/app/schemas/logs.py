@@ -19,3 +19,10 @@ class Logs(BaseModel):
     element_id: Optional[UUID] = None
     element_type: Optional[Logs_element_type] = None
     id: Optional[UUID] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

@@ -23,7 +23,7 @@ def list_recipes_subcategories(
     return recipes_subcategories_service.get_all_recipes_subcategories(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=RecipesSubcategories)
-def get_recipes_subcategories(id: int):
+def get_recipes_subcategories(id: UUID):
     item = recipes_subcategories_service.get_recipes_subcategories_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="RecipesSubcategories not found")
@@ -42,6 +42,6 @@ def update_recipes_subcategories(id: int, data: RecipesSubcategories):
     return RecipesSubcategories(**updated)
 
 @router.delete("/{id}")
-def delete_recipes_subcategories(id: int):
+def delete_recipes_subcategories(id: UUID):
     recipes_subcategories_service.delete_recipes_subcategories(id)
     return {"deleted": True}

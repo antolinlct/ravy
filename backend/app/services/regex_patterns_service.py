@@ -37,7 +37,7 @@ def get_all_regex_patterns(filters: dict | None = None, limit: int = 200, page: 
     return [RegexPatterns(**r) for r in (response.data or [])]
 
 
-def get_regex_patterns_by_id(id: int):
+def get_regex_patterns_by_id(id: UUID):
     response = supabase.table("regex_patterns").select("*").eq("id", id).single().execute()
     return RegexPatterns(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_regex_patterns(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_regex_patterns(id: int, payload: dict):
+def update_regex_patterns(id: UUID, payload: dict):
     response = supabase.table("regex_patterns").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_regex_patterns(id: int):
+def delete_regex_patterns(id: UUID):
     supabase.table("regex_patterns").delete().eq("id", id).execute()
     return {"deleted": True}

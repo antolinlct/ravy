@@ -76,7 +76,7 @@ def get_all_{name}(filters: dict | None = None, limit: int = 200, page: int = 1)
     return [{class_name}(**r) for r in (response.data or [])]
 
 
-def get_{name}_by_id(id: int):
+def get_{name}_by_id(id: UUID):
     response = supabase.table("{name}").select("*").eq("id", id).single().execute()
     return {class_name}(**response.data) if response.data else None
 
@@ -86,12 +86,12 @@ def create_{name}(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_{name}(id: int, payload: dict):
+def update_{name}(id: UUID, payload: dict):
     response = supabase.table("{name}").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_{name}(id: int):
+def delete_{name}(id: UUID):
     supabase.table("{name}").delete().eq("id", id).execute()
     return {{"deleted": True}}
 """
@@ -121,7 +121,7 @@ def list_{name}(
     return {name}_service.get_all_{name}(filters, limit=limit, page=page)
 
 @router.get("/{{id}}", response_model={class_name})
-def get_{name}(id: int):
+def get_{name}(id: UUID):
     item = {name}_service.get_{name}_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="{class_name} not found")
@@ -140,7 +140,7 @@ def update_{name}(id: int, data: {class_name}):
     return {class_name}(**updated)
 
 @router.delete("/{{id}}")
-def delete_{name}(id: int):
+def delete_{name}(id: UUID):
     {name}_service.delete_{name}(id)
     return {{"deleted": True}}
 """

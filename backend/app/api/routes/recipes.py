@@ -23,7 +23,7 @@ def list_recipes(
     return recipes_service.get_all_recipes(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Recipes)
-def get_recipes(id: int):
+def get_recipes(id: UUID):
     item = recipes_service.get_recipes_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Recipes not found")
@@ -42,6 +42,6 @@ def update_recipes(id: int, data: Recipes):
     return Recipes(**updated)
 
 @router.delete("/{id}")
-def delete_recipes(id: int):
+def delete_recipes(id: UUID):
     recipes_service.delete_recipes(id)
     return {"deleted": True}

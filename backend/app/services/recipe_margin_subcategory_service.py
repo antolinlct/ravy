@@ -38,7 +38,7 @@ def get_all_recipe_margin_subcategory(filters: dict | None = None, limit: int = 
     return [RecipeMarginSubcategory(**r) for r in (response.data or [])]
 
 
-def get_recipe_margin_subcategory_by_id(id: int):
+def get_recipe_margin_subcategory_by_id(id: UUID):
     response = supabase.table("recipe_margin_subcategory").select("*").eq("id", id).single().execute()
     return RecipeMarginSubcategory(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_recipe_margin_subcategory(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_recipe_margin_subcategory(id: int, payload: dict):
+def update_recipe_margin_subcategory(id: UUID, payload: dict):
     response = supabase.table("recipe_margin_subcategory").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_recipe_margin_subcategory(id: int):
+def delete_recipe_margin_subcategory(id: UUID):
     supabase.table("recipe_margin_subcategory").delete().eq("id", id).execute()
     return {"deleted": True}

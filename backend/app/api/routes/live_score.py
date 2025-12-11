@@ -23,7 +23,7 @@ def list_live_score(
     return live_score_service.get_all_live_score(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=LiveScore)
-def get_live_score(id: int):
+def get_live_score(id: UUID):
     item = live_score_service.get_live_score_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="LiveScore not found")
@@ -42,6 +42,6 @@ def update_live_score(id: int, data: LiveScore):
     return LiveScore(**updated)
 
 @router.delete("/{id}")
-def delete_live_score(id: int):
+def delete_live_score(id: UUID):
     live_score_service.delete_live_score(id)
     return {"deleted": True}

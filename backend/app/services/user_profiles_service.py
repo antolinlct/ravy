@@ -37,7 +37,7 @@ def get_all_user_profiles(filters: dict | None = None, limit: int = 200, page: i
     return [UserProfiles(**r) for r in (response.data or [])]
 
 
-def get_user_profiles_by_id(id: int):
+def get_user_profiles_by_id(id: UUID):
     response = supabase.table("user_profiles").select("*").eq("id", id).single().execute()
     return UserProfiles(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_user_profiles(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_user_profiles(id: int, payload: dict):
+def update_user_profiles(id: UUID, payload: dict):
     response = supabase.table("user_profiles").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_user_profiles(id: int):
+def delete_user_profiles(id: UUID):
     supabase.table("user_profiles").delete().eq("id", id).execute()
     return {"deleted": True}

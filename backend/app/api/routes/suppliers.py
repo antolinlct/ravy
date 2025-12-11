@@ -23,7 +23,7 @@ def list_suppliers(
     return suppliers_service.get_all_suppliers(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Suppliers)
-def get_suppliers(id: int):
+def get_suppliers(id: UUID):
     item = suppliers_service.get_suppliers_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Suppliers not found")
@@ -42,6 +42,6 @@ def update_suppliers(id: int, data: Suppliers):
     return Suppliers(**updated)
 
 @router.delete("/{id}")
-def delete_suppliers(id: int):
+def delete_suppliers(id: UUID):
     suppliers_service.delete_suppliers(id)
     return {"deleted": True}

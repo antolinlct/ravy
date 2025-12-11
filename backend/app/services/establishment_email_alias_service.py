@@ -38,7 +38,7 @@ def get_all_establishment_email_alias(filters: dict | None = None, limit: int = 
     return [EstablishmentEmailAlias(**r) for r in (response.data or [])]
 
 
-def get_establishment_email_alias_by_id(id: int):
+def get_establishment_email_alias_by_id(id: UUID):
     response = supabase.table("establishment_email_alias").select("*").eq("id", id).single().execute()
     return EstablishmentEmailAlias(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_establishment_email_alias(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_establishment_email_alias(id: int, payload: dict):
+def update_establishment_email_alias(id: UUID, payload: dict):
     response = supabase.table("establishment_email_alias").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_establishment_email_alias(id: int):
+def delete_establishment_email_alias(id: UUID):
     supabase.table("establishment_email_alias").delete().eq("id", id).execute()
     return {"deleted": True}

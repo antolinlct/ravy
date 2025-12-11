@@ -24,7 +24,7 @@ def list_invoices(
     return invoices_service.get_all_invoices(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Invoices)
-def get_invoices(id: int):
+def get_invoices(id: UUID):
     item = invoices_service.get_invoices_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Invoices not found")
@@ -43,6 +43,6 @@ def update_invoices(id: int, data: Invoices):
     return Invoices(**updated)
 
 @router.delete("/{id}")
-def delete_invoices(id: int):
+def delete_invoices(id: UUID):
     invoices_service.delete_invoices(id)
     return {"deleted": True}

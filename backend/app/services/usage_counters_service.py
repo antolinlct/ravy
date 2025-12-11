@@ -38,7 +38,7 @@ def get_all_usage_counters(filters: dict | None = None, limit: int = 200, page: 
     return [UsageCounters(**r) for r in (response.data or [])]
 
 
-def get_usage_counters_by_id(id: int):
+def get_usage_counters_by_id(id: UUID):
     response = supabase.table("usage_counters").select("*").eq("id", id).single().execute()
     return UsageCounters(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_usage_counters(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_usage_counters(id: int, payload: dict):
+def update_usage_counters(id: UUID, payload: dict):
     response = supabase.table("usage_counters").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_usage_counters(id: int):
+def delete_usage_counters(id: UUID):
     supabase.table("usage_counters").delete().eq("id", id).execute()
     return {"deleted": True}

@@ -66,3 +66,10 @@ class FinancialReports(BaseModel):
     score_purchase: Optional[float] = None
     other_charges_total: Optional[float] = None
     other_charges_ratio: Optional[float] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

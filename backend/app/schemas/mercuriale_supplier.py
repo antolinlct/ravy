@@ -12,3 +12,10 @@ class MercurialeSupplier(BaseModel):
     market_supplier_id: Optional[UUID] = None
     name: Optional[UUID] = None
     label: Optional[Supplier_label] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

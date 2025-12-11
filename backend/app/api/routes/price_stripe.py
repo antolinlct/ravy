@@ -22,7 +22,7 @@ def list_price_stripe(
     return price_stripe_service.get_all_price_stripe(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=PriceStripe)
-def get_price_stripe(id: int):
+def get_price_stripe(id: UUID):
     item = price_stripe_service.get_price_stripe_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="PriceStripe not found")
@@ -41,6 +41,6 @@ def update_price_stripe(id: int, data: PriceStripe):
     return PriceStripe(**updated)
 
 @router.delete("/{id}")
-def delete_price_stripe(id: int):
+def delete_price_stripe(id: UUID):
     price_stripe_service.delete_price_stripe(id)
     return {"deleted": True}

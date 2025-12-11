@@ -37,7 +37,7 @@ def get_all_vat_rates(filters: dict | None = None, limit: int = 200, page: int =
     return [VatRates(**r) for r in (response.data or [])]
 
 
-def get_vat_rates_by_id(id: int):
+def get_vat_rates_by_id(id: UUID):
     response = supabase.table("vat_rates").select("*").eq("id", id).single().execute()
     return VatRates(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_vat_rates(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_vat_rates(id: int, payload: dict):
+def update_vat_rates(id: UUID, payload: dict):
     response = supabase.table("vat_rates").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_vat_rates(id: int):
+def delete_vat_rates(id: UUID):
     supabase.table("vat_rates").delete().eq("id", id).execute()
     return {"deleted": True}

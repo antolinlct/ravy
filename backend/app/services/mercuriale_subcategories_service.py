@@ -37,7 +37,7 @@ def get_all_mercuriale_subcategories(filters: dict | None = None, limit: int = 2
     return [MercurialeSubcategories(**r) for r in (response.data or [])]
 
 
-def get_mercuriale_subcategories_by_id(id: int):
+def get_mercuriale_subcategories_by_id(id: UUID):
     response = supabase.table("mercuriale_subcategories").select("*").eq("id", id).single().execute()
     return MercurialeSubcategories(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_mercuriale_subcategories(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_mercuriale_subcategories(id: int, payload: dict):
+def update_mercuriale_subcategories(id: UUID, payload: dict):
     response = supabase.table("mercuriale_subcategories").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_mercuriale_subcategories(id: int):
+def delete_mercuriale_subcategories(id: UUID):
     supabase.table("mercuriale_subcategories").delete().eq("id", id).execute()
     return {"deleted": True}

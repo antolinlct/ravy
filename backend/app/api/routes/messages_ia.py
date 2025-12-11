@@ -22,7 +22,7 @@ def list_messages_ia(
     return messages_ia_service.get_all_messages_ia(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MessagesIa)
-def get_messages_ia(id: int):
+def get_messages_ia(id: UUID):
     item = messages_ia_service.get_messages_ia_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MessagesIa not found")
@@ -41,6 +41,6 @@ def update_messages_ia(id: int, data: MessagesIa):
     return MessagesIa(**updated)
 
 @router.delete("/{id}")
-def delete_messages_ia(id: int):
+def delete_messages_ia(id: UUID):
     messages_ia_service.delete_messages_ia(id)
     return {"deleted": True}

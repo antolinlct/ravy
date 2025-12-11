@@ -23,7 +23,7 @@ def list_billing_account(
     return billing_account_service.get_all_billing_account(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=BillingAccount)
-def get_billing_account(id: int):
+def get_billing_account(id: UUID):
     item = billing_account_service.get_billing_account_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="BillingAccount not found")
@@ -42,6 +42,6 @@ def update_billing_account(id: int, data: BillingAccount):
     return BillingAccount(**updated)
 
 @router.delete("/{id}")
-def delete_billing_account(id: int):
+def delete_billing_account(id: UUID):
     billing_account_service.delete_billing_account(id)
     return {"deleted": True}

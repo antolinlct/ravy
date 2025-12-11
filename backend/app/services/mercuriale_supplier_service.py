@@ -37,7 +37,7 @@ def get_all_mercuriale_supplier(filters: dict | None = None, limit: int = 200, p
     return [MercurialeSupplier(**r) for r in (response.data or [])]
 
 
-def get_mercuriale_supplier_by_id(id: int):
+def get_mercuriale_supplier_by_id(id: UUID):
     response = supabase.table("mercuriale_supplier").select("*").eq("id", id).single().execute()
     return MercurialeSupplier(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_mercuriale_supplier(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_mercuriale_supplier(id: int, payload: dict):
+def update_mercuriale_supplier(id: UUID, payload: dict):
     response = supabase.table("mercuriale_supplier").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_mercuriale_supplier(id: int):
+def delete_mercuriale_supplier(id: UUID):
     supabase.table("mercuriale_supplier").delete().eq("id", id).execute()
     return {"deleted": True}

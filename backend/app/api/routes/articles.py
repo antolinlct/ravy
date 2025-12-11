@@ -24,7 +24,7 @@ def list_articles(
     return articles_service.get_all_articles(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Articles)
-def get_articles(id: int):
+def get_articles(id: UUID):
     item = articles_service.get_articles_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Articles not found")
@@ -43,6 +43,6 @@ def update_articles(id: int, data: Articles):
     return Articles(**updated)
 
 @router.delete("/{id}")
-def delete_articles(id: int):
+def delete_articles(id: UUID):
     articles_service.delete_articles(id)
     return {"deleted": True}

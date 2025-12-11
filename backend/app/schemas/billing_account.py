@@ -17,3 +17,10 @@ class BillingAccount(BaseModel):
     free_mode: Optional[bool] = None
     stripe_subscription_id_prod: Optional[str] = None
     stripe_subscription_id_live: Optional[str] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

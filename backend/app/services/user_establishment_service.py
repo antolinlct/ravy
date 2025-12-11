@@ -38,7 +38,7 @@ def get_all_user_establishment(filters: dict | None = None, limit: int = 200, pa
     return [UserEstablishment(**r) for r in (response.data or [])]
 
 
-def get_user_establishment_by_id(id: int):
+def get_user_establishment_by_id(id: UUID):
     response = supabase.table("user_establishment").select("*").eq("id", id).single().execute()
     return UserEstablishment(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_user_establishment(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_user_establishment(id: int, payload: dict):
+def update_user_establishment(id: UUID, payload: dict):
     response = supabase.table("user_establishment").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_user_establishment(id: int):
+def delete_user_establishment(id: UUID):
     supabase.table("user_establishment").delete().eq("id", id).execute()
     return {"deleted": True}

@@ -23,7 +23,7 @@ def list_recommendations_ai(
     return recommendations_ai_service.get_all_recommendations_ai(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=RecommendationsAi)
-def get_recommendations_ai(id: int):
+def get_recommendations_ai(id: UUID):
     item = recommendations_ai_service.get_recommendations_ai_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="RecommendationsAi not found")
@@ -42,6 +42,6 @@ def update_recommendations_ai(id: int, data: RecommendationsAi):
     return RecommendationsAi(**updated)
 
 @router.delete("/{id}")
-def delete_recommendations_ai(id: int):
+def delete_recommendations_ai(id: UUID):
     recommendations_ai_service.delete_recommendations_ai(id)
     return {"deleted": True}

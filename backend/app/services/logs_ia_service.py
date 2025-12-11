@@ -37,7 +37,7 @@ def get_all_logs_ia(filters: dict | None = None, limit: int = 200, page: int = 1
     return [LogsIa(**r) for r in (response.data or [])]
 
 
-def get_logs_ia_by_id(id: int):
+def get_logs_ia_by_id(id: UUID):
     response = supabase.table("logs_ia").select("*").eq("id", id).single().execute()
     return LogsIa(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_logs_ia(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_logs_ia(id: int, payload: dict):
+def update_logs_ia(id: UUID, payload: dict):
     response = supabase.table("logs_ia").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_logs_ia(id: int):
+def delete_logs_ia(id: UUID):
     supabase.table("logs_ia").delete().eq("id", id).execute()
     return {"deleted": True}

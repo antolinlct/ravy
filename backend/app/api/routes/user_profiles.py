@@ -22,7 +22,7 @@ def list_user_profiles(
     return user_profiles_service.get_all_user_profiles(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=UserProfiles)
-def get_user_profiles(id: int):
+def get_user_profiles(id: UUID):
     item = user_profiles_service.get_user_profiles_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="UserProfiles not found")
@@ -41,6 +41,6 @@ def update_user_profiles(id: int, data: UserProfiles):
     return UserProfiles(**updated)
 
 @router.delete("/{id}")
-def delete_user_profiles(id: int):
+def delete_user_profiles(id: UUID):
     user_profiles_service.delete_user_profiles(id)
     return {"deleted": True}

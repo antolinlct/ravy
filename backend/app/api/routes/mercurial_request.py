@@ -23,7 +23,7 @@ def list_mercurial_request(
     return mercurial_request_service.get_all_mercurial_request(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MercurialRequest)
-def get_mercurial_request(id: int):
+def get_mercurial_request(id: UUID):
     item = mercurial_request_service.get_mercurial_request_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MercurialRequest not found")
@@ -42,6 +42,6 @@ def update_mercurial_request(id: int, data: MercurialRequest):
     return MercurialRequest(**updated)
 
 @router.delete("/{id}")
-def delete_mercurial_request(id: int):
+def delete_mercurial_request(id: UUID):
     mercurial_request_service.delete_mercurial_request(id)
     return {"deleted": True}

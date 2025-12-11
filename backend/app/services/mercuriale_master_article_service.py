@@ -37,7 +37,7 @@ def get_all_mercuriale_master_article(filters: dict | None = None, limit: int = 
     return [MercurialeMasterArticle(**r) for r in (response.data or [])]
 
 
-def get_mercuriale_master_article_by_id(id: int):
+def get_mercuriale_master_article_by_id(id: UUID):
     response = supabase.table("mercuriale_master_article").select("*").eq("id", id).single().execute()
     return MercurialeMasterArticle(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_mercuriale_master_article(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_mercuriale_master_article(id: int, payload: dict):
+def update_mercuriale_master_article(id: UUID, payload: dict):
     response = supabase.table("mercuriale_master_article").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_mercuriale_master_article(id: int):
+def delete_mercuriale_master_article(id: UUID):
     supabase.table("mercuriale_master_article").delete().eq("id", id).execute()
     return {"deleted": True}

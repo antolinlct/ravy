@@ -22,7 +22,7 @@ def list_mercuriale_categories(
     return mercuriale_categories_service.get_all_mercuriale_categories(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MercurialeCategories)
-def get_mercuriale_categories(id: int):
+def get_mercuriale_categories(id: UUID):
     item = mercuriale_categories_service.get_mercuriale_categories_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MercurialeCategories not found")
@@ -41,6 +41,6 @@ def update_mercuriale_categories(id: int, data: MercurialeCategories):
     return MercurialeCategories(**updated)
 
 @router.delete("/{id}")
-def delete_mercuriale_categories(id: int):
+def delete_mercuriale_categories(id: UUID):
     mercuriale_categories_service.delete_mercuriale_categories(id)
     return {"deleted": True}

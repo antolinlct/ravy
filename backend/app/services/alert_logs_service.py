@@ -38,7 +38,7 @@ def get_all_alert_logs(filters: dict | None = None, limit: int = 200, page: int 
     return [AlertLogs(**r) for r in (response.data or [])]
 
 
-def get_alert_logs_by_id(id: int):
+def get_alert_logs_by_id(id: UUID):
     response = supabase.table("alert_logs").select("*").eq("id", id).single().execute()
     return AlertLogs(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_alert_logs(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_alert_logs(id: int, payload: dict):
+def update_alert_logs(id: UUID, payload: dict):
     response = supabase.table("alert_logs").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_alert_logs(id: int):
+def delete_alert_logs(id: UUID):
     supabase.table("alert_logs").delete().eq("id", id).execute()
     return {"deleted": True}

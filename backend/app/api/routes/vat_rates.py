@@ -22,7 +22,7 @@ def list_vat_rates(
     return vat_rates_service.get_all_vat_rates(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=VatRates)
-def get_vat_rates(id: int):
+def get_vat_rates(id: UUID):
     item = vat_rates_service.get_vat_rates_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="VatRates not found")
@@ -41,6 +41,6 @@ def update_vat_rates(id: int, data: VatRates):
     return VatRates(**updated)
 
 @router.delete("/{id}")
-def delete_vat_rates(id: int):
+def delete_vat_rates(id: UUID):
     vat_rates_service.delete_vat_rates(id)
     return {"deleted": True}

@@ -23,7 +23,7 @@ def list_alert_logs(
     return alert_logs_service.get_all_alert_logs(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=AlertLogs)
-def get_alert_logs(id: int):
+def get_alert_logs(id: UUID):
     item = alert_logs_service.get_alert_logs_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="AlertLogs not found")
@@ -42,6 +42,6 @@ def update_alert_logs(id: int, data: AlertLogs):
     return AlertLogs(**updated)
 
 @router.delete("/{id}")
-def delete_alert_logs(id: int):
+def delete_alert_logs(id: UUID):
     alert_logs_service.delete_alert_logs(id)
     return {"deleted": True}

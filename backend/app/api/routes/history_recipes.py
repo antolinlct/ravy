@@ -23,7 +23,7 @@ def list_history_recipes(
     return history_recipes_service.get_all_history_recipes(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=HistoryRecipes)
-def get_history_recipes(id: int):
+def get_history_recipes(id: UUID):
     item = history_recipes_service.get_history_recipes_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="HistoryRecipes not found")
@@ -42,6 +42,6 @@ def update_history_recipes(id: int, data: HistoryRecipes):
     return HistoryRecipes(**updated)
 
 @router.delete("/{id}")
-def delete_history_recipes(id: int):
+def delete_history_recipes(id: UUID):
     history_recipes_service.delete_history_recipes(id)
     return {"deleted": True}

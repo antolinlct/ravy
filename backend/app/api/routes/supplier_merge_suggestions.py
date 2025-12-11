@@ -23,7 +23,7 @@ def list_supplier_merge_suggestions(
     return supplier_merge_suggestions_service.get_all_supplier_merge_suggestions(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=SupplierMergeSuggestions)
-def get_supplier_merge_suggestions(id: int):
+def get_supplier_merge_suggestions(id: UUID):
     item = supplier_merge_suggestions_service.get_supplier_merge_suggestions_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="SupplierMergeSuggestions not found")
@@ -42,6 +42,6 @@ def update_supplier_merge_suggestions(id: int, data: SupplierMergeSuggestions):
     return SupplierMergeSuggestions(**updated)
 
 @router.delete("/{id}")
-def delete_supplier_merge_suggestions(id: int):
+def delete_supplier_merge_suggestions(id: UUID):
     supplier_merge_suggestions_service.delete_supplier_merge_suggestions(id)
     return {"deleted": True}

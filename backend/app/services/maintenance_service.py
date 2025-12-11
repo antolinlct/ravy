@@ -37,7 +37,7 @@ def get_all_maintenance(filters: dict | None = None, limit: int = 200, page: int
     return [Maintenance(**r) for r in (response.data or [])]
 
 
-def get_maintenance_by_id(id: int):
+def get_maintenance_by_id(id: UUID):
     response = supabase.table("maintenance").select("*").eq("id", id).single().execute()
     return Maintenance(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_maintenance(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_maintenance(id: int, payload: dict):
+def update_maintenance(id: UUID, payload: dict):
     response = supabase.table("maintenance").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_maintenance(id: int):
+def delete_maintenance(id: UUID):
     supabase.table("maintenance").delete().eq("id", id).execute()
     return {"deleted": True}

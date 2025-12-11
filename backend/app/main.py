@@ -1,3 +1,33 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import os
+
+app = FastAPI()
+
+ENV = os.getenv("ENV", "dev")
+
+if ENV == "dev":
+    allowed_ports = list(range(5173, 5190))  # marge confortable
+    origins = (
+        [f"http://localhost:{p}" for p in allowed_ports] +
+        [f"http://127.0.0.1:{p}" for p in allowed_ports]
+    )
+else:
+    origins = [
+        "https://app.ravy.io",
+        "https://dashboard.ravy.io",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+
 from app.api.routes import mercurial_request
 from app.api.routes import mercuriale_master_article
 from app.api.routes import mercuriale_subcategories
@@ -55,9 +85,6 @@ from app.api.routes import vat_rates
 from app.api.routes import countries
 from app.api.routes import establishments
 from app.api.routes import recipe_margin
-from fastapi import FastAPI
-
-app = FastAPI()
 
 # Routes de logique métier /READ ONLY
 from app.api.routes.read import router as read_logic_router

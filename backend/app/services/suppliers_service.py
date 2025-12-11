@@ -38,7 +38,7 @@ def get_all_suppliers(filters: dict | None = None, limit: int = 200, page: int =
     return [Suppliers(**r) for r in (response.data or [])]
 
 
-def get_suppliers_by_id(id: int):
+def get_suppliers_by_id(id: UUID):
     response = supabase.table("suppliers").select("*").eq("id", id).single().execute()
     return Suppliers(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_suppliers(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_suppliers(id: int, payload: dict):
+def update_suppliers(id: UUID, payload: dict):
     response = supabase.table("suppliers").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_suppliers(id: int):
+def delete_suppliers(id: UUID):
     supabase.table("suppliers").delete().eq("id", id).execute()
     return {"deleted": True}

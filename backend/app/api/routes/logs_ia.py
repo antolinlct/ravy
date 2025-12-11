@@ -22,7 +22,7 @@ def list_logs_ia(
     return logs_ia_service.get_all_logs_ia(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=LogsIa)
-def get_logs_ia(id: int):
+def get_logs_ia(id: UUID):
     item = logs_ia_service.get_logs_ia_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="LogsIa not found")
@@ -41,6 +41,6 @@ def update_logs_ia(id: int, data: LogsIa):
     return LogsIa(**updated)
 
 @router.delete("/{id}")
-def delete_logs_ia(id: int):
+def delete_logs_ia(id: UUID):
     logs_ia_service.delete_logs_ia(id)
     return {"deleted": True}

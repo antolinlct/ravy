@@ -23,7 +23,7 @@ def list_establishment_email_alias(
     return establishment_email_alias_service.get_all_establishment_email_alias(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=EstablishmentEmailAlias)
-def get_establishment_email_alias(id: int):
+def get_establishment_email_alias(id: UUID):
     item = establishment_email_alias_service.get_establishment_email_alias_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="EstablishmentEmailAlias not found")
@@ -42,6 +42,6 @@ def update_establishment_email_alias(id: int, data: EstablishmentEmailAlias):
     return EstablishmentEmailAlias(**updated)
 
 @router.delete("/{id}")
-def delete_establishment_email_alias(id: int):
+def delete_establishment_email_alias(id: UUID):
     establishment_email_alias_service.delete_establishment_email_alias(id)
     return {"deleted": True}

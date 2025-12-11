@@ -23,3 +23,10 @@ class FinancialIngredients(BaseModel):
     market_gap_percentage: Optional[float] = None
     market_total_savings: Optional[float] = None
     market_balanced: Optional[float] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

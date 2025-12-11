@@ -23,7 +23,7 @@ def list_history_ingredients(
     return history_ingredients_service.get_all_history_ingredients(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=HistoryIngredients)
-def get_history_ingredients(id: int):
+def get_history_ingredients(id: UUID):
     item = history_ingredients_service.get_history_ingredients_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="HistoryIngredients not found")
@@ -42,6 +42,6 @@ def update_history_ingredients(id: int, data: HistoryIngredients):
     return HistoryIngredients(**updated)
 
 @router.delete("/{id}")
-def delete_history_ingredients(id: int):
+def delete_history_ingredients(id: UUID):
     history_ingredients_service.delete_history_ingredients(id)
     return {"deleted": True}

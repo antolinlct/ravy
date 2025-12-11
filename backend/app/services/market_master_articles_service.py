@@ -37,7 +37,7 @@ def get_all_market_master_articles(filters: dict | None = None, limit: int = 200
     return [MarketMasterArticles(**r) for r in (response.data or [])]
 
 
-def get_market_master_articles_by_id(id: int):
+def get_market_master_articles_by_id(id: UUID):
     response = supabase.table("market_master_articles").select("*").eq("id", id).single().execute()
     return MarketMasterArticles(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_market_master_articles(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_market_master_articles(id: int, payload: dict):
+def update_market_master_articles(id: UUID, payload: dict):
     response = supabase.table("market_master_articles").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_market_master_articles(id: int):
+def delete_market_master_articles(id: UUID):
     supabase.table("market_master_articles").delete().eq("id", id).execute()
     return {"deleted": True}

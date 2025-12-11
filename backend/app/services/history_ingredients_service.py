@@ -38,7 +38,7 @@ def get_all_history_ingredients(filters: dict | None = None, limit: int = 200, p
     return [HistoryIngredients(**r) for r in (response.data or [])]
 
 
-def get_history_ingredients_by_id(id: int):
+def get_history_ingredients_by_id(id: UUID):
     response = supabase.table("history_ingredients").select("*").eq("id", id).single().execute()
     return HistoryIngredients(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_history_ingredients(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_history_ingredients(id: int, payload: dict):
+def update_history_ingredients(id: UUID, payload: dict):
     response = supabase.table("history_ingredients").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_history_ingredients(id: int):
+def delete_history_ingredients(id: UUID):
     supabase.table("history_ingredients").delete().eq("id", id).execute()
     return {"deleted": True}

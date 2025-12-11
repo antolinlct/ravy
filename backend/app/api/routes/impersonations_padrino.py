@@ -22,7 +22,7 @@ def list_impersonations_padrino(
     return impersonations_padrino_service.get_all_impersonations_padrino(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=ImpersonationsPadrino)
-def get_impersonations_padrino(id: int):
+def get_impersonations_padrino(id: UUID):
     item = impersonations_padrino_service.get_impersonations_padrino_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="ImpersonationsPadrino not found")
@@ -41,6 +41,6 @@ def update_impersonations_padrino(id: int, data: ImpersonationsPadrino):
     return ImpersonationsPadrino(**updated)
 
 @router.delete("/{id}")
-def delete_impersonations_padrino(id: int):
+def delete_impersonations_padrino(id: UUID):
     impersonations_padrino_service.delete_impersonations_padrino(id)
     return {"deleted": True}

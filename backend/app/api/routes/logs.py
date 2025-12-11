@@ -23,7 +23,7 @@ def list_logs(
     return logs_service.get_all_logs(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Logs)
-def get_logs(id: int):
+def get_logs(id: UUID):
     item = logs_service.get_logs_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Logs not found")
@@ -42,6 +42,6 @@ def update_logs(id: int, data: Logs):
     return Logs(**updated)
 
 @router.delete("/{id}")
-def delete_logs(id: int):
+def delete_logs(id: UUID):
     logs_service.delete_logs(id)
     return {"deleted": True}

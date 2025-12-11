@@ -23,7 +23,7 @@ def list_usage_counters(
     return usage_counters_service.get_all_usage_counters(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=UsageCounters)
-def get_usage_counters(id: int):
+def get_usage_counters(id: UUID):
     item = usage_counters_service.get_usage_counters_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="UsageCounters not found")
@@ -42,6 +42,6 @@ def update_usage_counters(id: int, data: UsageCounters):
     return UsageCounters(**updated)
 
 @router.delete("/{id}")
-def delete_usage_counters(id: int):
+def delete_usage_counters(id: UUID):
     usage_counters_service.delete_usage_counters(id)
     return {"deleted": True}

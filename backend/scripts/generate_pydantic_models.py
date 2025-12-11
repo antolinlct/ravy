@@ -56,7 +56,6 @@ except Exception as e:
 # --- Regrouper les colonnes par table ---
 tables = {}
 for schema_name, table_name, column_name, data_type, udt_name in rows:
-    # on ne garde que le nom de table (sans le schema)
     tables.setdefault(table_name, []).append(
         {"column": column_name, "data_type": data_type, "udt_name": udt_name}
     )
@@ -127,9 +126,18 @@ for table, columns in tables.items():
 
             f.write(f"    {col}: Optional[{py_type}] = None\n")
 
+        # --- Sérialisation JSON automatique (UUID, datetime, date) ---
+        f.write("\n")
+        f.write("    class Config:\n")
+        f.write("        json_encoders = {\n")
+        f.write("            UUID: lambda v: str(v),\n")
+        f.write("            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,\n")
+        f.write("            date: lambda v: v.isoformat() if isinstance(v, date) else v,\n")
+        f.write("        }\n")
+
     print(f"✅ Modèle généré : {file_path.name}")
 
-# --- Snapshot et comparaison ---
+# --- Snapshot ---
 with open(schema_snapshot, "w") as f:
     json.dump(tables, f, indent=2)
 

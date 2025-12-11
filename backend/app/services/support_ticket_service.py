@@ -38,7 +38,7 @@ def get_all_support_ticket(filters: dict | None = None, limit: int = 200, page: 
     return [SupportTicket(**r) for r in (response.data or [])]
 
 
-def get_support_ticket_by_id(id: int):
+def get_support_ticket_by_id(id: UUID):
     response = supabase.table("support_ticket").select("*").eq("id", id).single().execute()
     return SupportTicket(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_support_ticket(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_support_ticket(id: int, payload: dict):
+def update_support_ticket(id: UUID, payload: dict):
     response = supabase.table("support_ticket").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_support_ticket(id: int):
+def delete_support_ticket(id: UUID):
     supabase.table("support_ticket").delete().eq("id", id).execute()
     return {"deleted": True}

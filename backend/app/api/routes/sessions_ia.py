@@ -23,7 +23,7 @@ def list_sessions_ia(
     return sessions_ia_service.get_all_sessions_ia(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=SessionsIa)
-def get_sessions_ia(id: int):
+def get_sessions_ia(id: UUID):
     item = sessions_ia_service.get_sessions_ia_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="SessionsIa not found")
@@ -42,6 +42,6 @@ def update_sessions_ia(id: int, data: SessionsIa):
     return SessionsIa(**updated)
 
 @router.delete("/{id}")
-def delete_sessions_ia(id: int):
+def delete_sessions_ia(id: UUID):
     sessions_ia_service.delete_sessions_ia(id)
     return {"deleted": True}

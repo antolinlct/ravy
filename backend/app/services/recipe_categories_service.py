@@ -38,7 +38,7 @@ def get_all_recipe_categories(filters: dict | None = None, limit: int = 200, pag
     return [RecipeCategories(**r) for r in (response.data or [])]
 
 
-def get_recipe_categories_by_id(id: int):
+def get_recipe_categories_by_id(id: UUID):
     response = supabase.table("recipe_categories").select("*").eq("id", id).single().execute()
     return RecipeCategories(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_recipe_categories(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_recipe_categories(id: int, payload: dict):
+def update_recipe_categories(id: UUID, payload: dict):
     response = supabase.table("recipe_categories").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_recipe_categories(id: int):
+def delete_recipe_categories(id: UUID):
     supabase.table("recipe_categories").delete().eq("id", id).execute()
     return {"deleted": True}

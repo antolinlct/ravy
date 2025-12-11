@@ -14,3 +14,10 @@ class AlertLogs(BaseModel):
     updated_at: Optional[datetime] = None
     sent_to_number: Optional[str] = None
     sent_to_id: Optional[UUID] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

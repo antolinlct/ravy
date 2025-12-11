@@ -22,7 +22,7 @@ def list_user_mercuriale_access(
     return user_mercuriale_access_service.get_all_user_mercuriale_access(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=UserMercurialeAccess)
-def get_user_mercuriale_access(id: int):
+def get_user_mercuriale_access(id: UUID):
     item = user_mercuriale_access_service.get_user_mercuriale_access_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="UserMercurialeAccess not found")
@@ -41,6 +41,6 @@ def update_user_mercuriale_access(id: int, data: UserMercurialeAccess):
     return UserMercurialeAccess(**updated)
 
 @router.delete("/{id}")
-def delete_user_mercuriale_access(id: int):
+def delete_user_mercuriale_access(id: UUID):
     user_mercuriale_access_service.delete_user_mercuriale_access(id)
     return {"deleted": True}

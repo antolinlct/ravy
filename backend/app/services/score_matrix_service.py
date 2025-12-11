@@ -37,7 +37,7 @@ def get_all_score_matrix(filters: dict | None = None, limit: int = 200, page: in
     return [ScoreMatrix(**r) for r in (response.data or [])]
 
 
-def get_score_matrix_by_id(id: int):
+def get_score_matrix_by_id(id: UUID):
     response = supabase.table("score_matrix").select("*").eq("id", id).single().execute()
     return ScoreMatrix(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_score_matrix(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_score_matrix(id: int, payload: dict):
+def update_score_matrix(id: UUID, payload: dict):
     response = supabase.table("score_matrix").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_score_matrix(id: int):
+def delete_score_matrix(id: UUID):
     supabase.table("score_matrix").delete().eq("id", id).execute()
     return {"deleted": True}

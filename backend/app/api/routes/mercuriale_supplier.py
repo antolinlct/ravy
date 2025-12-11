@@ -22,7 +22,7 @@ def list_mercuriale_supplier(
     return mercuriale_supplier_service.get_all_mercuriale_supplier(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MercurialeSupplier)
-def get_mercuriale_supplier(id: int):
+def get_mercuriale_supplier(id: UUID):
     item = mercuriale_supplier_service.get_mercuriale_supplier_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MercurialeSupplier not found")
@@ -41,6 +41,6 @@ def update_mercuriale_supplier(id: int, data: MercurialeSupplier):
     return MercurialeSupplier(**updated)
 
 @router.delete("/{id}")
-def delete_mercuriale_supplier(id: int):
+def delete_mercuriale_supplier(id: UUID):
     mercuriale_supplier_service.delete_mercuriale_supplier(id)
     return {"deleted": True}

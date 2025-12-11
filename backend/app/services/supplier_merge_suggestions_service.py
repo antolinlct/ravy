@@ -38,7 +38,7 @@ def get_all_supplier_merge_suggestions(filters: dict | None = None, limit: int =
     return [SupplierMergeSuggestions(**r) for r in (response.data or [])]
 
 
-def get_supplier_merge_suggestions_by_id(id: int):
+def get_supplier_merge_suggestions_by_id(id: UUID):
     response = supabase.table("supplier_merge_suggestions").select("*").eq("id", id).single().execute()
     return SupplierMergeSuggestions(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_supplier_merge_suggestions(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_supplier_merge_suggestions(id: int, payload: dict):
+def update_supplier_merge_suggestions(id: UUID, payload: dict):
     response = supabase.table("supplier_merge_suggestions").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_supplier_merge_suggestions(id: int):
+def delete_supplier_merge_suggestions(id: UUID):
     supabase.table("supplier_merge_suggestions").delete().eq("id", id).execute()
     return {"deleted": True}

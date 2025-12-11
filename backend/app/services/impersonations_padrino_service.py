@@ -37,7 +37,7 @@ def get_all_impersonations_padrino(filters: dict | None = None, limit: int = 200
     return [ImpersonationsPadrino(**r) for r in (response.data or [])]
 
 
-def get_impersonations_padrino_by_id(id: int):
+def get_impersonations_padrino_by_id(id: UUID):
     response = supabase.table("impersonations_padrino").select("*").eq("id", id).single().execute()
     return ImpersonationsPadrino(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_impersonations_padrino(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_impersonations_padrino(id: int, payload: dict):
+def update_impersonations_padrino(id: UUID, payload: dict):
     response = supabase.table("impersonations_padrino").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_impersonations_padrino(id: int):
+def delete_impersonations_padrino(id: UUID):
     supabase.table("impersonations_padrino").delete().eq("id", id).execute()
     return {"deleted": True}

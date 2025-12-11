@@ -37,7 +37,7 @@ def get_all_establishments(filters: dict | None = None, limit: int = 200, page: 
     return [Establishments(**r) for r in (response.data or [])]
 
 
-def get_establishments_by_id(id: int):
+def get_establishments_by_id(id: UUID):
     response = supabase.table("establishments").select("*").eq("id", id).single().execute()
     return Establishments(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_establishments(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_establishments(id: int, payload: dict):
+def update_establishments(id: UUID, payload: dict):
     response = supabase.table("establishments").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_establishments(id: int):
+def delete_establishments(id: UUID):
     supabase.table("establishments").delete().eq("id", id).execute()
     return {"deleted": True}

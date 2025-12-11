@@ -22,7 +22,7 @@ def list_countries(
     return countries_service.get_all_countries(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Countries)
-def get_countries(id: int):
+def get_countries(id: UUID):
     item = countries_service.get_countries_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Countries not found")
@@ -41,6 +41,6 @@ def update_countries(id: int, data: Countries):
     return Countries(**updated)
 
 @router.delete("/{id}")
-def delete_countries(id: int):
+def delete_countries(id: UUID):
     countries_service.delete_countries(id)
     return {"deleted": True}

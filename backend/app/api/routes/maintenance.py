@@ -22,7 +22,7 @@ def list_maintenance(
     return maintenance_service.get_all_maintenance(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Maintenance)
-def get_maintenance(id: int):
+def get_maintenance(id: UUID):
     item = maintenance_service.get_maintenance_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Maintenance not found")
@@ -41,6 +41,6 @@ def update_maintenance(id: int, data: Maintenance):
     return Maintenance(**updated)
 
 @router.delete("/{id}")
-def delete_maintenance(id: int):
+def delete_maintenance(id: UUID):
     maintenance_service.delete_maintenance(id)
     return {"deleted": True}

@@ -37,7 +37,7 @@ def get_all_billing_item(filters: dict | None = None, limit: int = 200, page: in
     return [BillingItem(**r) for r in (response.data or [])]
 
 
-def get_billing_item_by_id(id: int):
+def get_billing_item_by_id(id: UUID):
     response = supabase.table("billing_item").select("*").eq("id", id).single().execute()
     return BillingItem(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_billing_item(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_billing_item(id: int, payload: dict):
+def update_billing_item(id: UUID, payload: dict):
     response = supabase.table("billing_item").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_billing_item(id: int):
+def delete_billing_item(id: UUID):
     supabase.table("billing_item").delete().eq("id", id).execute()
     return {"deleted": True}

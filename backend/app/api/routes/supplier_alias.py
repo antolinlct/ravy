@@ -24,7 +24,7 @@ def list_supplier_alias(
     return supplier_alias_service.get_all_supplier_alias(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=SupplierAlias)
-def get_supplier_alias(id: int):
+def get_supplier_alias(id: UUID):
     item = supplier_alias_service.get_supplier_alias_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="SupplierAlias not found")
@@ -43,6 +43,6 @@ def update_supplier_alias(id: int, data: SupplierAlias):
     return SupplierAlias(**updated)
 
 @router.delete("/{id}")
-def delete_supplier_alias(id: int):
+def delete_supplier_alias(id: UUID):
     supplier_alias_service.delete_supplier_alias(id)
     return {"deleted": True}

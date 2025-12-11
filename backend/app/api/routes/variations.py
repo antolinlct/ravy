@@ -23,7 +23,7 @@ def list_variations(
     return variations_service.get_all_variations(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Variations)
-def get_variations(id: int):
+def get_variations(id: UUID):
     item = variations_service.get_variations_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Variations not found")
@@ -42,6 +42,6 @@ def update_variations(id: int, data: Variations):
     return Variations(**updated)
 
 @router.delete("/{id}")
-def delete_variations(id: int):
+def delete_variations(id: UUID):
     variations_service.delete_variations(id)
     return {"deleted": True}

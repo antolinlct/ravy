@@ -37,7 +37,7 @@ def get_all_market_supplier_alias(filters: dict | None = None, limit: int = 200,
     return [MarketSupplierAlias(**r) for r in (response.data or [])]
 
 
-def get_market_supplier_alias_by_id(id: int):
+def get_market_supplier_alias_by_id(id: UUID):
     response = supabase.table("market_supplier_alias").select("*").eq("id", id).single().execute()
     return MarketSupplierAlias(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_market_supplier_alias(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_market_supplier_alias(id: int, payload: dict):
+def update_market_supplier_alias(id: UUID, payload: dict):
     response = supabase.table("market_supplier_alias").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_market_supplier_alias(id: int):
+def delete_market_supplier_alias(id: UUID):
     supabase.table("market_supplier_alias").delete().eq("id", id).execute()
     return {"deleted": True}

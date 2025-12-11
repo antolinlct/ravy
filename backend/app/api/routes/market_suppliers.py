@@ -22,7 +22,7 @@ def list_market_suppliers(
     return market_suppliers_service.get_all_market_suppliers(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MarketSuppliers)
-def get_market_suppliers(id: int):
+def get_market_suppliers(id: UUID):
     item = market_suppliers_service.get_market_suppliers_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MarketSuppliers not found")
@@ -41,6 +41,6 @@ def update_market_suppliers(id: int, data: MarketSuppliers):
     return MarketSuppliers(**updated)
 
 @router.delete("/{id}")
-def delete_market_suppliers(id: int):
+def delete_market_suppliers(id: UUID):
     market_suppliers_service.delete_market_suppliers(id)
     return {"deleted": True}

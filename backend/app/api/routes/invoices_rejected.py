@@ -22,7 +22,7 @@ def list_invoices_rejected(
     return invoices_rejected_service.get_all_invoices_rejected(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=InvoicesRejected)
-def get_invoices_rejected(id: int):
+def get_invoices_rejected(id: UUID):
     item = invoices_rejected_service.get_invoices_rejected_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="InvoicesRejected not found")
@@ -41,6 +41,6 @@ def update_invoices_rejected(id: int, data: InvoicesRejected):
     return InvoicesRejected(**updated)
 
 @router.delete("/{id}")
-def delete_invoices_rejected(id: int):
+def delete_invoices_rejected(id: UUID):
     invoices_rejected_service.delete_invoices_rejected(id)
     return {"deleted": True}

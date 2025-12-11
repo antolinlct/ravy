@@ -38,7 +38,7 @@ def get_all_recipe_margin(filters: dict | None = None, limit: int = 200, page: i
     return [RecipeMargin(**r) for r in (response.data or [])]
 
 
-def get_recipe_margin_by_id(id: int):
+def get_recipe_margin_by_id(id: UUID):
     response = supabase.table("recipe_margin").select("*").eq("id", id).single().execute()
     return RecipeMargin(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_recipe_margin(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_recipe_margin(id: int, payload: dict):
+def update_recipe_margin(id: UUID, payload: dict):
     response = supabase.table("recipe_margin").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_recipe_margin(id: int):
+def delete_recipe_margin(id: UUID):
     supabase.table("recipe_margin").delete().eq("id", id).execute()
     return {"deleted": True}

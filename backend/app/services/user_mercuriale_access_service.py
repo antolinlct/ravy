@@ -37,7 +37,7 @@ def get_all_user_mercuriale_access(filters: dict | None = None, limit: int = 200
     return [UserMercurialeAccess(**r) for r in (response.data or [])]
 
 
-def get_user_mercuriale_access_by_id(id: int):
+def get_user_mercuriale_access_by_id(id: UUID):
     response = supabase.table("user_mercuriale_access").select("*").eq("id", id).single().execute()
     return UserMercurialeAccess(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_user_mercuriale_access(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_user_mercuriale_access(id: int, payload: dict):
+def update_user_mercuriale_access(id: UUID, payload: dict):
     response = supabase.table("user_mercuriale_access").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_user_mercuriale_access(id: int):
+def delete_user_mercuriale_access(id: UUID):
     supabase.table("user_mercuriale_access").delete().eq("id", id).execute()
     return {"deleted": True}

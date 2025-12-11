@@ -22,7 +22,7 @@ def list_regex_patterns(
     return regex_patterns_service.get_all_regex_patterns(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=RegexPatterns)
-def get_regex_patterns(id: int):
+def get_regex_patterns(id: UUID):
     item = regex_patterns_service.get_regex_patterns_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="RegexPatterns not found")
@@ -41,6 +41,6 @@ def update_regex_patterns(id: int, data: RegexPatterns):
     return RegexPatterns(**updated)
 
 @router.delete("/{id}")
-def delete_regex_patterns(id: int):
+def delete_regex_patterns(id: UUID):
     regex_patterns_service.delete_regex_patterns(id)
     return {"deleted": True}

@@ -38,7 +38,7 @@ def get_all_mercurial_request(filters: dict | None = None, limit: int = 200, pag
     return [MercurialRequest(**r) for r in (response.data or [])]
 
 
-def get_mercurial_request_by_id(id: int):
+def get_mercurial_request_by_id(id: UUID):
     response = supabase.table("mercurial_request").select("*").eq("id", id).single().execute()
     return MercurialRequest(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_mercurial_request(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_mercurial_request(id: int, payload: dict):
+def update_mercurial_request(id: UUID, payload: dict):
     response = supabase.table("mercurial_request").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_mercurial_request(id: int):
+def delete_mercurial_request(id: UUID):
     supabase.table("mercurial_request").delete().eq("id", id).execute()
     return {"deleted": True}

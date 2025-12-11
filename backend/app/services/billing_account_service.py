@@ -38,7 +38,7 @@ def get_all_billing_account(filters: dict | None = None, limit: int = 200, page:
     return [BillingAccount(**r) for r in (response.data or [])]
 
 
-def get_billing_account_by_id(id: int):
+def get_billing_account_by_id(id: UUID):
     response = supabase.table("billing_account").select("*").eq("id", id).single().execute()
     return BillingAccount(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_billing_account(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_billing_account(id: int, payload: dict):
+def update_billing_account(id: UUID, payload: dict):
     response = supabase.table("billing_account").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_billing_account(id: int):
+def delete_billing_account(id: UUID):
     supabase.table("billing_account").delete().eq("id", id).execute()
     return {"deleted": True}

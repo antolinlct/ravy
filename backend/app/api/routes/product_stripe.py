@@ -22,7 +22,7 @@ def list_product_stripe(
     return product_stripe_service.get_all_product_stripe(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=ProductStripe)
-def get_product_stripe(id: int):
+def get_product_stripe(id: UUID):
     item = product_stripe_service.get_product_stripe_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="ProductStripe not found")
@@ -41,6 +41,6 @@ def update_product_stripe(id: int, data: ProductStripe):
     return ProductStripe(**updated)
 
 @router.delete("/{id}")
-def delete_product_stripe(id: int):
+def delete_product_stripe(id: UUID):
     product_stripe_service.delete_product_stripe(id)
     return {"deleted": True}

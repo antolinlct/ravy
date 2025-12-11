@@ -38,7 +38,7 @@ def get_all_variations(filters: dict | None = None, limit: int = 200, page: int 
     return [Variations(**r) for r in (response.data or [])]
 
 
-def get_variations_by_id(id: int):
+def get_variations_by_id(id: UUID):
     response = supabase.table("variations").select("*").eq("id", id).single().execute()
     return Variations(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_variations(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_variations(id: int, payload: dict):
+def update_variations(id: UUID, payload: dict):
     response = supabase.table("variations").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_variations(id: int):
+def delete_variations(id: UUID):
     supabase.table("variations").delete().eq("id", id).execute()
     return {"deleted": True}

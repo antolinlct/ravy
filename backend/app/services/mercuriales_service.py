@@ -37,7 +37,7 @@ def get_all_mercuriales(filters: dict | None = None, limit: int = 200, page: int
     return [Mercuriales(**r) for r in (response.data or [])]
 
 
-def get_mercuriales_by_id(id: int):
+def get_mercuriales_by_id(id: UUID):
     response = supabase.table("mercuriales").select("*").eq("id", id).single().execute()
     return Mercuriales(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_mercuriales(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_mercuriales(id: int, payload: dict):
+def update_mercuriales(id: UUID, payload: dict):
     response = supabase.table("mercuriales").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_mercuriales(id: int):
+def delete_mercuriales(id: UUID):
     supabase.table("mercuriales").delete().eq("id", id).execute()
     return {"deleted": True}

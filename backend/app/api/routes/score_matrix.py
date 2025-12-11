@@ -22,7 +22,7 @@ def list_score_matrix(
     return score_matrix_service.get_all_score_matrix(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=ScoreMatrix)
-def get_score_matrix(id: int):
+def get_score_matrix(id: UUID):
     item = score_matrix_service.get_score_matrix_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="ScoreMatrix not found")
@@ -41,6 +41,6 @@ def update_score_matrix(id: int, data: ScoreMatrix):
     return ScoreMatrix(**updated)
 
 @router.delete("/{id}")
-def delete_score_matrix(id: int):
+def delete_score_matrix(id: UUID):
     score_matrix_service.delete_score_matrix(id)
     return {"deleted": True}

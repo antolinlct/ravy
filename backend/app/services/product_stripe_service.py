@@ -37,7 +37,7 @@ def get_all_product_stripe(filters: dict | None = None, limit: int = 200, page: 
     return [ProductStripe(**r) for r in (response.data or [])]
 
 
-def get_product_stripe_by_id(id: int):
+def get_product_stripe_by_id(id: UUID):
     response = supabase.table("product_stripe").select("*").eq("id", id).single().execute()
     return ProductStripe(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_product_stripe(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_product_stripe(id: int, payload: dict):
+def update_product_stripe(id: UUID, payload: dict):
     response = supabase.table("product_stripe").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_product_stripe(id: int):
+def delete_product_stripe(id: UUID):
     supabase.table("product_stripe").delete().eq("id", id).execute()
     return {"deleted": True}

@@ -37,7 +37,7 @@ def get_all_invoices_rejected(filters: dict | None = None, limit: int = 200, pag
     return [InvoicesRejected(**r) for r in (response.data or [])]
 
 
-def get_invoices_rejected_by_id(id: int):
+def get_invoices_rejected_by_id(id: UUID):
     response = supabase.table("invoices_rejected").select("*").eq("id", id).single().execute()
     return InvoicesRejected(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_invoices_rejected(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_invoices_rejected(id: int, payload: dict):
+def update_invoices_rejected(id: UUID, payload: dict):
     response = supabase.table("invoices_rejected").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_invoices_rejected(id: int):
+def delete_invoices_rejected(id: UUID):
     supabase.table("invoices_rejected").delete().eq("id", id).execute()
     return {"deleted": True}

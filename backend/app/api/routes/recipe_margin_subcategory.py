@@ -23,7 +23,7 @@ def list_recipe_margin_subcategory(
     return recipe_margin_subcategory_service.get_all_recipe_margin_subcategory(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=RecipeMarginSubcategory)
-def get_recipe_margin_subcategory(id: int):
+def get_recipe_margin_subcategory(id: UUID):
     item = recipe_margin_subcategory_service.get_recipe_margin_subcategory_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="RecipeMarginSubcategory not found")
@@ -42,6 +42,6 @@ def update_recipe_margin_subcategory(id: int, data: RecipeMarginSubcategory):
     return RecipeMarginSubcategory(**updated)
 
 @router.delete("/{id}")
-def delete_recipe_margin_subcategory(id: int):
+def delete_recipe_margin_subcategory(id: UUID):
     recipe_margin_subcategory_service.delete_recipe_margin_subcategory(id)
     return {"deleted": True}

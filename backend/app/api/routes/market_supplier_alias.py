@@ -22,7 +22,7 @@ def list_market_supplier_alias(
     return market_supplier_alias_service.get_all_market_supplier_alias(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MarketSupplierAlias)
-def get_market_supplier_alias(id: int):
+def get_market_supplier_alias(id: UUID):
     item = market_supplier_alias_service.get_market_supplier_alias_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MarketSupplierAlias not found")
@@ -41,6 +41,6 @@ def update_market_supplier_alias(id: int, data: MarketSupplierAlias):
     return MarketSupplierAlias(**updated)
 
 @router.delete("/{id}")
-def delete_market_supplier_alias(id: int):
+def delete_market_supplier_alias(id: UUID):
     market_supplier_alias_service.delete_market_supplier_alias(id)
     return {"deleted": True}

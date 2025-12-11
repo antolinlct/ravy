@@ -23,7 +23,7 @@ def list_financial_reports(
     return financial_reports_service.get_all_financial_reports(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=FinancialReports)
-def get_financial_reports(id: int):
+def get_financial_reports(id: UUID):
     item = financial_reports_service.get_financial_reports_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="FinancialReports not found")
@@ -42,6 +42,6 @@ def update_financial_reports(id: int, data: FinancialReports):
     return FinancialReports(**updated)
 
 @router.delete("/{id}")
-def delete_financial_reports(id: int):
+def delete_financial_reports(id: UUID):
     financial_reports_service.delete_financial_reports(id)
     return {"deleted": True}

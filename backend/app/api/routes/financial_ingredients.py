@@ -23,7 +23,7 @@ def list_financial_ingredients(
     return financial_ingredients_service.get_all_financial_ingredients(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=FinancialIngredients)
-def get_financial_ingredients(id: int):
+def get_financial_ingredients(id: UUID):
     item = financial_ingredients_service.get_financial_ingredients_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="FinancialIngredients not found")
@@ -42,6 +42,6 @@ def update_financial_ingredients(id: int, data: FinancialIngredients):
     return FinancialIngredients(**updated)
 
 @router.delete("/{id}")
-def delete_financial_ingredients(id: int):
+def delete_financial_ingredients(id: UUID):
     financial_ingredients_service.delete_financial_ingredients(id)
     return {"deleted": True}

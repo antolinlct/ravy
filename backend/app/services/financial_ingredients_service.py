@@ -38,7 +38,7 @@ def get_all_financial_ingredients(filters: dict | None = None, limit: int = 200,
     return [FinancialIngredients(**r) for r in (response.data or [])]
 
 
-def get_financial_ingredients_by_id(id: int):
+def get_financial_ingredients_by_id(id: UUID):
     response = supabase.table("financial_ingredients").select("*").eq("id", id).single().execute()
     return FinancialIngredients(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_financial_ingredients(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_financial_ingredients(id: int, payload: dict):
+def update_financial_ingredients(id: UUID, payload: dict):
     response = supabase.table("financial_ingredients").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_financial_ingredients(id: int):
+def delete_financial_ingredients(id: UUID):
     supabase.table("financial_ingredients").delete().eq("id", id).execute()
     return {"deleted": True}

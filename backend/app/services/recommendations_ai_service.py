@@ -38,7 +38,7 @@ def get_all_recommendations_ai(filters: dict | None = None, limit: int = 200, pa
     return [RecommendationsAi(**r) for r in (response.data or [])]
 
 
-def get_recommendations_ai_by_id(id: int):
+def get_recommendations_ai_by_id(id: UUID):
     response = supabase.table("recommendations_ai").select("*").eq("id", id).single().execute()
     return RecommendationsAi(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_recommendations_ai(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_recommendations_ai(id: int, payload: dict):
+def update_recommendations_ai(id: UUID, payload: dict):
     response = supabase.table("recommendations_ai").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_recommendations_ai(id: int):
+def delete_recommendations_ai(id: UUID):
     supabase.table("recommendations_ai").delete().eq("id", id).execute()
     return {"deleted": True}

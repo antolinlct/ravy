@@ -14,3 +14,10 @@ class Countries(BaseModel):
     updated_at: Optional[datetime] = None
     stripe_tax_id_prod: Optional[str] = None
     stripe_tax_id_live: Optional[str] = None
+
+    class Config:
+        json_encoders = {
+            UUID: lambda v: str(v),
+            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
+            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+        }

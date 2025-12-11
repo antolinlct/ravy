@@ -37,7 +37,7 @@ def get_all_price_stripe(filters: dict | None = None, limit: int = 200, page: in
     return [PriceStripe(**r) for r in (response.data or [])]
 
 
-def get_price_stripe_by_id(id: int):
+def get_price_stripe_by_id(id: UUID):
     response = supabase.table("price_stripe").select("*").eq("id", id).single().execute()
     return PriceStripe(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_price_stripe(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_price_stripe(id: int, payload: dict):
+def update_price_stripe(id: UUID, payload: dict):
     response = supabase.table("price_stripe").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_price_stripe(id: int):
+def delete_price_stripe(id: UUID):
     supabase.table("price_stripe").delete().eq("id", id).execute()
     return {"deleted": True}

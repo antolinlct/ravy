@@ -37,7 +37,7 @@ def get_all_messages_ia(filters: dict | None = None, limit: int = 200, page: int
     return [MessagesIa(**r) for r in (response.data or [])]
 
 
-def get_messages_ia_by_id(id: int):
+def get_messages_ia_by_id(id: UUID):
     response = supabase.table("messages_ia").select("*").eq("id", id).single().execute()
     return MessagesIa(**response.data) if response.data else None
 
@@ -47,11 +47,11 @@ def create_messages_ia(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_messages_ia(id: int, payload: dict):
+def update_messages_ia(id: UUID, payload: dict):
     response = supabase.table("messages_ia").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_messages_ia(id: int):
+def delete_messages_ia(id: UUID):
     supabase.table("messages_ia").delete().eq("id", id).execute()
     return {"deleted": True}

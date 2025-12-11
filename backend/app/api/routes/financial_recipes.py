@@ -23,7 +23,7 @@ def list_financial_recipes(
     return financial_recipes_service.get_all_financial_recipes(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=FinancialRecipes)
-def get_financial_recipes(id: int):
+def get_financial_recipes(id: UUID):
     item = financial_recipes_service.get_financial_recipes_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="FinancialRecipes not found")
@@ -42,6 +42,6 @@ def update_financial_recipes(id: int, data: FinancialRecipes):
     return FinancialRecipes(**updated)
 
 @router.delete("/{id}")
-def delete_financial_recipes(id: int):
+def delete_financial_recipes(id: UUID):
     financial_recipes_service.delete_financial_recipes(id)
     return {"deleted": True}

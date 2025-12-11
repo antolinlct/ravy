@@ -23,7 +23,7 @@ def list_user_establishment(
     return user_establishment_service.get_all_user_establishment(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=UserEstablishment)
-def get_user_establishment(id: int):
+def get_user_establishment(id: UUID):
     item = user_establishment_service.get_user_establishment_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="UserEstablishment not found")
@@ -42,6 +42,6 @@ def update_user_establishment(id: int, data: UserEstablishment):
     return UserEstablishment(**updated)
 
 @router.delete("/{id}")
-def delete_user_establishment(id: int):
+def delete_user_establishment(id: UUID):
     user_establishment_service.delete_user_establishment(id)
     return {"deleted": True}

@@ -22,7 +22,7 @@ def list_supplier_merge_request(
     return supplier_merge_request_service.get_all_supplier_merge_request(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=SupplierMergeRequest)
-def get_supplier_merge_request(id: int):
+def get_supplier_merge_request(id: UUID):
     item = supplier_merge_request_service.get_supplier_merge_request_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="SupplierMergeRequest not found")
@@ -41,6 +41,6 @@ def update_supplier_merge_request(id: int, data: SupplierMergeRequest):
     return SupplierMergeRequest(**updated)
 
 @router.delete("/{id}")
-def delete_supplier_merge_request(id: int):
+def delete_supplier_merge_request(id: UUID):
     supplier_merge_request_service.delete_supplier_merge_request(id)
     return {"deleted": True}

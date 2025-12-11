@@ -38,7 +38,7 @@ def get_all_import_job(filters: dict | None = None, limit: int = 200, page: int 
     return [ImportJob(**r) for r in (response.data or [])]
 
 
-def get_import_job_by_id(id: int):
+def get_import_job_by_id(id: UUID):
     response = supabase.table("import_job").select("*").eq("id", id).single().execute()
     return ImportJob(**response.data) if response.data else None
 
@@ -48,11 +48,11 @@ def create_import_job(payload: dict):
     return response.data[0] if response.data else None
 
 
-def update_import_job(id: int, payload: dict):
+def update_import_job(id: UUID, payload: dict):
     response = supabase.table("import_job").update(payload).eq("id", id).execute()
     return response.data[0] if response.data else None
 
 
-def delete_import_job(id: int):
+def delete_import_job(id: UUID):
     supabase.table("import_job").delete().eq("id", id).execute()
     return {"deleted": True}

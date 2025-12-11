@@ -22,7 +22,7 @@ def list_establishments(
     return establishments_service.get_all_establishments(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=Establishments)
-def get_establishments(id: int):
+def get_establishments(id: UUID):
     item = establishments_service.get_establishments_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="Establishments not found")
@@ -41,6 +41,6 @@ def update_establishments(id: int, data: Establishments):
     return Establishments(**updated)
 
 @router.delete("/{id}")
-def delete_establishments(id: int):
+def delete_establishments(id: UUID):
     establishments_service.delete_establishments(id)
     return {"deleted": True}

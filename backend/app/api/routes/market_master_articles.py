@@ -22,7 +22,7 @@ def list_market_master_articles(
     return market_master_articles_service.get_all_market_master_articles(filters, limit=limit, page=page)
 
 @router.get("/{id}", response_model=MarketMasterArticles)
-def get_market_master_articles(id: int):
+def get_market_master_articles(id: UUID):
     item = market_master_articles_service.get_market_master_articles_by_id(id)
     if not item:
         raise HTTPException(status_code=404, detail="MarketMasterArticles not found")
@@ -41,6 +41,6 @@ def update_market_master_articles(id: int, data: MarketMasterArticles):
     return MarketMasterArticles(**updated)
 
 @router.delete("/{id}")
-def delete_market_master_articles(id: int):
+def delete_market_master_articles(id: UUID):
     market_master_articles_service.delete_market_master_articles(id)
     return {"deleted": True}
