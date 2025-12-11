@@ -38,7 +38,9 @@ for route_file in routes_dir.glob("*.py"):
 print("  ✅ Dossiers 'read/' et 'write/' conservés.\n")
 
 # === TEMPLATE SERVICE ===
-service_template = """from app.core.supabase_client import supabase
+service_template = """from uuid import UUID
+
+from app.core.supabase_client import supabase
 from app.schemas.{name} import {class_name}
 
 def get_all_{name}(filters: dict | None = None, limit: int = 200, page: int = 1):
@@ -97,7 +99,9 @@ def delete_{name}(id: UUID):
 """
 
 # === TEMPLATE ROUTE ===
-route_template = """from fastapi import APIRouter, HTTPException
+route_template = """from uuid import UUID
+
+from fastapi import APIRouter, HTTPException
 from typing import Optional
 from app.schemas.{name} import {class_name}
 from app.services import {name}_service
@@ -133,7 +137,7 @@ def create_{name}(data: {class_name}):
     return {class_name}(**created)
 
 @router.patch("/{{id}}", response_model={class_name})
-def update_{name}(id: int, data: {class_name}):
+def update_{name}(id: UUID, data: {class_name}):
     updated = {name}_service.update_{name}(id, data.dict(exclude_unset=True))
     if not updated:
         raise HTTPException(status_code=404, detail="{class_name} not found")
