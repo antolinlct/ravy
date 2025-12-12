@@ -33,7 +33,7 @@ def get_price_stripe(id: UUID):
 
 @router.post("/", response_model=PriceStripe)
 def create_price_stripe(data: PriceStripe):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = price_stripe_service.create_price_stripe(payload)
     return PriceStripe(**created)
 

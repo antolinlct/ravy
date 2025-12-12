@@ -34,7 +34,7 @@ def get_establishment_email_alias(id: UUID):
 
 @router.post("/", response_model=EstablishmentEmailAlias)
 def create_establishment_email_alias(data: EstablishmentEmailAlias):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = establishment_email_alias_service.create_establishment_email_alias(payload)
     return EstablishmentEmailAlias(**created)
 

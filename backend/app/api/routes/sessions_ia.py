@@ -34,7 +34,7 @@ def get_sessions_ia(id: UUID):
 
 @router.post("/", response_model=SessionsIa)
 def create_sessions_ia(data: SessionsIa):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = sessions_ia_service.create_sessions_ia(payload)
     return SessionsIa(**created)
 

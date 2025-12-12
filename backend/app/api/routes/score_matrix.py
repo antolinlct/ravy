@@ -33,7 +33,7 @@ def get_score_matrix(id: UUID):
 
 @router.post("/", response_model=ScoreMatrix)
 def create_score_matrix(data: ScoreMatrix):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = score_matrix_service.create_score_matrix(payload)
     return ScoreMatrix(**created)
 

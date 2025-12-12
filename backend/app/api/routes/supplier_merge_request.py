@@ -33,7 +33,7 @@ def get_supplier_merge_request(id: UUID):
 
 @router.post("/", response_model=SupplierMergeRequest)
 def create_supplier_merge_request(data: SupplierMergeRequest):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = supplier_merge_request_service.create_supplier_merge_request(payload)
     return SupplierMergeRequest(**created)
 

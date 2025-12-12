@@ -1,3 +1,4 @@
+import * as React from "react"
 import {
   BadgeCheck,
   CreditCard,
@@ -29,21 +30,62 @@ import {
 } from "@/components/ui/sidebar"
 import { ModeToggle } from "@/components/dark/mode-toggle"
 import { Link } from "react-router-dom"
-import logo from "@/assets/branding/logo_og.svg"
+import { Logo } from "@/assets/branding/Logo"
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+import FaviconOg from "@/assets/branding/favicon_og.svg"
+import { useUserData } from "@/context/UserDataContext"
+import { useUser } from "@/context/UserContext"
+import { supabase } from "@/lib/supabaseClient"
 
 
+export function NavUser() {
+  const profile = useUserData()
+  const user = useUser()
+  const { isMobile, state } = useSidebar()
+  const isCollapsed = !isMobile && state === "collapsed"
+  const displayName =
+    (profile as any)?.full_name ||
+    (profile as any)?.fullName ||
+    (profile as any)?.name ||
+    user?.fullName ||
+    user?.email ||
+    "Utilisateur"
+  const displayEmail =
+    (profile as any)?.email || user?.email || "Email non disponible"
+  const avatarUrl =
+    (profile as any)?.avatar_url ||
+    (profile as any)?.avatar ||
+    ""
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
+  const fallbackInitials = React.useMemo(() => {
+    const source =
+      (typeof displayName === "string" && displayName.trim()) ||
+      (typeof displayEmail === "string" && displayEmail.trim()) ||
+      "AL"
+
+    const initials = source
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0))
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+
+    return initials || "AL"
+  }, [displayName, displayEmail])
+
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error("Supabase signOut error:", err)
+    } finally {
+      localStorage.removeItem("user_id")
+      localStorage.removeItem("current_establishment_id")
+      window.location.href = "/login"
+    }
   }
-}) {
-  const { isMobile } = useSidebar()
 
   return (
     <SidebarMenu>
@@ -55,14 +97,15 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user?.avatar ?? ""} alt={user?.name ?? ""} />
-                <AvatarFallback className="rounded-lg">{user?.name ? user.name .split(" ") .map((n) => n[0]) .join("") .slice(0, 2) .toUpperCase(): "AL"} {/* 👈 Fallback de dev (2 lettres fixes) */}
-      </AvatarFallback>
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="rounded-lg">
+                  {fallbackInitials}
+                </AvatarFallback>
               </Avatar>
           
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-semibold">{displayName}</span>
+                <span className="truncate text-xs">{displayEmail}</span>
               </div>
               <Plus className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -83,8 +126,8 @@ export function NavUser({
                 "UTILE POUR AFFICHER UN AVATAR DANS LE GROUPFOCUS USER SI BESOIN"
                 */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">{displayName}</span>
+                  <span className="truncate text-xs">{displayEmail}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -119,16 +162,25 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Se déconnecter
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <Separator className="mt-3" />
-        <div className="flex items-center justify-between">
-        <img src={logo} alt="RAVY" className="h-12 w-auto" />
-           <ModeToggle />
+        <div
+          className={cn(
+            "flex w-full items-center justify-between",
+            isCollapsed && "flex-col justify-center gap-2"
+          )}
+        >
+          {isCollapsed ? (
+            <img src={FaviconOg} alt="RAVY" className="mt-2 h-8 w-auto" />
+          ) : (
+            <Logo className="h-14 w-auto mb-2" />
+          )}
+          <ModeToggle />
         </div>
       </SidebarMenuItem>
     </SidebarMenu>

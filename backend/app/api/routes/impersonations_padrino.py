@@ -33,7 +33,7 @@ def get_impersonations_padrino(id: UUID):
 
 @router.post("/", response_model=ImpersonationsPadrino)
 def create_impersonations_padrino(data: ImpersonationsPadrino):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = impersonations_padrino_service.create_impersonations_padrino(payload)
     return ImpersonationsPadrino(**created)
 

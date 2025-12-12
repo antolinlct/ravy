@@ -48,7 +48,7 @@ def get_recipe_margin_by_id(id: UUID):
 
 
 def create_recipe_margin(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("recipe_margin").insert(prepared).execute()
     return response.data[0] if response.data else None
 

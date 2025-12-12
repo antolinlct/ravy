@@ -34,7 +34,7 @@ def get_recipes_subcategories(id: UUID):
 
 @router.post("/", response_model=RecipesSubcategories)
 def create_recipes_subcategories(data: RecipesSubcategories):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = recipes_subcategories_service.create_recipes_subcategories(payload)
     return RecipesSubcategories(**created)
 

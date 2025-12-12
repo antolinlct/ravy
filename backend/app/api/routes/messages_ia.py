@@ -33,7 +33,7 @@ def get_messages_ia(id: UUID):
 
 @router.post("/", response_model=MessagesIa)
 def create_messages_ia(data: MessagesIa):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = messages_ia_service.create_messages_ia(payload)
     return MessagesIa(**created)
 

@@ -35,7 +35,7 @@ def get_articles(id: UUID):
 
 @router.post("/", response_model=Articles)
 def create_articles(data: Articles):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = articles_service.create_articles(payload)
     return Articles(**created)
 

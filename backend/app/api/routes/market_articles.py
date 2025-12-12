@@ -34,7 +34,7 @@ def get_market_articles(id: UUID):
 
 @router.post("/", response_model=MarketArticles)
 def create_market_articles(data: MarketArticles):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = market_articles_service.create_market_articles(payload)
     return MarketArticles(**created)
 

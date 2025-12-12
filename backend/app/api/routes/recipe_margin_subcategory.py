@@ -34,7 +34,7 @@ def get_recipe_margin_subcategory(id: UUID):
 
 @router.post("/", response_model=RecipeMarginSubcategory)
 def create_recipe_margin_subcategory(data: RecipeMarginSubcategory):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = recipe_margin_subcategory_service.create_recipe_margin_subcategory(payload)
     return RecipeMarginSubcategory(**created)
 

@@ -34,7 +34,7 @@ def get_usage_counters(id: UUID):
 
 @router.post("/", response_model=UsageCounters)
 def create_usage_counters(data: UsageCounters):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = usage_counters_service.create_usage_counters(payload)
     return UsageCounters(**created)
 

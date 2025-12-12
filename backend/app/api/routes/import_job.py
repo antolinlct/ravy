@@ -34,7 +34,7 @@ def get_import_job(id: UUID):
 
 @router.post("/", response_model=ImportJob)
 def create_import_job(data: ImportJob):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = import_job_service.create_import_job(payload)
     return ImportJob(**created)
 

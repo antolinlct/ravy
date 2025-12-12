@@ -33,7 +33,7 @@ def get_mercuriale_master_article(id: UUID):
 
 @router.post("/", response_model=MercurialeMasterArticle)
 def create_mercuriale_master_article(data: MercurialeMasterArticle):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = mercuriale_master_article_service.create_mercuriale_master_article(payload)
     return MercurialeMasterArticle(**created)
 

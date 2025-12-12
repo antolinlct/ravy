@@ -35,7 +35,7 @@ def get_master_articles(id: UUID):
 
 @router.post("/", response_model=MasterArticles)
 def create_master_articles(data: MasterArticles):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = master_articles_service.create_master_articles(payload)
     return MasterArticles(**created)
 

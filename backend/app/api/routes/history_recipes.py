@@ -34,7 +34,7 @@ def get_history_recipes(id: UUID):
 
 @router.post("/", response_model=HistoryRecipes)
 def create_history_recipes(data: HistoryRecipes):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = history_recipes_service.create_history_recipes(payload)
     return HistoryRecipes(**created)
 

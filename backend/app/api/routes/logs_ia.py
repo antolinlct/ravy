@@ -33,7 +33,7 @@ def get_logs_ia(id: UUID):
 
 @router.post("/", response_model=LogsIa)
 def create_logs_ia(data: LogsIa):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = logs_ia_service.create_logs_ia(payload)
     return LogsIa(**created)
 

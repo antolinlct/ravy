@@ -33,7 +33,7 @@ def get_user_mercuriale_access(id: UUID):
 
 @router.post("/", response_model=UserMercurialeAccess)
 def create_user_mercuriale_access(data: UserMercurialeAccess):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = user_mercuriale_access_service.create_user_mercuriale_access(payload)
     return UserMercurialeAccess(**created)
 

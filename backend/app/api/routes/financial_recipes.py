@@ -34,7 +34,7 @@ def get_financial_recipes(id: UUID):
 
 @router.post("/", response_model=FinancialRecipes)
 def create_financial_recipes(data: FinancialRecipes):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = financial_recipes_service.create_financial_recipes(payload)
     return FinancialRecipes(**created)
 

@@ -68,10 +68,10 @@ export function NavMain({
             // ---- Cas 2 : menu simple (pas de sous-items, pas d’icône flèche) ----
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton tooltip={item.title} asChild>
-                <a href={item.url} className="flex items-center gap-2">
+                <Link to={item.url} className="flex items-center gap-2">
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )

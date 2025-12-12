@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
-import logo from "@/assets/branding/logo_og.svg"
+import { Logo } from "@/assets/branding/Logo"
 import { CheckCircle } from "lucide-react"
 
 
@@ -153,11 +153,11 @@ export function SignupForm({
       <Card>
         <CardHeader className="flex flex-col items-center text-center">
             <div className="flex items-center justify-between">
-          <img src={logo} alt="RAVY" className="h-14 w-auto mb-2" />
+          <Logo className="h-14 w-auto mb-2" />
           </div>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
+          <CardTitle className="text-2xl">Créez votre compte</CardTitle>
           <CardDescription>
-            Enter your email below to create your account
+            Replissez ce formulaire pour créer votre compte
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,8 +172,8 @@ export function SignupForm({
               {/* FULL NAME SEPARATED */}
               <Field>
                 <Field className="grid grid-cols-2 gap-4">
-                  <Field className="gap-2">
-                    <FieldLabel htmlFor="first_name">First Name</FieldLabel>
+                  <Field className="grid gap-2">
+                    <FieldLabel htmlFor="first_name">Prénom</FieldLabel>
                     <Input
                       id="first_name"
                       name="first_name"
@@ -182,8 +182,8 @@ export function SignupForm({
                       required
                     />
                   </Field>
-                  <Field className="gap-2">
-                    <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
+                  <Field className="grid gap-2">
+                    <FieldLabel htmlFor="last_name">Nom</FieldLabel>
                     <Input
                       id="last_name"
                       name="last_name"
@@ -196,8 +196,8 @@ export function SignupForm({
               </Field>
 
               {/* PHONE */}
-              <Field className="gap-2">
-                <FieldLabel htmlFor="phone_sms">Phone</FieldLabel>
+              <Field className="grid gap-2">
+                <FieldLabel htmlFor="phone_sms">Téléphone</FieldLabel>
                 <Input
                   id="phone_sms"
                   name="phone_sms"
@@ -208,7 +208,7 @@ export function SignupForm({
               </Field>
 
               {/* EMAIL */}
-              <Field className="gap-2">
+              <Field className="grid gap-2">
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
@@ -222,34 +222,35 @@ export function SignupForm({
               {/* PASSWORDS */}
               <Field>
                 <Field className="grid grid-cols-2 gap-4">
-                  <Field className="gap-2">
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" name="password" type="password" required />
+                  <Field className="grid gap-2">
+                    <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
+                    <Input id="password" name="password" type="password" placeholder="********" required />
                   </Field>
-                  <Field className="gap-2">
+                  <Field className="grid gap-2">
                     <FieldLabel htmlFor="confirm-password">
-                      Confirm Password
+                      Confirmation
                     </FieldLabel>
                     <Input
                       id="confirm-password"
                       name="confirm-password"
                       type="password"
+                      placeholder="********"
                       required
                     />
                   </Field>
                 </Field>
                 <FieldDescription>
-                  Must be at least 8 characters long.
+                  Minimum 8 caractères requis.
                 </FieldDescription>
               </Field>
 
               {/* SUBMIT */}
               <Field>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Creating..." : "Create Account"}
+                  {loading ? "Création..." : "Créer un compte"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Already have an account? <a href={loginUrl}>Sign in</a>
+                  Vous avez déjà un compte ? <a href={loginUrl}>Se connecter</a>
                 </FieldDescription>
               </Field>
 
@@ -260,7 +261,7 @@ export function SignupForm({
       </Card>
 
       <FieldDescription className="px-6 text-center text-xs">
-        By clicking, you agree to our <a href="#">Terms and Conditions</a>{" "}
+        En cliquant, vous acceptez nos <a href="#">Terms and Conditions</a>{" "}
       </FieldDescription>
     </div>
   )

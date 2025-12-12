@@ -34,7 +34,7 @@ def get_user_establishment(id: UUID):
 
 @router.post("/", response_model=UserEstablishment)
 def create_user_establishment(data: UserEstablishment):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = user_establishment_service.create_user_establishment(payload)
     return UserEstablishment(**created)
 

@@ -34,7 +34,7 @@ def get_billing_account(id: UUID):
 
 @router.post("/", response_model=BillingAccount)
 def create_billing_account(data: BillingAccount):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = billing_account_service.create_billing_account(payload)
     return BillingAccount(**created)
 

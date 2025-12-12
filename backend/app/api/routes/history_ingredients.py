@@ -34,7 +34,7 @@ def get_history_ingredients(id: UUID):
 
 @router.post("/", response_model=HistoryIngredients)
 def create_history_ingredients(data: HistoryIngredients):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = history_ingredients_service.create_history_ingredients(payload)
     return HistoryIngredients(**created)
 

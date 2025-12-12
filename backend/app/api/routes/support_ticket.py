@@ -34,7 +34,7 @@ def get_support_ticket(id: UUID):
 
 @router.post("/", response_model=SupportTicket)
 def create_support_ticket(data: SupportTicket):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = support_ticket_service.create_support_ticket(payload)
     return SupportTicket(**created)
 

@@ -34,7 +34,7 @@ def get_variations(id: UUID):
 
 @router.post("/", response_model=Variations)
 def create_variations(data: Variations):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = variations_service.create_variations(payload)
     return Variations(**created)
 

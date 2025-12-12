@@ -1,5 +1,9 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
@@ -10,10 +14,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import logo from "@/assets/branding/logo_og.svg"
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Logo } from "@/assets/branding/Logo"
 
+const resetPasswordSchema = z.object({
+  email: z.string().email("Veuillez saisir une adresse email valide."),
+})
+
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>
 
 export function LoginForm({
   className,
@@ -22,6 +44,18 @@ export function LoginForm({
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null)
+  const resetCloseTimeoutRef = useRef<number | null>(null)
+
+  const resetForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  })
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -52,16 +86,67 @@ export function LoginForm({
     navigate("/dashboard")
   }
 
+  function handleResetDialogChange(open: boolean) {
+    if (resetCloseTimeoutRef.current) {
+      window.clearTimeout(resetCloseTimeoutRef.current)
+      resetCloseTimeoutRef.current = null
+    }
+    setResetOpen(open)
+    if (!open) {
+      setResetError(null)
+      setResetSuccess(null)
+      setResetLoading(false)
+      resetForm.reset()
+    }
+  }
+
+  async function handleResetPassword(values: ResetPasswordFormValues) {
+    setResetError(null)
+    setResetSuccess(null)
+    setResetLoading(true)
+
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`
+      const { error: resetPasswordError } =
+        await supabase.auth.resetPasswordForEmail(values.email, { redirectTo })
+
+      if (resetPasswordError) {
+        setResetError("Impossible d'envoyer l'email de réinitialisation.")
+        toast.error("Impossible d'envoyer l'email de réinitialisation.")
+        return
+      }
+
+      toast.success(
+        "Email de réinitialisation envoyé. Vérifiez votre boîte mail."
+      )
+      setResetSuccess(
+        "Email de réinitialisation envoyé. Vérifiez votre boîte mail."
+      )
+      resetForm.reset()
+      resetCloseTimeoutRef.current = window.setTimeout(() => {
+        setResetOpen(false)
+        setResetSuccess(null)
+        resetCloseTimeoutRef.current = null
+      }, 5000)
+    } catch (err) {
+      console.error("Forgot password error:", err)
+      setResetError("Une erreur est survenue. Veuillez réessayer.")
+      toast.error("Une erreur est survenue. Veuillez réessayer.")
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="flex flex-col items-center text-center space-y-2">
           <div className="flex items-center justify-between">
-        <img src={logo} alt="RAVY" className="h-14 w-auto mb-2" />
-        </div>
+            <Logo className="h-14 w-auto mb-2" />
+          </div>
           <CardTitle className="text-2xl">Connectez-vous</CardTitle>
           <CardDescription>
-            Au menu du jour, analyses, optimisations & marges.
+            Au menu du jour, analyses, optimisations & marges
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -83,14 +168,85 @@ export function LoginForm({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <a
-                    href="/reset-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                  <Dialog
+                    open={resetOpen}
+                    onOpenChange={handleResetDialogChange}
                   >
-                    Mot de passe oublié ?
-                  </a>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md p-0">
+                      <Card className="border-0 shadow-none">
+                        <CardHeader>
+                          <CardTitle className="text-2xl">
+                            Mot de passe oublié
+                          </CardTitle>
+                          <CardDescription>
+                            Entrez votre adresse email pour recevoir un lien de
+                            réinitialisation.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {resetError && (
+                            <div className="mb-2 text-sm text-red-600">
+                              {resetError}
+                            </div>
+                          )}
+                          {resetSuccess ? (
+                            <div className="mb-2 text-sm text-green-600">
+                              {resetSuccess}
+                            </div>
+                          ) : (
+                            <Form {...resetForm}>
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  resetForm.handleSubmit(handleResetPassword)(e)
+                                }}
+                                className="space-y-6"
+                              >
+                                <FormField
+                                  control={resetForm.control}
+                                  name="email"
+                                  render={({ field }) => (
+                                    <FormItem className="grid gap-2">
+                                      <FormLabel>Email</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="email"
+                                          placeholder="johndoe@mail.com"
+                                          autoComplete="email"
+                                          {...field}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <Button
+                                  type="submit"
+                                  className="w-full"
+                                  disabled={resetLoading}
+                                >
+                                  {resetLoading
+                                    ? "Envoi..."
+                                    : "Envoyer le lien de réinitialisation"}
+                                </Button>
+                              </form>
+                            </Form>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input id="password" name="password" type="password" placeholder="********" required />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Connexion..." : "Se connecter"}

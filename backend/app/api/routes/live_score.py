@@ -34,7 +34,7 @@ def get_live_score(id: UUID):
 
 @router.post("/", response_model=LiveScore)
 def create_live_score(data: LiveScore):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = live_score_service.create_live_score(payload)
     return LiveScore(**created)
 

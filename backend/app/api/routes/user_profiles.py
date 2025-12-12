@@ -33,7 +33,7 @@ def get_user_profiles(id: UUID):
 
 @router.post("/", response_model=UserProfiles)
 def create_user_profiles(data: UserProfiles):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = user_profiles_service.create_user_profiles(payload)
     return UserProfiles(**created)
 

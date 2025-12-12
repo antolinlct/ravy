@@ -47,7 +47,7 @@ def get_establishments_by_id(id: UUID):
 
 
 def create_establishments(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("establishments").insert(prepared).execute()
     return response.data[0] if response.data else None
 

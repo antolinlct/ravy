@@ -33,7 +33,7 @@ def get_billing_item(id: UUID):
 
 @router.post("/", response_model=BillingItem)
 def create_billing_item(data: BillingItem):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = billing_item_service.create_billing_item(payload)
     return BillingItem(**created)
 

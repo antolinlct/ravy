@@ -34,7 +34,7 @@ def get_mercurial_request(id: UUID):
 
 @router.post("/", response_model=MercurialRequest)
 def create_mercurial_request(data: MercurialRequest):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = mercurial_request_service.create_mercurial_request(payload)
     return MercurialRequest(**created)
 

@@ -33,7 +33,7 @@ def get_countries(id: UUID):
 
 @router.post("/", response_model=Countries)
 def create_countries(data: Countries):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = countries_service.create_countries(payload)
     return Countries(**created)
 

@@ -33,7 +33,7 @@ def get_maintenance(id: UUID):
 
 @router.post("/", response_model=Maintenance)
 def create_maintenance(data: Maintenance):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = maintenance_service.create_maintenance(payload)
     return Maintenance(**created)
 

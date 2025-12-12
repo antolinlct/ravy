@@ -33,7 +33,7 @@ def get_invoices_rejected(id: UUID):
 
 @router.post("/", response_model=InvoicesRejected)
 def create_invoices_rejected(data: InvoicesRejected):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = invoices_rejected_service.create_invoices_rejected(payload)
     return InvoicesRejected(**created)
 

@@ -29,6 +29,8 @@ class Establishments(BaseModel):
     active_sms: Optional[bool] = None
     type_sms: Optional[Sms_type] = None
     sms_variation_trigger: Optional[Sms_variation_trigger] = None
+    full_adresse: Optional[str] = None
+    siren: Optional[str] = None
 
     class Config:
         json_encoders = {

@@ -34,7 +34,7 @@ def get_recommendations_ai(id: UUID):
 
 @router.post("/", response_model=RecommendationsAi)
 def create_recommendations_ai(data: RecommendationsAi):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = recommendations_ai_service.create_recommendations_ai(payload)
     return RecommendationsAi(**created)
 

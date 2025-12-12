@@ -35,7 +35,7 @@ def get_invoices(id: UUID):
 
 @router.post("/", response_model=Invoices)
 def create_invoices(data: Invoices):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = invoices_service.create_invoices(payload)
     return Invoices(**created)
 

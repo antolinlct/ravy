@@ -34,7 +34,7 @@ def get_recipe_margin(id: UUID):
 
 @router.post("/", response_model=RecipeMargin)
 def create_recipe_margin(data: RecipeMargin):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = recipe_margin_service.create_recipe_margin(payload)
     return RecipeMargin(**created)
 

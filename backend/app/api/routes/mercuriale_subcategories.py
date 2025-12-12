@@ -33,7 +33,7 @@ def get_mercuriale_subcategories(id: UUID):
 
 @router.post("/", response_model=MercurialeSubcategories)
 def create_mercuriale_subcategories(data: MercurialeSubcategories):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = mercuriale_subcategories_service.create_mercuriale_subcategories(payload)
     return MercurialeSubcategories(**created)
 

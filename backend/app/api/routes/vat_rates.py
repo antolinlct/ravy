@@ -33,7 +33,7 @@ def get_vat_rates(id: UUID):
 
 @router.post("/", response_model=VatRates)
 def create_vat_rates(data: VatRates):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = vat_rates_service.create_vat_rates(payload)
     return VatRates(**created)
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tagline } from "@/components/pro-blocks/landing-page/tagline"
 import { Clock3 } from "lucide-react"
-import logo from "@/assets/branding/logo_og.svg"
+import { Logo } from "@/assets/branding/Logo"
 import { cn } from "@/lib/utils"
 
 export default function MaintenancePage({
@@ -46,8 +46,7 @@ export default function MaintenancePage({
       <div className="container-padding-x relative z-10 container mx-auto flex flex-col items-center gap-12 lg:flex-row lg:gap-16">
         <div className="m-auto flex max-w-xl flex-1 flex-col items-center gap-6 text-center lg:gap-8">
           {/* Logo */}
-          <img src={logo} alt="RAVY" className="h-14 w-auto" />
-
+            <Logo className="h-14 w-auto mb-2" />
           {/* Texte principal */}
           <div className="section-title-gap-xl flex flex-col items-center text-center">
             <Tagline>Maintenance en cours</Tagline>

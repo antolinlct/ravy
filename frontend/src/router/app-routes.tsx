@@ -54,6 +54,8 @@ import EmailSettingsPage from "../pages/dashboard/settings/emails.tsx";
 import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
 import SubscriptionPage from "../pages/dashboard/settings/subscription.tsx";
 import HelpPage from "../pages/dashboard/settings/help.tsx";
+import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
+import { AppShell } from "@/layouts/AppShell"
 
 // --- Déclaration de toutes les routes ---
 export const appRoutes: RouteObject[] = [
@@ -72,7 +74,13 @@ export const appRoutes: RouteObject[] = [
   // Dashboard principal
 {
   path: "/dashboard",
-  element: <DashboardLayout />, // 👈 Layout global avec Sidebar
+  element: (
+    <RequireAuth>
+      <AppShell>
+        <DashboardLayout />
+      </AppShell>
+    </RequireAuth>
+  ),
   children: [
     // Accueil Dashboard
     { path: "", element: <DashboardHomePage /> },

@@ -33,7 +33,7 @@ def get_mercuriales(id: UUID):
 
 @router.post("/", response_model=Mercuriales)
 def create_mercuriales(data: Mercuriales):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = mercuriales_service.create_mercuriales(payload)
     return Mercuriales(**created)
 

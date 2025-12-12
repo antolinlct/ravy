@@ -33,7 +33,7 @@ def get_product_stripe(id: UUID):
 
 @router.post("/", response_model=ProductStripe)
 def create_product_stripe(data: ProductStripe):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = product_stripe_service.create_product_stripe(payload)
     return ProductStripe(**created)
 

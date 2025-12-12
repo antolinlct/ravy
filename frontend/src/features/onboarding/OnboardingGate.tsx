@@ -7,6 +7,7 @@ type OnboardingStep = "establishment" | null
 export function OnboardingGate() {
   const [step, setStep] = useState<OnboardingStep>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [establishmentsCount, setEstablishmentsCount] = useState(0)
 
   const API_URL = import.meta.env.VITE_API_URL
 
@@ -29,6 +30,9 @@ export function OnboardingGate() {
     }
 
     const establishments = await res.json()
+    if (Array.isArray(establishments)) {
+      setEstablishmentsCount(establishments.length)
+    }
     if (Array.isArray(establishments) && establishments.length === 0) {
       setStep("establishment")
       return
@@ -44,5 +48,12 @@ export function OnboardingGate() {
 
   if (!step) return null
 
-  return <OnboardingModal step={step} userId={userId} onDone={reloadChecks} />
+  return (
+    <OnboardingModal
+      step={step}
+      userId={userId}
+      establishmentsCount={establishmentsCount}
+      onDone={reloadChecks}
+    />
+  )
 }

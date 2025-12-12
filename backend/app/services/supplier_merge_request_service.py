@@ -47,7 +47,7 @@ def get_supplier_merge_request_by_id(id: UUID):
 
 
 def create_supplier_merge_request(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("supplier_merge_request").insert(prepared).execute()
     return response.data[0] if response.data else None
 

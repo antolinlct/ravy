@@ -19,7 +19,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal } from "lucide-react"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
-import logo from "@/assets/branding/logo_og.svg"
+import { Logo } from "@/assets/branding/Logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 
@@ -73,7 +73,7 @@ export default function LandingPage() {
 </Alert>
     <div className="w-[120px] h-[80px]">
       <AspectRatio ratio={3/2} >
-      <img src={logo} alt="Ravy Logo" className="h-full w-full object-contain"/>
+      <Logo className="h-full w-full object-contain" />
       </AspectRatio>
       </div>
 

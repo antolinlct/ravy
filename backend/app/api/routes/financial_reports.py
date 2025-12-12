@@ -34,7 +34,7 @@ def get_financial_reports(id: UUID):
 
 @router.post("/", response_model=FinancialReports)
 def create_financial_reports(data: FinancialReports):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = financial_reports_service.create_financial_reports(payload)
     return FinancialReports(**created)
 

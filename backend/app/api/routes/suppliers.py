@@ -34,7 +34,7 @@ def get_suppliers(id: UUID):
 
 @router.post("/", response_model=Suppliers)
 def create_suppliers(data: Suppliers):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = suppliers_service.create_suppliers(payload)
     return Suppliers(**created)
 

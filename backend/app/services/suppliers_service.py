@@ -48,7 +48,7 @@ def get_suppliers_by_id(id: UUID):
 
 
 def create_suppliers(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("suppliers").insert(prepared).execute()
     return response.data[0] if response.data else None
 

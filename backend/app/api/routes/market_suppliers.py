@@ -33,7 +33,7 @@ def get_market_suppliers(id: UUID):
 
 @router.post("/", response_model=MarketSuppliers)
 def create_market_suppliers(data: MarketSuppliers):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = market_suppliers_service.create_market_suppliers(payload)
     return MarketSuppliers(**created)
 

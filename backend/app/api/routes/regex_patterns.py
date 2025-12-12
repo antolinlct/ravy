@@ -33,7 +33,7 @@ def get_regex_patterns(id: UUID):
 
 @router.post("/", response_model=RegexPatterns)
 def create_regex_patterns(data: RegexPatterns):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = regex_patterns_service.create_regex_patterns(payload)
     return RegexPatterns(**created)
 

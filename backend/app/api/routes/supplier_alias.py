@@ -35,7 +35,7 @@ def get_supplier_alias(id: UUID):
 
 @router.post("/", response_model=SupplierAlias)
 def create_supplier_alias(data: SupplierAlias):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = supplier_alias_service.create_supplier_alias(payload)
     return SupplierAlias(**created)
 

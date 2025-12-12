@@ -2,12 +2,9 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
   BotMessageSquare,
   ChartCandlestick,
   ChefHat,
-  Command,
-  GalleryVerticalEnd,
   HandCoins,
   HeartHandshake,
   House,
@@ -27,31 +24,27 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useEstablishment } from "@/context/EstablishmentContext"
+import { useEstablishmentData } from "@/context/EstablishmentDataContext"
+import { Link } from "react-router-dom"
+
+const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
+
+function normalizeLogoPath(raw: string | null | undefined) {
+  if (!raw) return null
+  return raw.replace(/^logos\//, "")
+}
+
+function getLogoUrl(logoPath: string | null | undefined) {
+  if (!logoPath) return null
+  if (/^https?:\/\//i.test(logoPath)) return logoPath
+  if (!SUPABASE_URL) return null
+  return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`
+}
 
 // This is sample data.
 const data = {
-  user: {
-    name: "Gordon Gekko",
-    email: "antolin.lacaton@ravy.fr",
-    avatar: "/avatars/shadcn.jpg", // <- UTILE QUE SI AVATAR ACTIF DANS 'nav-user.tsx'
-  },
-  teams: [
-    {
-      name: "Ravy",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "WeareU",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Greed",
-      logo: Command,
-      plan: "Free",
-    },
-],
   navMain: [
     {
       title: "Accueil",
@@ -127,7 +120,7 @@ const data = {
     {
       name: "Travel",
       url: "#",
-      icon: Map,
+      icon: Map, 
     },
   ],<- UTILE POUR RAJOUTER DES PROJET? */ 
   navAnnex: [
@@ -147,10 +140,36 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { estId } = useEstablishment()
+  const establishment = useEstablishmentData()
+
+  const teams = React.useMemo(
+    () =>
+      estId || establishment
+        ? [
+            {
+              id: estId ?? establishment?.id ?? "establishment",
+              name: establishment?.name?.trim() || "Établissement",
+              logoUrl: getLogoUrl(
+                normalizeLogoPath(
+                  (establishment?.logo_path as string | null | undefined) ??
+                    (establishment?.logoUrl as string | null | undefined) ??
+                    (establishment?.logo_url as string | null | undefined)
+                )
+              ),
+              plan:
+                (establishment?.plan as string | null | undefined) ??
+                null,
+            },
+          ]
+        : [],
+    [estId, establishment]
+  )
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher teams={teams} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
@@ -158,7 +177,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
        {/* <NavProjects projects={data.projects} /> <- UTILE POUR RAJOUTER DES PROJETS */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

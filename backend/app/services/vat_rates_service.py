@@ -47,7 +47,7 @@ def get_vat_rates_by_id(id: UUID):
 
 
 def create_vat_rates(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("vat_rates").insert(prepared).execute()
     return response.data[0] if response.data else None
 

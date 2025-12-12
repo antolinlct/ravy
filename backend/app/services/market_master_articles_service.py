@@ -47,7 +47,7 @@ def get_market_master_articles_by_id(id: UUID):
 
 
 def create_market_master_articles(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("market_master_articles").insert(prepared).execute()
     return response.data[0] if response.data else None
 

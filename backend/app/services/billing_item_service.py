@@ -47,7 +47,7 @@ def get_billing_item_by_id(id: UUID):
 
 
 def create_billing_item(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("billing_item").insert(prepared).execute()
     return response.data[0] if response.data else None
 

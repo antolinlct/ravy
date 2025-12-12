@@ -33,7 +33,7 @@ def get_establishments(id: UUID):
 
 @router.post("/", response_model=Establishments)
 def create_establishments(data: Establishments):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = establishments_service.create_establishments(payload)
     return Establishments(**created)
 

@@ -50,7 +50,7 @@ def get_supplier_alias_by_id(id: UUID):
 
 
 def create_supplier_alias(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("supplier_alias").insert(prepared).execute()
     return response.data[0] if response.data else None
 

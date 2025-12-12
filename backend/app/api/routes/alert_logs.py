@@ -34,7 +34,7 @@ def get_alert_logs(id: UUID):
 
 @router.post("/", response_model=AlertLogs)
 def create_alert_logs(data: AlertLogs):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = alert_logs_service.create_alert_logs(payload)
     return AlertLogs(**created)
 

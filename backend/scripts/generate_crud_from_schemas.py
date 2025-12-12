@@ -86,7 +86,7 @@ def get_{name}_by_id(id: UUID):
 
 
 def create_{name}(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {{k: v for k, v in payload.items() if v is not None and k != "id"}}
     response = supabase.table("{name}").insert(prepared).execute()
     return response.data[0] if response.data else None
 
@@ -138,7 +138,7 @@ def get_{name}(id: UUID):
 
 @router.post("/", response_model={class_name})
 def create_{name}(data: {class_name}):
-    payload = jsonable_encoder(data.dict())
+    payload = jsonable_encoder(data.dict(exclude={{"id"}}))
     created = {name}_service.create_{name}(payload)
     return {class_name}(**created)
 

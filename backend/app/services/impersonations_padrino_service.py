@@ -47,7 +47,7 @@ def get_impersonations_padrino_by_id(id: UUID):
 
 
 def create_impersonations_padrino(payload: dict):
-    prepared = jsonable_encoder(payload)
+    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
     response = supabase.table("impersonations_padrino").insert(prepared).execute()
     return response.data[0] if response.data else None
 

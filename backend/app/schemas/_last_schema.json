@@ -905,6 +905,16 @@
       "column": "sms_variation_trigger",
       "data_type": "USER-DEFINED",
       "udt_name": "sms_variation_trigger"
+    },
+    {
+      "column": "full_adresse",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "siren",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "financial_ingredients": [
