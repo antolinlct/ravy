@@ -25,34 +25,40 @@
  */
 
 "use client"
-import { createContext, useContext, useState } from "react"
+
+import { createContext, useContext, useEffect, useState } from "react"
 
 interface EstablishmentContextType {
   estId: string | null
   select: (id: string) => void
+  clear: () => void
 }
 
 const EstContext = createContext<EstablishmentContextType>({
   estId: null,
   select: () => {},
+  clear: () => {},
 })
 
-export function EstablishmentProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [estId, setEstId] = useState<string | null>(
-    localStorage.getItem("current_establishment_id")
-  )
+export function EstablishmentProvider({ children }: { children: React.ReactNode }) {
+  const [estId, setEstId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setEstId(localStorage.getItem("current_establishment_id"))
+  }, [])
 
   function select(id: string) {
     localStorage.setItem("current_establishment_id", id)
     setEstId(id)
   }
 
+  function clear() {
+    localStorage.removeItem("current_establishment_id")
+    setEstId(null)
+  }
+
   return (
-    <EstContext.Provider value={{ estId, select }}>
+    <EstContext.Provider value={{ estId, select, clear }}>
       {children}
     </EstContext.Provider>
   )
@@ -61,3 +67,4 @@ export function EstablishmentProvider({
 export function useEstablishment() {
   return useContext(EstContext)
 }
+

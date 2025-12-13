@@ -22,10 +22,17 @@
 
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useEstablishment } from "./EstablishmentContext"
 
-const EstablishmentDataContext = createContext<any>(null)
+type EstablishmentValue = any
+
+type ContextValue = {
+  data: EstablishmentValue
+  reload: () => Promise<void>
+}
+
+const EstablishmentDataContext = createContext<ContextValue | null>(null)
 
 export function EstablishmentDataProvider({
   children,
@@ -33,31 +40,40 @@ export function EstablishmentDataProvider({
   children: React.ReactNode
 }) {
   const { estId } = useEstablishment()
-  const [est, setEst] = useState<any>(null)
+  const [est, setEst] = useState<EstablishmentValue>(null)
 
-  useEffect(() => {
-    async function load() {
-      if (!estId) return
-
-      const API_URL = import.meta.env.VITE_API_URL
-      const res = await fetch(`${API_URL}/establishments/${estId}`)
-
-      if (!res.ok) return
-
-      const data = await res.json()
-      setEst(data)
+  const reload = useCallback(async () => {
+    if (!estId) {
+      setEst(null)
+      return
     }
 
-    load()
+    const API_URL = import.meta.env.VITE_API_URL
+    const res = await fetch(`${API_URL}/establishments/${estId}`)
+
+    if (!res.ok) return
+
+    const data = await res.json()
+    setEst(data)
   }, [estId])
 
+  useEffect(() => {
+    reload().catch(() => {
+      /* ignore load errors */
+    })
+  }, [reload])
+
   return (
-    <EstablishmentDataContext.Provider value={est}>
+    <EstablishmentDataContext.Provider value={{ data: est, reload }}>
       {children}
     </EstablishmentDataContext.Provider>
   )
 }
 
 export function useEstablishmentData() {
-  return useContext(EstablishmentDataContext)
+  return useContext(EstablishmentDataContext)?.data
+}
+
+export function useEstablishmentDataReload() {
+  return useContext(EstablishmentDataContext)?.reload
 }

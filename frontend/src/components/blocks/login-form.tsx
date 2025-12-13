@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Key, Mail } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -157,13 +158,17 @@ export function LoginForm({
               )}
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                    className="pl-10"
+                  />
+                </div>
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -218,12 +223,16 @@ export function LoginForm({
                                     <FormItem className="grid gap-2">
                                       <FormLabel>Email</FormLabel>
                                       <FormControl>
-                                        <Input
-                                          type="email"
-                                          placeholder="johndoe@mail.com"
-                                          autoComplete="email"
-                                          {...field}
-                                        />
+                                        <div className="relative">
+                                          <Mail className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                                          <Input
+                                            type="email"
+                                            placeholder="johndoe@mail.com"
+                                            autoComplete="email"
+                                            className="pl-10"
+                                            {...field}
+                                          />
+                                        </div>
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -246,7 +255,17 @@ export function LoginForm({
                     </DialogContent>
                   </Dialog>
                 </div>
-                <Input id="password" name="password" type="password" placeholder="********" required />
+                <div className="relative">
+                  <Key className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="********"
+                    required
+                    className="pl-10"
+                  />
+                </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Connexion..." : "Se connecter"}

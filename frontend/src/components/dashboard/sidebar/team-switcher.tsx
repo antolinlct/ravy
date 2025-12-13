@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus } from "lucide-react"
+import { Building, ChevronsUpDown, Plus } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -18,9 +18,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { useEstablishmentData } from "@/context/EstablishmentDataContext"
+import { useUserEstablishments } from "@/context/UserEstablishmentsContext"
+import { OnboardingModal } from "@/features/onboarding/OnboardingModal"
 
 const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
@@ -37,6 +40,12 @@ function resolveLogoUrl(logoPath: string | null | undefined) {
   return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`
 }
 
+function extractLogoPath(source: any) {
+  if (!source) return null
+  const raw = source.logo_path ?? source.logo_url ?? source.logoUrl
+  return typeof raw === "string" ? raw : null
+}
+
 type Team = {
   id: string
   name: string
@@ -46,22 +55,66 @@ type Team = {
 
 export function TeamSwitcher({
   teams,
+  onEstablishmentCreated,
+  userId,
 }: {
   teams?: Team[]
+  onEstablishmentCreated?: () => void
+  userId?: string | null
 }) {
-  const { isMobile } = useSidebar()
+  const { isMobile, state } = useSidebar()
   const { estId, select } = useEstablishment()
   const establishment = useEstablishmentData()
+  const userEstablishments = useUserEstablishments()
+  const [userTeams, setUserTeams] = React.useState<Team[]>([])
+  const [showOnboarding, setShowOnboarding] = React.useState(false)
+  const isCollapsed = !isMobile && state === "collapsed"
+
+  const loadUserTeams = React.useCallback(async () => {
+    const API_URL = import.meta.env.VITE_API_URL
+    const links = userEstablishments?.list ?? []
+    if (!API_URL || !links.length) {
+      setUserTeams([])
+      return
+    }
+
+    const fetched = await Promise.all(
+      links.map(async ({ establishmentId }) => {
+        try {
+          const res = await fetch(`${API_URL}/establishments/${establishmentId}`)
+          if (!res.ok) return null
+          return await res.json()
+        } catch {
+          return null
+        }
+      })
+    )
+
+    const mapped = fetched
+      .filter((est): est is { id: string; name?: string; logo_path?: string | null } => Boolean(est?.id))
+      .map((est) => {
+        const logoPath = normalizeLogoPath(extractLogoPath(est))
+        return {
+          id: est.id,
+          name: est.name?.trim() || "Établissement",
+          logoUrl: resolveLogoUrl(logoPath),
+          plan: null,
+        }
+      })
+
+    setUserTeams(mapped)
+  }, [userEstablishments?.list])
+
+  React.useEffect(() => {
+    loadUserTeams()
+  }, [loadUserTeams])
 
   const derivedTeams = React.useMemo(() => {
     if (teams?.length) return teams
+    if (userTeams.length) return userTeams
 
     if (estId || establishment) {
-      const logoPath = normalizeLogoPath(
-        (establishment?.logo_path as string | null | undefined) ??
-          (establishment?.logoUrl as string | null | undefined) ??
-          (establishment?.logo_url as string | null | undefined)
-      )
+      const logoPath = normalizeLogoPath(extractLogoPath(establishment))
 
       return [
         {
@@ -76,7 +129,34 @@ export function TeamSwitcher({
     }
 
     return []
-  }, [teams, estId, establishment])
+  }, [teams, userTeams, estId, establishment])
+
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey)) return
+      const index = Number.parseInt(event.key, 10)
+      if (!Number.isInteger(index) || index < 1 || index > derivedTeams.length || index > 9) {
+        return
+      }
+      event.preventDefault()
+      const target = derivedTeams[index - 1]
+      if (target) {
+        select(target.id)
+        toast.success("Établissement changé", {
+          description: (
+            <span>
+              Vous êtes maintenant sur <strong>{target.name}</strong>
+            </span>
+          ),
+          duration: 5000,
+          icon: <Building className="h-4 w-4" />,
+        })
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [derivedTeams, select])
 
   const activeTeam =
     derivedTeams.find((team) => team.id === (estId ?? derivedTeams[0]?.id)) ||
@@ -85,11 +165,7 @@ export function TeamSwitcher({
   const displayTeam = React.useMemo(() => {
     if (!activeTeam) return null
 
-    const logoPath = normalizeLogoPath(
-      (establishment?.logo_path as string | null | undefined) ??
-        (establishment?.logoUrl as string | null | undefined) ??
-        (establishment?.logo_url as string | null | undefined)
-    )
+    const logoPath = normalizeLogoPath(extractLogoPath(establishment))
 
     return {
       ...activeTeam,
@@ -115,7 +191,7 @@ export function TeamSwitcher({
         <img
           src={team.logoUrl}
           alt="Logo"
-          className={cn("h-full w-full object-contain p-1", className)}
+          className={cn("h-full w-full object-contain p-0.5", className)}
         />
       )
     }
@@ -128,6 +204,7 @@ export function TeamSwitcher({
   }
 
   return (
+    <>
     <SidebarMenu>
       <SidebarMenuItem>
          <DropdownMenu>
@@ -136,7 +213,7 @@ export function TeamSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-transparent text-sidebar-foreground border border-sidebar-border/50 overflow-hidden">
+              <div className="flex h-8 w-8 min-h-8 min-w-8 items-center justify-center rounded-lg bg-transparent text-sidebar-foreground border border-sidebar-border/50 overflow-hidden">
                 {renderLogo(displayTeam, "rounded-lg")}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -147,7 +224,7 @@ export function TeamSwitcher({
                   <span className="truncate text-xs">{displayTeam.plan}</span>
                 )}
               </div>
-              <ChevronsUpDown className="ml-auto" />
+              <ChevronsUpDown className={cn("ml-auto", isCollapsed && "hidden")} />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -173,7 +250,13 @@ export function TeamSwitcher({
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
+            <DropdownMenuItem
+              className="gap-2 p-2"
+              onSelect={(e) => {
+                e.preventDefault()
+                setShowOnboarding(true)
+              }}
+            >
               <div className="flex size-6 items-center justify-center rounded-md border bg-background">
                 <Plus className="size-4" />
               </div>
@@ -182,6 +265,21 @@ export function TeamSwitcher({
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <OnboardingModal
+        step={showOnboarding ? "establishment" : null}
+        userId={userId ?? undefined}
+        onDone={(createdId) => {
+          setShowOnboarding(false)
+          if (createdId) {
+            select(createdId)
+          }
+          onEstablishmentCreated?.()
+          userEstablishments?.reload()
+        }}
+        onClose={() => setShowOnboarding(false)}
+        requireAtLeastOne={false}
+      />
     </SidebarMenu>
+    </>
   )
 }

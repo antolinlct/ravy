@@ -2899,6 +2899,11 @@
       "column": "resolved_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
+    },
+    {
+      "column": "ticket_id",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "usage_counters": [

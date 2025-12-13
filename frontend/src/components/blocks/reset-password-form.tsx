@@ -64,21 +64,29 @@ export function ResetPasswordForm({
 
               setLoading(true)
 
-              const { error: updateError } = await supabase.auth.updateUser({
-                password,
-              })
+              try {
+                const { error: updateError } = await supabase.auth.updateUser({
+                  password,
+                })
 
-              if (updateError) {
-                console.error("Reset password error:", updateError)
+                if (updateError) {
+                  throw updateError
+                }
+
+                // Invalider toutes les sessions actives par sécurité
+                await supabase.auth.signOut({ scope: "global" }).catch(() => {
+                  /* ignore signout errors, navigate anyway */
+                })
+
+                toast.success("Mot de passe mis à jour. Connectez-vous.")
+                navigate("/login")
+              } catch (err) {
+                console.error("Reset password error:", err)
                 setError("Impossible de mettre à jour le mot de passe.")
                 toast.error("Impossible de mettre à jour le mot de passe.")
+              } finally {
                 setLoading(false)
-                return
               }
-
-              toast.success("Mot de passe mis à jour. Connectez-vous.")
-              setLoading(false)
-              navigate("/login")
             }}
           >
             <div className="flex flex-col gap-6">

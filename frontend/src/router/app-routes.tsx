@@ -47,12 +47,12 @@ import ConsultantPage from "../pages/dashboard/consultant/index.tsx";
 // Paramètres
 import SettingsLayout from "../layouts/SettingsLayout.tsx"
 import AccountSettingsPage from "../pages/dashboard/settings/account.tsx";
-import OrganizationSettingsPage from "../pages/dashboard/settings/organization.tsx";
-import SecuritySettingsPage from "../pages/dashboard/settings/security.tsx";
-import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx";
-import EmailSettingsPage from "../pages/dashboard/settings/emails.tsx";
-import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
+import EstablishmentSettingsPage from "../pages/dashboard/settings/establishment.tsx";
 import SubscriptionPage from "../pages/dashboard/settings/subscription.tsx";
+import UsersSupportPage from "@/pages/dashboard/settings/users.tsx";
+import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx";
+import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
+import IntegrationsSupportPage from "@/pages/dashboard/settings/integrations.tsx";
 import HelpPage from "../pages/dashboard/settings/help.tsx";
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
 import { AppShell } from "@/layouts/AppShell"
@@ -117,13 +117,12 @@ export const appRoutes: RouteObject[] = [
       children: [
           { path: "", element: <AccountSettingsPage /> },
            { path: "account", element: <AccountSettingsPage /> },
-           { path: "organization", element: <OrganizationSettingsPage /> },
-           { path: "security", element: <SecuritySettingsPage /> },
-           { path: "preferences", element: <PreferencesSettingsPage /> },
-           { path: "emails", element: <EmailSettingsPage /> },
-           { path: "tickets", element: <TicketSupportPage /> },
+           { path: "establishment", element: <EstablishmentSettingsPage /> },
            { path: "subscription", element: <SubscriptionPage /> },
-           { path: "help", element: <HelpPage /> },
+           { path: "access", element: <UsersSupportPage/> },
+           { path: "preferences", element: <PreferencesSettingsPage /> },
+           { path: "tickets", element: <TicketSupportPage /> },
+           { path: "integrations", element: <IntegrationsSupportPage /> },
            ],
       }           
   ],

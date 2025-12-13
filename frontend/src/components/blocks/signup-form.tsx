@@ -20,6 +20,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
+import { Mail } from "lucide-react"
 
 export function SignupForm({
   className,
@@ -30,6 +32,7 @@ export function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [phone, setPhone] = useState("")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -42,13 +45,20 @@ export function SignupForm({
 
     const firstName = form.get("first_name")?.toString().trim()
     const lastName = form.get("last_name")?.toString().trim()
-    const phoneSms = form.get("phone_sms")?.toString().trim()
+    const phoneSms = phone.trim()
     const email = form.get("email")?.toString().trim()
     const password = form.get("password")?.toString()
     const confirm = form.get("confirm-password")?.toString()
 
     if (!firstName || !lastName || !email || !phoneSms || !password || !confirm) {
       setError("Tous les champs sont obligatoires.")
+      setLoading(false)
+      return
+    }
+
+    const phoneDigits = phoneSms.replace(/\D/g, "")
+    if (phoneDigits.length < 10) {
+      setError("Merci de renseigner un numéro de téléphone valide.")
       setLoading(false)
       return
     }
@@ -198,25 +208,35 @@ export function SignupForm({
               {/* PHONE */}
               <Field className="grid gap-2">
                 <FieldLabel htmlFor="phone_sms">Téléphone</FieldLabel>
-                <Input
-                  id="phone_sms"
-                  name="phone_sms"
-                  type="tel"
-                  placeholder="+33 6 12 34 56 78"
-                  required
-                />
+                <div className="relative">
+                  <PhoneInput
+                    id="phone_sms"
+                    name="phone_sms"
+                    placeholder="+33 6 12 34 56 78"
+                    defaultCountry="FR"
+                    countries={["FR"]}
+                    inputClassName=""
+                    value={phone}
+                    onChange={(val) => setPhone((val as string) || "")}
+                    required
+                  />
+                </div>
               </Field>
 
               {/* EMAIL */}
               <Field className="grid gap-2">
                 <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="m@example.com"
+                    className="pl-10"
+                    required
+                  />
+                </div>
               </Field>
 
               {/* PASSWORDS */}

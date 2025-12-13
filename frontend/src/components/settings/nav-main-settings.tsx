@@ -1,10 +1,12 @@
 import {
   User,
-  Building2,
   CreditCard,
   Users,
   Plug,
-  HelpCircle,
+  LogOut,
+  LifeBuoy,
+  HandHelping,
+  Building
 } from "lucide-react"
 
 export const navMainSettings = [
@@ -14,9 +16,9 @@ export const navMainSettings = [
     icon: User,
   },
   {
-    title: "Établissements",
-    url: "/dashboard/settings/organization",
-    icon: Building2,
+    title: "Établissement",
+    url: "/dashboard/settings/establishment",
+    icon: Building,
   },
   {
     title: "Abonnement",
@@ -24,9 +26,19 @@ export const navMainSettings = [
     icon: CreditCard,
   },
   {
-    title: "Utilisateurs",
-    url: "/dashboard/settings/users",
+    title: "Utilisateurs & Accès",
+    url: "/dashboard/settings/access",
     icon: Users,
+  },
+  {
+    title: "Préférences",
+    url: "/dashboard/settings/preferences",
+    icon: LifeBuoy,
+  },
+  {
+    title: "Tickets & Support",
+    url: "/dashboard/settings/tickets",
+    icon: HandHelping,
   },
   {
     title: "Intégrations",
@@ -34,8 +46,9 @@ export const navMainSettings = [
     icon: Plug,
   },
   {
-    title: "Aide",
-    url: "/dashboard/settings/help",
-    icon: HelpCircle,
+    title: "Déconnexion",
+    url: "/logout",
+    icon: LogOut,
+    isLogout: true,
   },
 ]

@@ -1,63 +1,99 @@
 /**
  * UserDataContext.tsx
  * --------------------
- * Stocke les informations détaillées de l'utilisateur (nom, email, avatar, etc).
+ * Source unique des informations utilisateur côté front.
  *
- * - Chargé UNE SEULE FOIS après que user.id soit connu
- * - Ne bloque PAS les pages publiques
- * - Permet d'éviter les fetchs répétitifs dans tout le dashboard
+ * Fusionne :
+ * - Supabase Auth (email)
+ * - user_profiles (first_name, last_name, phone_sms)
  *
- * Ce contexte NE protège pas les routes → RequireAuth s'en occupe.
+ * Règles :
+ * - Aucun parsing dans les pages
+ * - fullName est dérivé, jamais stocké
+ * - Chargé une seule fois après user.id
  */
 
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { useUser } from "./UserContext"
+import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import { useUser } from "./UserContext"
 
-const UserDataContext = createContext(null)
+type UserData = {
+  id: string
+  email?: string
+  firstName?: string
+  lastName?: string
+  fullName?: string
+  phone?: string
+  emailVerified?: boolean
+}
+
+type ContextValue = {
+  data: UserData | null
+  reload: () => Promise<void>
+}
+
+const UserDataContext = createContext<ContextValue | null>(null)
 
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const user = useUser()
-  const [profile, setProfile] = useState<any>(null)
+  const [data, setData] = useState<UserData | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      if (!user?.id) return
-
-      const { data, error } = await supabase.auth.getUser()
-      if (error || !data?.user) return
-
-      const u = data.user
-
-      const fullName =
-        u.user_metadata?.full_name ||
-        [u.user_metadata?.first_name, u.user_metadata?.last_name]
-          .filter(Boolean)
-          .join(" ")
-
-      setProfile({
-        id: u.id,
-        email: u.email || undefined,
-        fullName: fullName || undefined,
-        avatar:
-          (u.user_metadata?.avatar_url as string | undefined) ||
-          (u.user_metadata?.avatar as string | undefined) ||
-          undefined,
-      })
+  const reload = useCallback(async () => {
+    if (!user?.id) {
+      setData(null)
+      return
     }
 
-    load()
+    // 1) Auth (email)
+    const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (authError || !authData?.user) return
+
+    // 2) user_profiles
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("first_name, last_name, phone_sms")
+      .eq("id", authData.user.id)
+      .maybeSingle()
+
+    const firstName = profile?.first_name || undefined
+    const lastName = profile?.last_name || undefined
+    const fullName =
+      [firstName, lastName].filter(Boolean).join(" ") || undefined
+
+    setData({
+      id: authData.user.id,
+      email: authData.user.email || undefined,
+      firstName,
+      lastName,
+      fullName,
+      phone: profile?.phone_sms || undefined,
+      emailVerified: Boolean(
+        authData.user.email_confirmed_at ||
+          authData.user.confirmed_at ||
+          authData.user.user_metadata?.email_verified
+      ),
+    })
   }, [user?.id])
 
+  useEffect(() => {
+    reload().catch(() => {
+      /* ignore initial load errors */
+    })
+  }, [reload])
+
   return (
-    <UserDataContext.Provider value={profile}>
+    <UserDataContext.Provider value={{ data, reload }}>
       {children}
     </UserDataContext.Provider>
   )
 }
 
 export function useUserData() {
-  return useContext(UserDataContext)
+  return useContext(UserDataContext)?.data ?? null
+}
+
+export function useUserDataReload() {
+  return useContext(UserDataContext)?.reload
 }

@@ -3,10 +3,11 @@ import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
 interface EstablishmentStepProps {
-  onDone: () => void
+  onDone: (establishmentId?: string) => void
   userId?: string
 }
 
@@ -195,7 +196,7 @@ export function EstablishmentStep({ onDone, userId }: EstablishmentStepProps) {
         return
       }
 
-      onDone()
+      onDone(establishmentId)
     } catch (err) {
       console.error("Establishment step error:", err)
       setError("Une erreur est survenue. Réessayez.")
@@ -234,15 +235,14 @@ export function EstablishmentStep({ onDone, userId }: EstablishmentStepProps) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="establishment-phone">Téléphone professionnel</Label>
-              <Input
+              <PhoneInput
                 id="establishment-phone"
-                type="tel"
+                name="establishment-phone"
+                defaultCountry="FR"
+                countries={["FR"]}
                 placeholder="+33 6 12 34 56 78"
-                inputMode="tel"
-                pattern="^\+[0-9][0-9 \-]{7,}$"
-                title="Numéro de téléphone valide requis"
                 value={formData.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                onChange={(val) => updateField("phone", (val as string) || "")}
                 required
               />
             </div>

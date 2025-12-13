@@ -31,6 +31,7 @@ interface UserData {
   id: string
   email?: string
   fullName?: string
+  emailVerified?: boolean
 }
 
 const UserContext = createContext<UserData | null>(null)
@@ -52,11 +53,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         [u.user_metadata?.first_name, u.user_metadata?.last_name]
           .filter(Boolean)
           .join(" ")
+      const emailVerified = Boolean(
+        u.email_confirmed_at || u.confirmed_at || u.user_metadata?.email_verified
+      )
 
       setUser({
         id: u.id,
         email: u.email || undefined,
         fullName: fullName || undefined,
+        emailVerified,
       })
     }
 

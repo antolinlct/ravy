@@ -2,6 +2,7 @@
 import { RouterProvider, createBrowserRouter } from "react-router-dom"
 import { appRoutes } from "./router/app-routes"
 import { ThemeProvider } from "@/components/dark/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 
 // CONTEXTS
 import { CompiledContext } from "./context/CompiledContext"
@@ -17,6 +18,7 @@ export default function App() {
           <RouterProvider router={router} />
         </AppInitializer>
       </CompiledContext>
+      <Toaster />
     </ThemeProvider> //END O THE DARK MODE
   )
 }

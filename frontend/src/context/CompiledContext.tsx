@@ -21,18 +21,24 @@
 
 import { UserProvider } from "./UserContext"
 import { UserDataProvider } from "./UserDataContext"
+import { UserEstablishmentsProvider } from "./UserEstablishmentsContext"
 import { EstablishmentProvider } from "./EstablishmentContext"
 import { EstablishmentDataProvider } from "./EstablishmentDataContext"
+import { UserMercurialeAccessProvider } from "./UserMercurialeAccessContext"
 
 export function CompiledContext({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
       <UserDataProvider>
-        <EstablishmentProvider>
-          <EstablishmentDataProvider>
-            {children}
-          </EstablishmentDataProvider>
-        </EstablishmentProvider>
+        <UserEstablishmentsProvider>
+          <UserMercurialeAccessProvider>
+            <EstablishmentProvider>
+              <EstablishmentDataProvider>
+                {children}
+              </EstablishmentDataProvider>
+            </EstablishmentProvider>
+          </UserMercurialeAccessProvider>
+        </UserEstablishmentsProvider>
       </UserDataProvider>
     </UserProvider>
   )

@@ -6,12 +6,21 @@ type OnboardingStep = "establishment" | null
 
 interface OnboardingModalProps {
   step: OnboardingStep
-  onDone: () => void
+  onDone: (establishmentId?: string) => void
   userId?: string | null
   establishmentsCount?: number
+  requireAtLeastOne?: boolean
+  onClose?: () => void
 }
 
-export function OnboardingModal({ step, onDone, userId, establishmentsCount = 0 }: OnboardingModalProps) {
+export function OnboardingModal({
+  step,
+  onDone,
+  userId,
+  establishmentsCount = 0,
+  requireAtLeastOne = true,
+  onClose,
+}: OnboardingModalProps) {
   const [open, setOpen] = useState(!!step)
   const [closeAlert, setCloseAlert] = useState(false)
 
@@ -20,12 +29,15 @@ export function OnboardingModal({ step, onDone, userId, establishmentsCount = 0 
   }, [step])
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && establishmentsCount === 0) {
+    if (!nextOpen && requireAtLeastOne && establishmentsCount === 0) {
       setCloseAlert(true)
       setOpen(true)
       return
     }
     setOpen(nextOpen)
+    if (!nextOpen) {
+      onClose?.()
+    }
   }
 
   return (
@@ -38,7 +50,7 @@ export function OnboardingModal({ step, onDone, userId, establishmentsCount = 0 
           </DialogDescription>
         </DialogHeader>
 
-        {closeAlert && (
+        {requireAtLeastOne && closeAlert && (
           <div className="text-sm text-red-600">
             Action requise : vous devez créer au moins un établissement pour continuer.
           </div>

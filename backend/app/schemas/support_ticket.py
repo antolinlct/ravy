@@ -4,7 +4,7 @@ from typing import List, Optional, Any, Literal
 from uuid import UUID
 
 
-Ticket_status = Literal["open", "in progress", "resolved", "error"]
+Ticket_status = Literal["open", "in progress", "resolved", "error", "canceled"]
 
 class SupportTicket(BaseModel):
     id: Optional[UUID] = None
@@ -19,6 +19,7 @@ class SupportTicket(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
+    ticket_id: Optional[str] = None
 
     class Config:
         json_encoders = {
