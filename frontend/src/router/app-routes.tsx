@@ -42,7 +42,7 @@ import FinancialReportsPage from "../pages/dashboard/performance/reports.tsx";
 import PerformancePurchasesPage from "../pages/dashboard/performance/purchases.tsx";
 
 // Consultant
-import ConsultantPage from "../pages/dashboard/consultant/index.tsx";
+import ConsultantPage from "../pages/dashboard/consultant/consultant.tsx";
 
 // Paramètres
 import SettingsLayout from "../layouts/SettingsLayout.tsx"
@@ -53,7 +53,7 @@ import UsersSupportPage from "@/pages/dashboard/settings/users.tsx";
 import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx";
 import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
 import IntegrationsSupportPage from "@/pages/dashboard/settings/integrations.tsx";
-import HelpPage from "../pages/dashboard/settings/help.tsx";
+import HelpPage from "../pages/dashboard/help/help.tsx";
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
 import { AppShell } from "@/layouts/AppShell"
 
@@ -124,7 +124,10 @@ export const appRoutes: RouteObject[] = [
            { path: "tickets", element: <TicketSupportPage /> },
            { path: "integrations", element: <IntegrationsSupportPage /> },
            ],
-      }           
+      },
+      
+    // Aide
+    { path: "help", element: <HelpPage /> },
   ],
 },
 

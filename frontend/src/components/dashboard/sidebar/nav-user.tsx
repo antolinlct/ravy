@@ -23,6 +23,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -75,12 +87,16 @@ export function NavUser() {
     return initials || "AL"
   }, [displayName, displayEmail])
 
+  const [loading, setLoading] = React.useState(false)
+
   async function handleLogout() {
     try {
+      setLoading(true)
       await supabase.auth.signOut()
     } catch (err) {
       console.error("Supabase signOut error:", err)
     } finally {
+      setLoading(false)
       localStorage.removeItem("user_id")
       localStorage.removeItem("current_establishment_id")
       window.location.href = "/login"
@@ -162,10 +178,37 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Se déconnecter
-            </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="hover:text-destructive hover:bg-destructive/10 focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <LogOut />
+                    Se déconnecter
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Voulez-vous vraiment vous déconnecter ? Vous devrez vous reconnecter pour revenir.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={loading}>Annuler</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={loading}
+                      onClick={handleLogout}
+                    >
+                      Se déconnecter
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </DropdownMenuContent>
         </DropdownMenu>
         <Separator className="mt-3" />

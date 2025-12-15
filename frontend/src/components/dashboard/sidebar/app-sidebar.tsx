@@ -132,7 +132,7 @@ const data = {
     },
     {
       title: "Aide & Tutoriels",
-      url: "/dashboard/settings/help",
+      url: "/dashboard/help",
       icon: HeartHandshake,
       isActive: false,
     },

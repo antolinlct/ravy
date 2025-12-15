@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom"
+import { Link, Outlet, useLocation } from "react-router-dom"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,6 +12,28 @@ import { OnboardingGate } from "@/features/onboarding/OnboardingGate"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 
 export default function DashboardLayout() {
+  const location = useLocation()
+
+  const segments = location.pathname.split("/").filter(Boolean)
+  const settingsIndex = segments.indexOf("settings")
+  const currentSettingsPage =
+    settingsIndex >= 0 ? segments[settingsIndex + 1] : null
+
+  const labels: Record<string, string> = {
+    account: "Compte",
+    establishment: "Établissement",
+    integrations: "Intégrations",
+    preferences: "Préférences",
+    subscription: "Abonnement",
+    tickets: "Tickets & Support",
+    access: "Utilisateurs & accès",
+    help: "Support",
+  }
+
+  const settingsLabel = "Paramètres"
+  const currentLabel =
+    (currentSettingsPage && labels[currentSettingsPage]) || null
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -23,15 +45,23 @@ export default function DashboardLayout() {
           />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
+              {currentLabel ? (
+                <>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink asChild>
+                      <Link to="/dashboard/settings/account">{settingsLabel}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{currentLabel}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              ) : (
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{settingsLabel}</BreadcrumbPage>
+                </BreadcrumbItem>
+              )}
             </BreadcrumbList>
           </Breadcrumb>
         </div>

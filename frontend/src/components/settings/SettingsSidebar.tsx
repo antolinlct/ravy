@@ -5,16 +5,32 @@ import { Link, useLocation } from "react-router-dom"
 import { navMainSettings } from "./nav-main-settings"
 import { Card } from "@/components/ui/card"
 import { supabase } from "@/lib/supabaseClient"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  AlertDialogCancel
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 export function SettingsSidebar() {
   const location = useLocation()
+  const [loading, setLoading] = useState(false)
 
   async function handleLogout() {
     try {
+      setLoading(true)
       await supabase.auth.signOut()
     } catch (err) {
       console.error("Supabase signOut error:", err)
     } finally {
+      setLoading(false)
       localStorage.removeItem("user_id")
       localStorage.removeItem("current_establishment_id")
       window.location.href = "/login"
@@ -34,18 +50,40 @@ export function SettingsSidebar() {
               const isActive = location.pathname === item.url
               if (item.isLogout) {
                 return (
-                  <button
-                    key={item.title}
-                    type="button"
-                    onClick={handleLogout}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                      "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4 shrink-0" />
-                    <span>{item.title}</span>
-                  </button>
+                  <AlertDialog key={item.title}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                          "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        <span>{item.title}</span>
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmer la déconnexion</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Voulez-vous vraiment vous déconnecter ? Vous devrez vous reconnecter pour revenir.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction asChild>
+                          <Button
+                            variant="destructive"
+                            disabled={loading}
+                            onClick={handleLogout}
+                          >
+                            Se déconnecter
+                          </Button>
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )
               }
 
