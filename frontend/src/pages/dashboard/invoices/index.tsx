@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -550,15 +549,15 @@ export default function InvoicesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-left whitespace-nowrap pr-3">
-                        <Badge variant="secondary" className="inline-flex min-w-[72px] justify-center text-sm font-sm">
+                        <Badge variant="secondary" className="inline-flex min-w-[72px] justify-center text-sm">
                           {invoice.ht}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-left whitespace-nowrap pr-3">
-                        <span className="inline-flex min-w-[72px] justify-center text-sm font-sm">{invoice.tva}</span>
+                        <span className="inline-flex min-w-[72px] justify-center text-sm">{invoice.tva}</span>
                       </TableCell>
                       <TableCell className="text-left whitespace-nowrap pr-3">
-                        <Badge className="inline-flex min-w-[72px] justify-center text-sm font-sm" variant="outline">
+                        <Badge className="inline-flex min-w-[72px] justify-center text-sm" variant="outline">
                           {invoice.ttc}
                         </Badge>
                       </TableCell>

@@ -301,7 +301,7 @@ export default function SuppliersPage() {
                         <Label className="text-foreground">Fournisseurs source</Label>
                         <MultipleCombobox
                           className="w-full"
-                          triggerClassName="h-20 min-h-20"
+                          triggerClassName="h-20 min-h-[5rem]"
                           maxShownItems={6}
                           placeholder="Sélectionner les fournisseurs à fusionner"
                           items={supplierOptions}
