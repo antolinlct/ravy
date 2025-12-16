@@ -123,19 +123,21 @@ export default function SubscriptionPage() {
                     {activeAddons.map((addon) => (
                       <div
                         key={addon.name}
-                        className="rounded-md border border-green-200 bg-green-50 p-3 space-y-2 shadow-sm"
+                        className="rounded-md border border-green-200 bg-green-50 p-3 space-y-2 shadow-sm dark:border-green-500/30 dark:bg-green-500/10"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-base font-semibold">{addon.name}</span>
-                          <Badge className="border-none bg-green-500/20 text-green-800 text-xs">Actif</Badge>
+                          <span className="text-base font-semibold text-green-900 dark:text-green-100">{addon.name}</span>
+                          <Badge className="border-none bg-green-500/20 text-green-800 text-xs dark:bg-green-500/15 dark:text-green-100">
+                            Actif
+                          </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{addon.detail}</p>
                         <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-green-800">{addon.price}</span>
+                          <span className="font-medium text-green-800 dark:text-green-100">{addon.price}</span>
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-green-800 hover:text-green-900 hover:bg-green-100"
+                            className="text-green-800 hover:text-green-900 hover:bg-green-100 dark:text-green-100 dark:hover:text-green-50 dark:hover:bg-green-500/20"
                           >
                             Retirer
                           </Button>
