@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDownIcon } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronDownIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type DatePickerProps = {
-  label?: string
+  label?: React.ReactNode
   placeholder?: string
   value?: Date
   defaultValue?: Date
@@ -21,7 +21,18 @@ type DatePickerProps = {
   className?: string
   buttonClassName?: string
   fromDate?: Date
+  leadingIcon?: React.ReactNode
+  displayFormat?: "long" | "short"
 }
+
+const isSameDay = (a?: Date, b?: Date) =>
+  (a && b && a.getTime() === b.getTime()) || (!a && !b)
+const isSameMonth = (a?: Date, b?: Date) =>
+  (a &&
+    b &&
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth()) ||
+  (!a && !b)
 
 export function DatePicker({
   label,
@@ -32,10 +43,15 @@ export function DatePicker({
   className,
   buttonClassName,
   fromDate,
+  leadingIcon,
+  displayFormat = "long",
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [internalDate, setInternalDate] = React.useState<Date | undefined>(
     defaultValue
+  )
+  const [month, setMonth] = React.useState<Date>(
+    value ?? defaultValue ?? fromDate ?? new Date()
   )
 
   const selected = value ?? internalDate
@@ -43,6 +59,9 @@ export function DatePicker({
   const handleSelect = (nextDate?: Date) => {
     if (!value) {
       setInternalDate(nextDate)
+    }
+    if (nextDate && !isSameMonth(nextDate, month)) {
+      setMonth(nextDate)
     }
     onChange?.(nextDate)
     setOpen(false)
@@ -54,6 +73,71 @@ export function DatePicker({
       return date.getTime() < fromDate.getTime()
     },
     [fromDate]
+  )
+
+  const getFirstAvailableDay = React.useCallback(
+    (monthDate: Date) => {
+      const year = monthDate.getFullYear()
+      const month = monthDate.getMonth()
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      for (let day = 1; day <= daysInMonth; day++) {
+        const candidate = new Date(year, month, day)
+        if (!isDisabled(candidate)) {
+          return candidate
+        }
+      }
+      return undefined
+    },
+    [isDisabled]
+  )
+
+  const handleMonthChange = (month: Date) => {
+    setMonth(month)
+    const firstDay = getFirstAvailableDay(month)
+    if (!firstDay || isSameDay(firstDay, selected)) return
+
+    if (!value) {
+      setInternalDate(firstDay)
+    }
+    onChange?.(firstDay)
+  }
+
+  React.useEffect(() => {
+    const target = value ?? defaultValue
+    if (target && !isSameMonth(target, month)) {
+      setMonth(target)
+    }
+  }, [value, defaultValue, month])
+
+  const formatDate = React.useCallback(
+    (date: Date) => {
+      if (displayFormat === "short") {
+        return date.toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+        })
+      }
+
+      const months = [
+        "Janv",
+        "Fevr",
+        "Mars",
+        "Avr",
+        "Mai",
+        "Juin",
+        "Juil",
+        "Aout",
+        "Sept",
+        "Oct",
+        "Nov",
+        "Dec",
+      ]
+      const day = String(date.getDate()).padStart(2, "0")
+      const monthLabel = months[date.getMonth()] ?? ""
+      return `${day} ${monthLabel}, ${date.getFullYear()}`
+    },
+    [displayFormat]
   )
 
   return (
@@ -72,10 +156,13 @@ export function DatePicker({
               buttonClassName
             )}
           >
-            {selected
-              ? selected.toLocaleDateString("fr-FR")
-              : placeholder}
-            <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="flex items-center gap-2">
+              {leadingIcon ?? (
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              )}
+              {selected ? formatDate(selected) : placeholder}
+            </span>
+            <ChevronDownIcon className="h-4 w-4 text-muted-foreground" aria-hidden />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto overflow-hidden p-0" align="start">
@@ -83,10 +170,12 @@ export function DatePicker({
             mode="single"
             selected={selected}
             captionLayout="dropdown"
+            month={month}
             fromDate={fromDate}
             fromYear={fromDate?.getFullYear()}
             disabled={isDisabled}
             onSelect={handleSelect}
+            onMonthChange={handleMonthChange}
           />
         </PopoverContent>
       </Popover>

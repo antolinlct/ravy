@@ -37,7 +37,10 @@ import { useEffect, useRef, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
-import { DatePicker } from "@/components/blocks/date_picker"
+import {
+  DoubleDatePicker,
+  type DoubleDatePickerValue,
+} from "@/components/blocks/double-datepicker"
 import {
   Sheet,
   SheetContent,
@@ -168,42 +171,20 @@ export default function InvoicesPage() {
     }
   }, [])
 
-  const handleStartDateChange = (date?: Date) => {
-    setStartDate(date)
-    if (date) {
-      const needsAdjust = endDate && endDate < date
-      if (needsAdjust) {
-        const nextDay = new Date(date.getTime() + 24 * 60 * 60 * 1000)
-        setEndDate(nextDay)
-      }
-    }
+  const handleFilterDatesChange = ({
+    startDate: nextStart,
+    endDate: nextEnd,
+  }: DoubleDatePickerValue) => {
+    setStartDate(nextStart)
+    setEndDate(nextEnd)
   }
 
-  const handleEndDateChange = (date?: Date) => {
-    if (date && startDate && date < startDate) {
-      setEndDate(startDate)
-      return
-    }
-    setEndDate(date)
-  }
-
-  const handleExportStartDateChange = (date?: Date) => {
-    setExportStartDate(date)
-    if (date) {
-      const needsAdjust = exportEndDate && exportEndDate < date
-      if (needsAdjust) {
-        const nextDay = new Date(date.getTime() + 24 * 60 * 60 * 1000)
-        setExportEndDate(nextDay)
-      }
-    }
-  }
-
-  const handleExportEndDateChange = (date?: Date) => {
-    if (date && exportStartDate && date < exportStartDate) {
-      setExportEndDate(exportStartDate)
-      return
-    }
-    setExportEndDate(date)
+  const handleExportDatesChange = ({
+    startDate: nextStart,
+    endDate: nextEnd,
+  }: DoubleDatePickerValue) => {
+    setExportStartDate(nextStart)
+    setExportEndDate(nextEnd)
   }
 
   const filterInvoices = (
@@ -366,22 +347,13 @@ export default function InvoicesPage() {
                 <CardDescription>Consultez ici vos documents comptables</CardDescription>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-                <DatePicker
-                  label="Du"
-                  value={startDate}
-                  onChange={handleStartDateChange}
-                  buttonClassName="w-[140px]"
-                  fromDate={minDate}
-                />
-                <div className="hidden sm:flex self-end pb-3">
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <DatePicker
-                  label="Au"
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  buttonClassName="w-[140px]"
-                  fromDate={startDate ?? minDate}
+                <DoubleDatePicker
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={minDate}
+                  onChange={handleFilterDatesChange}
+                  startButtonClassName="w-[140px]"
+                  endButtonClassName="w-[140px]"
                 />
                 <div className="flex flex-col gap-2 self-start">
                   <label className="text-xs font-medium text-muted-foreground">Trier par fournisseur</label>
@@ -399,7 +371,7 @@ export default function InvoicesPage() {
                   </span>
                   <Sheet open={sheetOpen} onOpenChange={handleSheetToggle}>
                     <SheetTrigger asChild>
-                      <Button variant="outline" className="gap-2">
+                      <Button>
                         Exporter
                         <ArrowDownToLine className="h-4 w-4" />
                       </Button>
@@ -413,19 +385,15 @@ export default function InvoicesPage() {
                       </SheetHeader>
                       <div className="mt-6 space-y-4">
                         <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
-                          <DatePicker
-                            label="Du"
-                            value={exportStartDate}
-                            onChange={handleExportStartDateChange}
-                            buttonClassName="w-full"
-                            fromDate={minDate}
-                          />
-                          <DatePicker
-                            label="Au"
-                            value={exportEndDate}
-                            onChange={handleExportEndDateChange}
-                            buttonClassName="w-full"
-                            fromDate={exportStartDate ?? minDate}
+                          <DoubleDatePicker
+                            startDate={exportStartDate}
+                            endDate={exportEndDate}
+                            minDate={minDate}
+                            onChange={handleExportDatesChange}
+                            startButtonClassName="w-full"
+                            endButtonClassName="w-full"
+                            showSeparator={false}
+                            className="sm:col-span-2"
                           />
                           <div className="sm:col-span-2 space-y-2">
                             <label className="text-xs font-medium text-muted-foreground">Fournisseurs</label>
