@@ -11,7 +11,7 @@
 # ============================================
 # Schémas & contrats auto-générés
 schemas_summary.json
-contracts_summary.json
+
 
 # Dossiers de génération locale (non versionnés)
 backend/scripts/__pycache__/
