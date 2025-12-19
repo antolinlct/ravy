@@ -30,10 +30,7 @@ import { useEffect, useRef, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
-import {
-  DoubleDatePicker,
-  type DoubleDatePickerValue,
-} from "@/components/blocks/double-datepicker"
+import { DoubleDatePicker, type DoubleDatePickerValue } from "@/components/blocks/double-datepicker"
 import {
   Sheet,
   SheetContent,
@@ -345,8 +342,8 @@ export default function InvoicesPage() {
                   endDate={endDate}
                   minDate={minDate}
                   onChange={handleFilterDatesChange}
-                  startButtonClassName="w-[140px]"
-                  endButtonClassName="w-[140px]"
+                  startButtonClassName="w-[160px]"
+                  endButtonClassName="w-[160px]"
                 />
                 <div className="flex flex-col gap-2 self-start">
                   <label className="text-xs font-medium text-muted-foreground">Trier par fournisseur</label>

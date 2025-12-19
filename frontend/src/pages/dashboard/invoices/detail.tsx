@@ -3,12 +3,15 @@ import {
   ArrowLeft,
   Download,
   Trash2,
-  RefreshCcw,
   Pencil,
   UnfoldHorizontal,
   FoldHorizontal,
   ArrowUp,
   ArrowDown,
+  Wallet,
+  Percent,
+  TicketPercent,
+  BadgeEuro,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
@@ -16,8 +19,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
-import DialogArticleChart from "@/components/blocks/dialog-article-chart"
+import { AreaChart as AreaChartBlock } from "@/components/blocks/area-chart"
 import PdfToolbar from "@/components/blocks/pdf-toolbar"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,6 +95,19 @@ const ZOOM_MIN = 0.25
 const ZOOM_MAX = 3
 const ZOOM_STEP = 0.1
 const PINCH_SENSITIVITY = 350
+// Données fictives pour tests (janvier-février 2025)
+const mockPriceHistory = [
+  { date: new Date("2025-01-03"), value: 6.1, label: "03 jan" },
+  { date: new Date("2025-01-07"), value: 6.4, label: "07 jan" },
+  { date: new Date("2025-01-12"), value: 6.8, label: "12 jan" },
+  { date: new Date("2025-01-18"), value: 6.5, label: "18 jan" },
+  { date: new Date("2025-01-22"), value: 6.9, label: "22 jan" },
+  { date: new Date("2025-01-28"), value: 7.2, label: "28 jan" },
+  { date: new Date("2025-02-02"), value: 7.0, label: "02 fév" },
+  { date: new Date("2025-02-08"), value: 7.4, label: "08 fév" },
+  { date: new Date("2025-02-14"), value: 7.8, label: "14 fév" },
+  { date: new Date("2025-02-20"), value: 7.6, label: "20 fév" },
+]
 
 const computeUnitPriceGross = (item: (typeof mockInvoice.items)[number]) => {
   const base = parseNumber(item.unitPrice)
@@ -139,6 +164,7 @@ export default function InvoiceDetailPage() {
   })
   const [articlesExpanded, setArticlesExpanded] = useState(false)
   const [chartOpenIndex, setChartOpenIndex] = useState<number | null>(null)
+  const [metricByItem, setMetricByItem] = useState<Record<string, string>>({})
   const [zoom, setZoom] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
   const pageRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -432,27 +458,21 @@ export default function InvoiceDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-12 items-start">
         <Card
-          className={`border-dashed lg:col-span-5 overflow-hidden ${articlesExpanded ? "lg:max-h-[244px]" : ""}`}
+          className={`lg:col-span-5 overflow-hidden ${articlesExpanded ? "lg:max-h-[244px]" : ""}`}
         >
           {!articlesExpanded && (
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="space-y-2">
-                <CardTitle>Document</CardTitle>
-                <CardDescription>Facture importée le {invoice.importedAt}</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="secondary" className="gap-2">
-                  <RefreshCcw className="h-4 w-4" />
-                  Remplacer
-                </Button>
-              </div>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2.5 px-4">
+              <CardTitle className="text-lg">Document</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Importée le {invoice.importedAt}
+              </CardDescription>
             </CardHeader>
           )}
           <CardContent className="p-0">
             <div className="relative">
               <div
-                className={`max-h-[75vh] overflow-auto border-t bg-muted/40 [scrollbar-width:thin] [scrollbar-color:var(--muted)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/60 [&::-webkit-scrollbar-track]:bg-transparent ${
-                  articlesExpanded ? "h-[244px]" : ""
+                className={`max-h-[80vh] overflow-auto border-t bg-muted/40 [scrollbar-width:thin] [scrollbar-color:var(--muted)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/60 [&::-webkit-scrollbar-track]:bg-transparent ${
+                  articlesExpanded ? "h-[280px]" : ""
                 }`}
                 ref={readerRef}
                 onWheel={handlePinchZoom}
@@ -653,17 +673,12 @@ export default function InvoiceDetailPage() {
                     </TableHeader>
                     <TableBody>
                       {invoice.items.map((item, index) => (
-                        <DialogArticleChart
+                        <Dialog
                           key={item.name}
-                          articleName={item.name}
-                          currency="EUR"
-                          currentValue={parseNumber(item.unitPrice)}
-                          changePercent={parseNumber(item.delta)}
                           open={chartOpenIndex === index}
-                          onOpenChange={(open) =>
-                            setChartOpenIndex(open ? index : null)
-                          }
-                          trigger={
+                          onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
+                        >
+                          <DialogTrigger asChild>
                             <TableRow
                               role="button"
                               tabIndex={0}
@@ -707,8 +722,71 @@ export default function InvoiceDetailPage() {
                                 </TooltipProvider>
                               </TableCell>
                             </TableRow>
-                          }
-                        />
+                          </DialogTrigger>
+                          <DialogContent className="w-full sm:w-[1020px] max-w-[98vw] sm:!max-w-[1100px] bg-transparent p-0 border-none shadow-none">
+                              <AreaChartBlock
+                                data={mockPriceHistory}
+                                title={`Prix unitaire - ${item.name}`}
+                                primaryValue={mockPriceHistory.at(-1)?.value ?? parseNumber(item.unitPrice)}
+                                primaryValueFormatter={(v) => formatEuroFromNumber(v)}
+                                changePercent={parseNumber(item.delta)}
+                              currency="EUR"
+                              defaultInterval="day"
+                              showDatePicker
+                              showIntervalTabs
+                              enableZoom
+                              minYPadding={2}
+                              areaColor="var(--chart-1)"
+                              tooltipLabel={metricByItem[item.name] ?? "Prix unitaire"}
+                              tooltipValueFormatter={(v) => formatEuroFromNumber(v)}
+                              yTickFormatter={(v) => formatEuroFromNumber(v)}
+                              actions={
+                                <Select
+                                  value={metricByItem[item.name] ?? "Prix unitaire"}
+                                  onValueChange={(value) =>
+                                    setMetricByItem((prev) => ({ ...prev, [item.name]: value }))
+                                  }
+                                >
+                                  <SelectTrigger className="w-fit min-w-[160px] bg-background dark:bg-secondary shadow-none">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectGroup>
+                                      <SelectLabel className="text-xs font-normal text-muted-foreground">
+                                        Données
+                                      </SelectLabel>
+                                      <SelectItem value="Prix unitaire">
+                                        <span className="flex items-center gap-2">
+                                          <Wallet className="size-4" color="var(--muted-foreground)" />
+                                          Prix unitaire
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="Taxes">
+                                        <span className="flex items-center gap-2">
+                                          <Percent className="size-4" color="var(--muted-foreground)" />
+                                          Taxes
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="Réductions">
+                                        <span className="flex items-center gap-2">
+                                          <TicketPercent className="size-4" color="var(--muted-foreground)" />
+                                          Réductions
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="Prix brut">
+                                        <span className="flex items-center gap-2">
+                                          <BadgeEuro className="size-4" color="var(--muted-foreground)" />
+                                          Prix brut
+                                        </span>
+                                      </SelectItem>
+                                    </SelectGroup>
+                                  </SelectContent>
+                                </Select>
+                              }
+                              margin={{ left: -15, right: 20, top: 0, bottom: 0 }}
+                            />
+                          </DialogContent>
+                        </Dialog>
                       ))}
                     </TableBody>
                   </Table>
@@ -754,17 +832,12 @@ export default function InvoiceDetailPage() {
                     </TableHeader>
                   <TableBody>
                     {invoice.items.map((item, index) => (
-                      <DialogArticleChart
+                      <Dialog
                         key={`${item.name}-extended`}
-                        articleName={item.name}
-                        currency="EUR"
-                        currentValue={parseNumber(item.unitPrice)}
-                        changePercent={parseNumber(item.delta)}
                         open={chartOpenIndex === index}
-                        onOpenChange={(open) =>
-                          setChartOpenIndex(open ? index : null)
-                        }
-                        trigger={
+                        onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
+                      >
+                        <DialogTrigger asChild>
                           <TableRow
                             role="button"
                             tabIndex={0}
@@ -822,8 +895,71 @@ export default function InvoiceDetailPage() {
                               </TooltipProvider>
                             </TableCell>
                           </TableRow>
-                        }
-                      />
+                        </DialogTrigger>
+                        <DialogContent className="w-full sm:w-[1020px] max-w-[98vw] sm:!max-w-[1100px] bg-transparent p-0 border-none shadow-none">
+                          <AreaChartBlock
+                            data={mockPriceHistory}
+                            title={`Prix unitaire - ${item.name}`}
+                            primaryValue={mockPriceHistory.at(-1)?.value ?? parseNumber(item.unitPrice)}
+                            primaryValueFormatter={(v) => formatEuroFromNumber(v)}
+                            changePercent={parseNumber(item.delta)}
+                            currency="EUR"
+                            defaultInterval="day"
+                            showDatePicker
+                            showIntervalTabs
+                            enableZoom
+                            minYPadding={2}
+                            areaColor="var(--chart-1)"
+                            tooltipLabel={metricByItem[item.name] ?? "Prix unitaire"}
+                            tooltipValueFormatter={(v) => formatEuroFromNumber(v)}
+                            yTickFormatter={(v) => formatEuroFromNumber(v)}
+                            actions={
+                              <Select
+                                value={metricByItem[item.name] ?? "Prix unitaire"}
+                                onValueChange={(value) =>
+                                  setMetricByItem((prev) => ({ ...prev, [item.name]: value }))
+                                }
+                              >
+                                <SelectTrigger className="w-fit min-w-[160px] bg-background dark:bg-secondary shadow-none">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectGroup>
+                                    <SelectLabel className="text-xs font-normal text-muted-foreground">
+                                      Données
+                                    </SelectLabel>
+                                    <SelectItem value="Prix unitaire">
+                                      <span className="flex items-center gap-2">
+                                        <Wallet className="size-4" color="var(--muted-foreground)" />
+                                        Prix unitaire
+                                      </span>
+                                    </SelectItem>
+                                    <SelectItem value="Taxes">
+                                      <span className="flex items-center gap-2">
+                                        <Percent className="size-4" color="var(--muted-foreground)" />
+                                        Taxes
+                                      </span>
+                                    </SelectItem>
+                                    <SelectItem value="Réductions">
+                                      <span className="flex items-center gap-2">
+                                        <TicketPercent className="size-4" color="var(--muted-foreground)" />
+                                        Réductions
+                                      </span>
+                                    </SelectItem>
+                                    <SelectItem value="Prix brut">
+                                      <span className="flex items-center gap-2">
+                                        <BadgeEuro className="size-4" color="var(--muted-foreground)" />
+                                        Prix brut
+                                      </span>
+                                    </SelectItem>
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            }
+                            margin={{ left: -15, right: 20, top: 0, bottom: 0 }}
+                          />
+                        </DialogContent>
+                      </Dialog>
                     ))}
                   </TableBody>
                 </Table>

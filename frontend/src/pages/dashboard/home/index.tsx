@@ -16,12 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
 import { Separator } from "@/components/ui/separator"
-import {
-  ChartContainer,
-  ChartTooltip,
-  type ChartConfig,
-} from "@/components/ui/chart"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { AreaChart as AreaChartBlock } from "@/components/blocks/area-chart"
 
 export default function DashboardHomePage() {
   const user = useUser()
@@ -184,25 +179,7 @@ export default function DashboardHomePage() {
     }))
   }, [])
 
-  const yAxisTicks = useMemo(() => {
-    if (!marginSeries.length) return []
-    const values = marginSeries.map((entry) => entry.value)
-    const minVal = Math.min(...values)
-    const maxVal = Math.max(...values)
-    const range = Math.max(maxVal - minVal, 1)
-    const padding = range * 0.1
-    const start = Math.max(0, minVal - padding)
-    const end = maxVal + padding
-    const step = (end - start) / 4
-    return Array.from({ length: 5 }, (_, i) => start + step * i)
-  }, [marginSeries])
-
-  const marginChartConfig: ChartConfig = {
-    value: {
-      label: "Marge moyenne",
-      color: "var(--chart-1)",
-    },
-  }
+  const marginData = useMemo(() => marginSeries.slice(-5), [marginSeries])
 
   const formatShortDate = (iso: string) => {
     const d = new Date(iso)
@@ -486,51 +463,32 @@ export default function DashboardHomePage() {
             <CardContent className="p-6 gap-4 flex flex-col h-full">
               <div className="flex items-center justify-between">
                 <CardTitle>Marge moyenne de vos recettes</CardTitle>
-                <p className="text-xs text-muted-foreground"> 7 dernières dates </p>
+                <p className="text-xs text-muted-foreground"> 5 dernières dates </p>
               </div>
-              <div className="mt-4 w-full">
-                <ChartContainer config={marginChartConfig} className="h-[290px] w-full">
-                  <AreaChart
-                    data={marginSeries}
-                    margin={{ left: -20, right: 20, bottom: 0, top: 10 }}
-                    accessibilityLayer
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      interval={0}
-                      style={{ fontSize: 12 }}
-                      tickFormatter={(value: string) => formatShortDate(value)}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      ticks={yAxisTicks}
-                      tickFormatter={(value: number) => `${Math.round(value)}%`}
-                      domain={
-                        yAxisTicks.length
-                          ? [yAxisTicks[0], yAxisTicks[yAxisTicks.length - 1]]
-                          : [0, "auto"]
-                      }
-                      style={{ fontSize: 12 }}
-                    />
-                    <ChartTooltip cursor={{ stroke: "var(--border)" }} />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="var(--color-value)"
-                      fill="var(--color-value)"
-                      fillOpacity={0.2}
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
+              <div className="mt-6 w-full">
+                <AreaChartBlock
+                  data={marginData}
+                  variant="bare"
+                  showHeader={false}
+                  defaultInterval="day"
+                  showDatePicker={false}
+                  showIntervalTabs={false}
+                  enableZoom={false}
+                  enableWheelZoom={false}
+                  minYPadding={2}
+                  height={280}
+                  areaColor="var(--chart-1)"
+                  tooltipLabel="Marge"
+                  tooltipValueFormatter={(v) => `${diffNumberFormatter.format(v)}%`}
+                  xTickFormatter={(date) =>
+                    formatShortDate(date instanceof Date ? date.toISOString().slice(0, 10) : `${date}`)
+                  }
+                  yTickFormatter={(value) => `${Math.round(value)}%`}
+                  xAxisProps={{
+                    interval: 0,
+                  }}
+                  chartClassName="h-[290px]"
+                />
               </div>
             </CardContent>
           </Card>
