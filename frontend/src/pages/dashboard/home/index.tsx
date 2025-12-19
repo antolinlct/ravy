@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   ChefHat,
+  ArrowRight,
   ChevronRight,
   HandCoins,
   Trash2,
@@ -15,6 +16,12 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
 import { Separator } from "@/components/ui/separator"
+import {
+  ChartContainer,
+  ChartTooltip,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 export default function DashboardHomePage() {
   const user = useUser()
@@ -149,6 +156,65 @@ export default function DashboardHomePage() {
     const unitDiff = item.unitPaid - item.unitMarket
     return sum + Math.max(0, unitDiff) * item.monthlyQty
   }, 0)
+
+  const recipeMargins = useMemo(
+    () => [
+      { id: "r-1", name: "Tarte pralines", marginValue: 98.26, margin: "98,26%", active: true, saleable: true },
+      { id: "r-2", name: "Salade Lyonnaise XL", marginValue: 79.65, margin: "79,65%", active: false, saleable: true },
+      { id: "r-3", name: "Pâte à tarte", marginValue: null, margin: "—", active: false, saleable: false },
+      { id: "r-4", name: "Tarte citron", marginValue: 86.14, margin: "86,14%", active: true, saleable: true },
+      { id: "r-5", name: "Brownie chocolat", marginValue: 86.92, margin: "86,92%", active: true, saleable: true },
+      { id: "r-6", name: "Crème brûlée", marginValue: 72.18, margin: "72,18%", active: true, saleable: true },
+      { id: "r-7", name: "Soupe courge", marginValue: 68.5, margin: "68,50%", active: true, saleable: true },
+    ],
+    []
+  )
+
+  const marginSeries = useMemo(() => {
+    const today = new Date()
+    const days = Array.from({ length: 7 }, (_, idx) => {
+      const d = new Date(today)
+      d.setDate(today.getDate() - (6 - idx))
+      return d
+    })
+    const samples = [68.5, 69.1, 70.2, 70.9, 71.3, 71.9, 72.4]
+    return days.map((d, idx) => ({
+      date: d.toISOString().slice(0, 10),
+      value: samples[idx] ?? samples[samples.length - 1],
+    }))
+  }, [])
+
+  const yAxisTicks = useMemo(() => {
+    if (!marginSeries.length) return []
+    const values = marginSeries.map((entry) => entry.value)
+    const minVal = Math.min(...values)
+    const maxVal = Math.max(...values)
+    const range = Math.max(maxVal - minVal, 1)
+    const padding = range * 0.1
+    const start = Math.max(0, minVal - padding)
+    const end = maxVal + padding
+    const step = (end - start) / 4
+    return Array.from({ length: 5 }, (_, i) => start + step * i)
+  }, [marginSeries])
+
+  const marginChartConfig: ChartConfig = {
+    value: {
+      label: "Marge moyenne",
+      color: "var(--chart-1)",
+    },
+  }
+
+  const formatShortDate = (iso: string) => {
+    const d = new Date(iso)
+    return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
+  }
+
+  const topLowMargin = useMemo(() => {
+    return recipeMargins
+      .filter((r) => r.active && r.saleable && r.marginValue !== null)
+      .sort((a, b) => (a.marginValue ?? 0) - (b.marginValue ?? 0))
+      .slice(0, 5)
+  }, [recipeMargins])
 
   useEffect(() => {
     const root = variationsScrollRef.current
@@ -416,11 +482,55 @@ export default function DashboardHomePage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-10">
-          <Card className="md:col-span-6">
-            <CardContent className="p-6">
+          <Card className="md:col-span-6 h-full">
+            <CardContent className="p-6 gap-4 flex flex-col h-full">
               <div className="flex items-center justify-between">
                 <CardTitle>Marge moyenne de vos recettes</CardTitle>
-                <p className="text-xs text-muted-foreground"> 7 derniers jours </p>
+                <p className="text-xs text-muted-foreground"> 7 dernières dates </p>
+              </div>
+              <div className="mt-4 w-full">
+                <ChartContainer config={marginChartConfig} className="h-[290px] w-full">
+                  <AreaChart
+                    data={marginSeries}
+                    margin={{ left: -20, right: 20, bottom: 0, top: 10 }}
+                    accessibilityLayer
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      interval={0}
+                      style={{ fontSize: 12 }}
+                      tickFormatter={(value: string) => formatShortDate(value)}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      ticks={yAxisTicks}
+                      tickFormatter={(value: number) => `${Math.round(value)}%`}
+                      domain={
+                        yAxisTicks.length
+                          ? [yAxisTicks[0], yAxisTicks[yAxisTicks.length - 1]]
+                          : [0, "auto"]
+                      }
+                      style={{ fontSize: 12 }}
+                    />
+                    <ChartTooltip cursor={{ stroke: "var(--border)" }} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--color-value)"
+                      fill="var(--color-value)"
+                      fillOpacity={0.2}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                  </AreaChart>
+                </ChartContainer>
               </div>
             </CardContent>
           </Card>
@@ -432,6 +542,26 @@ export default function DashboardHomePage() {
                 <Button variant="link" className="p-0 h-6 text-muted-foreground hover:text-foreground">
                   Voir plus
                 </Button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {topLowMargin.map((recipe) => (
+                  <div
+                    key={recipe.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 hover:bg-muted/60 px-3 py-2 shadow-sm"
+                  >
+                    <div className="flex flex-col">
+                      <p className="text-sm text-foreground">{recipe.name}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold">
+                        {recipe.margin}
+                      </span>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <ArrowRight className="h-4 w-4 text-[#848484]" color="#848484" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

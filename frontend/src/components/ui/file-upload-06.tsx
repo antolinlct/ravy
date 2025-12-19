@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
-import { Upload, FileText, Loader2, Trash2 } from "lucide-react";
+import { Upload, FileText, Trash2 } from "lucide-react";
 
 interface UploadItem {
   id: string;
@@ -121,7 +121,6 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
         >
           <div className="max-h-[150px] overflow-y-auto rounded-md border bg-muted/30 divide-y">
             {uploads.map((file) => {
-              const isUploading = file.status === "uploading";
               const progressLabel =
                 file.progress >= 100 ? "Prêt à importer" : `${file.progress}%`;
               return (

@@ -97,6 +97,11 @@ app.include_router(write_logic_router)
 from app.api.routes.wakeuppers import wake_invoice
 app.include_router(wake_invoice.router)
 
+# Routes PDF Recipes
+from app.api.routes import pdf_recipes
+app.include_router(pdf_recipes.router)
+
+
 
 
 

@@ -50,7 +50,6 @@ export function PdfToolbar({
   collapsed = false,
   onToggleCollapse,
 }: PdfToolbarProps) {
-  const zoomValue = Math.round(zoom * 100)
   const isZoomOutDisabled = zoom <= minZoom
   const isZoomInDisabled = zoom >= maxZoom
   const hasMultiplePages = pageCount > 1

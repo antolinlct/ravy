@@ -57,7 +57,7 @@ export default function UsersSupportPage() {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState("staff")
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [, setLoading] = useState(false)
   const [listLoading, setListLoading] = useState(false)
   const [listError, setListError] = useState("")
   const [rows, setRows] = useState<AccessRow[]>([])

@@ -20,6 +20,7 @@
   },
   "registries": {
     "@shadcndesign": "https://shadcndesign-free.vercel.app/r/{name}.json",
-    "@blocks": "https://blocks.so/r/{name}.json"
+    "@blocks": "https://blocks.so/r/{name}.json",
+    "@shadcn-editor": "https://shadcn-editor.vercel.app/r/{name}.json"
   }
 }

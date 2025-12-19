@@ -8,10 +8,9 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 
 interface EstablishmentStepProps {
   onDone: (establishmentId?: string) => void
-  userId?: string
 }
 
-export function EstablishmentStep({ onDone, userId }: EstablishmentStepProps) {
+export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<1 | 2>(1)

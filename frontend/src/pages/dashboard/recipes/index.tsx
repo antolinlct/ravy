@@ -70,6 +70,8 @@ import {
   CircleCheck,
   CircleHelp,
   ChevronsUpDown,
+  ChevronUp,
+  ChevronDown,
   Check,
   Copy,
   CircleX,
@@ -192,6 +194,13 @@ const filterSubCategoryByCategory: Record<
   ],
 }
 
+const parseCurrency = (value: string | null | undefined) => {
+  if (!value) return null
+  const normalized = value.replace(/[^\d,.-]/g, "").replace(",", ".")
+  const num = parseFloat(normalized)
+  return Number.isFinite(num) ? num : null
+}
+
 export default function RecipesPage() {
   const navigate = useNavigate()
   const creationProgress = 24
@@ -219,6 +228,8 @@ export default function RecipesPage() {
   const [listSubCategory, setListSubCategory] = useState<string>("__all__")
   const [recipeSearchOpen, setRecipeSearchOpen] = useState(false)
   const [recipeSearchValue, setRecipeSearchValue] = useState("")
+  const [sortKey, setSortKey] = useState<"name" | "margin" | "portionCost" | "salePrice">("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   const filterSubCategoryOptions = useMemo(() => {
     if (listCategory === "__all__") return []
@@ -241,7 +252,28 @@ export default function RecipesPage() {
     return recipesByCategoryAndSub.filter((recipe) => recipe.id === recipeSearchValue)
   }, [recipeSearchValue, recipesByCategoryAndSub])
 
-  const shouldScrollRecipes = filteredRecipes.length > 8
+  const sortedRecipes = useMemo(() => {
+    const toValue = (recipe: Recipe) => {
+      if (sortKey === "name") return recipe.name?.toLowerCase() ?? ""
+      if (sortKey === "margin") return recipe.marginValue ?? null
+      if (sortKey === "portionCost") return parseCurrency(recipe.portionCost)
+      if (sortKey === "salePrice") return parseCurrency(recipe.salePrice)
+      return null
+    }
+    const comparator = (a: Recipe, b: Recipe) => {
+      const av = toValue(a)
+      const bv = toValue(b)
+      if (av === null && bv === null) return 0
+      if (av === null) return 1
+      if (bv === null) return -1
+      if (av < bv) return sortDir === "asc" ? -1 : 1
+      if (av > bv) return sortDir === "asc" ? 1 : -1
+      return 0
+    }
+    return [...filteredRecipes].sort(comparator)
+  }, [filteredRecipes, sortDir, sortKey])
+
+  const shouldScrollRecipes = sortedRecipes.length > 8
 
   const canCreateRecipe = useMemo(() => {
     return Boolean(recipeName.trim()) && Boolean(recipeCategory) && Boolean(recipeSubCategory)
@@ -327,6 +359,22 @@ export default function RecipesPage() {
     navigate(`/dashboard/recipes/${recipeId}`, { state: { recipeId } })
   }
 
+  const toggleSort = (key: typeof sortKey) => {
+    const nextDir =
+      sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "desc"
+    setSortKey(key)
+    setSortDir(nextDir)
+  }
+
+  const sortIcon = (key: typeof sortKey) => {
+    if (sortKey !== key) return <ChevronsUpDown className="h-4 w-4 opacity-50" />
+    return sortDir === "asc" ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    )
+  }
+
   const handleCreateAttempt = () => {
     setCreateAttempted(true)
 
@@ -340,6 +388,33 @@ export default function RecipesPage() {
       }
       return
     }
+
+    const newId = `r-new-${Date.now()}`
+    const newRecipeForDetail = {
+      id: newId,
+      name: recipeName.trim(),
+      active: false,
+      saleable: false,
+      vatId: "vat-10",
+      recommendedRetailPrice: 0,
+      portions: 1,
+      portionWeightGrams: null,
+      priceInclTax: null,
+      categoryId: recipeCategory,
+      subcategoryId: recipeSubCategory,
+      updatedAt: new Date(),
+      containsSubRecipe: false,
+      technicalDataSheetInstructions: "",
+      technicalDataSheetImagePath: null,
+    }
+
+    navigate(`/dashboard/recipes/${newId}`, {
+      state: {
+        recipe: newRecipeForDetail,
+        ingredients: [],
+        forceSaveOnEntry: true,
+      },
+    })
   }
 
   return (
@@ -678,10 +753,50 @@ export default function RecipesPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="pl-3">
-                        <TableHead className="w-[45%] pl-3 text-left">Recette</TableHead>
-                        <TableHead className="w-32 pr-3 text-left">Coût portion</TableHead>
-                        <TableHead className="w-32 pr-3 text-left">Prix de vente</TableHead>
-                        <TableHead className="w-28 pr-3 text-left">Marge</TableHead>
+                        <TableHead className="w-[45%] pl-3 text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-0 text-left font-semibold"
+                            onClick={() => toggleSort("name")}
+                          >
+                            <span className="mr-1">Recette</span>
+                            {sortIcon("name")}
+                          </Button>
+                        </TableHead>
+                        <TableHead className="w-32 pr-3 text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-0 text-left font-semibold"
+                            onClick={() => toggleSort("portionCost")}
+                          >
+                            <span className="mr-1">Coût portion</span>
+                            {sortIcon("portionCost")}
+                          </Button>
+                        </TableHead>
+                        <TableHead className="w-32 pr-3 text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-0 text-left font-semibold"
+                            onClick={() => toggleSort("salePrice")}
+                          >
+                            <span className="mr-1">Prix de vente</span>
+                            {sortIcon("salePrice")}
+                          </Button>
+                        </TableHead>
+                        <TableHead className="w-28 pr-3 text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-0 text-left font-semibold"
+                            onClick={() => toggleSort("margin")}
+                          >
+                            <span className="mr-1">Marge</span>
+                            {sortIcon("margin")}
+                          </Button>
+                        </TableHead>
                         <TableHead className="w-24 pr-3 text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             <span>Active</span>
@@ -726,7 +841,7 @@ export default function RecipesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredRecipes.map((recipe) => {
+                      {sortedRecipes.map((recipe) => {
                         const isActive = Boolean(activeById[recipe.id])
 
                         return (

@@ -10,7 +10,6 @@ import {
   YAxis,
 } from "recharts"
 import {
-  CalendarClock,
   ArrowDown,
   ArrowUp,
   LineChart,
@@ -25,7 +24,6 @@ import { Button } from "@/components/ui/button"
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
 import {
@@ -104,52 +102,6 @@ const chartConfig = {
     color: "var(--border)",
   },
 } satisfies ChartConfig
-
-type HighlightDotProps = {
-  cx?: number
-  cy?: number
-  text: string
-  align?: "top" | "bottom"
-  color?: string
-}
-
-const HighlightDot = ({
-  cx,
-  cy,
-  text,
-  align = "top",
-  color = "var(--color-value)",
-}: HighlightDotProps) => {
-  if (typeof cx !== "number" || typeof cy !== "number") return null
-
-  const width = Math.max(96, Math.round(text.length * 7.2))
-  const y = align === "top" ? cy - 40 : cy + 12
-
-  return (
-    <g>
-      <circle cx={cx} cy={cy} r={5} fill={color} />
-      <rect
-        x={cx - width / 2}
-        y={y}
-        width={width}
-        height={26}
-        rx={13}
-        fill="#0f172a"
-        opacity={0.9}
-      />
-      <text
-        x={cx}
-        y={y + 17}
-        textAnchor="middle"
-        fill="#fff"
-        fontSize={12}
-        fontWeight={600}
-      >
-        {text}
-      </text>
-    </g>
-  )
-}
 
 /**
  * Usage

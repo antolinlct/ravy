@@ -7,7 +7,6 @@ type OnboardingStep = "establishment" | null
 interface OnboardingModalProps {
   step: OnboardingStep
   onDone: (establishmentId?: string) => void
-  userId?: string | null
   establishmentsCount?: number
   requireAtLeastOne?: boolean
   onClose?: () => void
@@ -16,7 +15,6 @@ interface OnboardingModalProps {
 export function OnboardingModal({
   step,
   onDone,
-  userId,
   establishmentsCount = 0,
   requireAtLeastOne = true,
   onClose,
@@ -57,7 +55,7 @@ export function OnboardingModal({
         )}
 
         {step === "establishment" && (
-          <EstablishmentStep userId={userId ?? undefined} onDone={onDone} />
+          <EstablishmentStep onDone={onDone} />
         )}
       </DialogContent>
     </Dialog>

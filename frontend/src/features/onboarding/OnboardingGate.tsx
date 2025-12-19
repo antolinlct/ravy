@@ -6,7 +6,6 @@ type OnboardingStep = "establishment" | null
 
 export function OnboardingGate() {
   const [step, setStep] = useState<OnboardingStep>(null)
-  const [userId, setUserId] = useState<string | null>(null)
   const [establishmentsCount, setEstablishmentsCount] = useState(0)
 
   const API_URL = import.meta.env.VITE_API_URL
@@ -17,11 +16,8 @@ export function OnboardingGate() {
 
     if (!user) {
       setStep(null)
-      setUserId(null)
       return
     }
-
-    setUserId(user.id)
 
     const res = await fetch(`${API_URL}/user_establishment?user_id=${user.id}`)
     if (!res.ok) {
@@ -51,7 +47,6 @@ export function OnboardingGate() {
   return (
     <OnboardingModal
       step={step}
-      userId={userId}
       establishmentsCount={establishmentsCount}
       onDone={reloadChecks}
     />

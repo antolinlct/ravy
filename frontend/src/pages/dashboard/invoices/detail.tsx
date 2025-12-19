@@ -5,7 +5,6 @@ import {
   Trash2,
   RefreshCcw,
   Pencil,
-  PencilRuler,
   UnfoldHorizontal,
   FoldHorizontal,
   ArrowUp,

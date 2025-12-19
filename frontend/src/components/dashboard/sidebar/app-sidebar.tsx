@@ -234,7 +234,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <TeamSwitcher
           teams={teams}
-          userId={userId}
           onEstablishmentCreated={() => {
             loadEstablishments(userId)
           }}

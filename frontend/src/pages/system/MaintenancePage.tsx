@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Tagline } from "@/components/pro-blocks/landing-page/tagline"
 import { Clock3 } from "lucide-react"
 import { Logo } from "@/assets/branding/Logo"
-import { cn } from "@/lib/utils"
 
 export default function MaintenancePage({
   maintenanceEnd,

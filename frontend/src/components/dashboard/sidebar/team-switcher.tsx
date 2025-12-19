@@ -56,11 +56,9 @@ type Team = {
 export function TeamSwitcher({
   teams,
   onEstablishmentCreated,
-  userId,
 }: {
   teams?: Team[]
   onEstablishmentCreated?: () => void
-  userId?: string | null
 }) {
   const { isMobile, state } = useSidebar()
   const { estId, select } = useEstablishment()
@@ -267,7 +265,6 @@ export function TeamSwitcher({
       </SidebarMenuItem>
       <OnboardingModal
         step={showOnboarding ? "establishment" : null}
-        userId={userId ?? undefined}
         onDone={(createdId) => {
           setShowOnboarding(false)
           if (createdId) {
