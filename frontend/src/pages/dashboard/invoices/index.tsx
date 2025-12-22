@@ -19,14 +19,15 @@ import {
 } from "@/components/ui/table"
 import {
   ArrowRight,
-  ArrowUpDown,
   Copy,
   ArrowDownToLine,
-  PlusCircle,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import FileUpload06 from "@/components/ui/file-upload-06"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
@@ -48,6 +49,7 @@ const sampleInvoices = [
     reference: "N° 4099304911",
     date: "22 Sep. 25",
     dateValue: new Date("2025-09-22"),
+    createdAt: new Date("2025-09-23T10:00:00Z"),
     items: "19 articles",
     ht: "644,18 €",
     tva: "198,88 €",
@@ -61,6 +63,7 @@ const sampleInvoices = [
     reference: "N° 5099305012",
     date: "12 Oct. 25",
     dateValue: new Date("2025-10-12"),
+    createdAt: new Date("2025-10-13T08:30:00Z"),
     items: "8 articles",
     ht: "312,50 €",
     tva: "62,50 €",
@@ -69,7 +72,9 @@ const sampleInvoices = [
   },
 ]
 
-const supplierOptions = [
+type SupplierOption = { value: string; label: string; isPending?: boolean }
+
+const initialSupplierOptions: SupplierOption[] = [
   { value: "france-boissons", label: "France Boissons" },
   { value: "pepsico", label: "PepsiCo" },
   { value: "cocacola", label: "Coca-Cola" },
@@ -99,6 +104,9 @@ export default function InvoicesPage() {
   const [copyLabel, setCopyLabel] = useState("Copier l'adresse")
   const copyTimeoutRef = useRef<number | null>(null)
   const { estId } = useEstablishment()
+  const supplierOptions = initialSupplierOptions
+  const [sortKey, setSortKey] = useState<"createdAt" | "supplier" | "date" | "ht" | "tva" | "ttc">("createdAt")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
   useEffect(() => {
     if (!estId) return
@@ -161,6 +169,7 @@ export default function InvoicesPage() {
     }
   }, [])
 
+
   const handleFilterDatesChange = ({
     startDate: nextStart,
     endDate: nextEnd,
@@ -199,6 +208,36 @@ export default function InvoicesPage() {
     endDate,
     selectedSuppliers
   )
+
+  const toCurrencyNumber = (value?: string) => {
+    if (!value) return null
+    const normalized = value.replace(/[^\d,.-]/g, "").replace(",", ".")
+    const num = parseFloat(normalized)
+    return Number.isFinite(num) ? num : null
+  }
+
+  const sortedInvoices = useMemo(() => {
+    const toValue = (inv: (typeof sampleInvoices)[number]) => {
+      if (sortKey === "createdAt") return inv.createdAt ? inv.createdAt.getTime() : 0
+      if (sortKey === "supplier") return inv.supplier.toLowerCase()
+      if (sortKey === "date") return inv.dateValue ? inv.dateValue.getTime() : 0
+      if (sortKey === "ht") return toCurrencyNumber(inv.ht)
+      if (sortKey === "tva") return toCurrencyNumber(inv.tva)
+      if (sortKey === "ttc") return inv.ttcValue ?? toCurrencyNumber(inv.ttc)
+      return null
+    }
+    const comparator = (a: (typeof sampleInvoices)[number], b: (typeof sampleInvoices)[number]) => {
+      const av = toValue(a)
+      const bv = toValue(b)
+      if (av === null && bv === null) return 0
+      if (av === null) return 1
+      if (bv === null) return -1
+      if (av < bv) return sortDir === "asc" ? -1 : 1
+      if (av > bv) return sortDir === "asc" ? 1 : -1
+      return 0
+    }
+    return [...filteredInvoices].sort(comparator)
+  }, [filteredInvoices, sortDir, sortKey])
 
   const exportFilteredInvoices = filterInvoices(
     sampleInvoices,
@@ -240,6 +279,17 @@ export default function InvoicesPage() {
     })
   }
 
+  const toggleSort = (key: typeof sortKey) => {
+    const nextDir = sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "desc"
+    setSortKey(key)
+    setSortDir(nextDir)
+  }
+
+  const sortIcon = (key: typeof sortKey) => {
+    if (sortKey !== key) return <ChevronsUpDown className="h-4 w-4 opacity-50" />
+    return sortDir === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+  }
+
   return (
     <div className="flex w-full items-start justify-start">
       <div className="w-full space-y-4">
@@ -260,7 +310,7 @@ export default function InvoicesPage() {
 
         <Card className="shadow-sm bg-card">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-[200px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)] lg:items-top">
               <div className="flex h-full flex-col items-center gap-4 text-center">
                 <div className="relative flex h-32 w-32 items-center justify-center">
                   <div className="h-full w-full rounded-full border-[14px] border-muted" />
@@ -270,10 +320,6 @@ export default function InvoicesPage() {
                   <p className="text-sm font-semibold text-primary">150 factures restantes</p>
                   <p className="text-sm text-muted-foreground">Mise à jour prévue le : 20 Dec. 25</p>
                 </div>
-                <Button className="gap-2" size="lg">
-                  Créer une facture
-                  <PlusCircle className="h-4 w-4" />
-                </Button>
               </div>
 
               <div className="flex h-full flex-col gap-6">
@@ -466,21 +512,66 @@ export default function InvoicesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="pl-3">
-                    <TableHead className="pl-3 w-[45%] text-left">Fournisseur</TableHead>
+                        <TableHead className="pl-3 w-[45%] text-left">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-0 text-left font-semibold"
+                            onClick={() => toggleSort("supplier")}
+                          >
+                            <span className="mr-1">Fournisseur</span>
+                            {sortIcon("supplier")}
+                          </Button>
+                        </TableHead>
                     <TableHead className="w-36 pl-3 text-left">
-                      <div className="flex items-center gap-1">
-                        Date
-                        <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-0 text-left font-semibold"
+                        onClick={() => toggleSort("date")}
+                      >
+                        <span className="mr-1">Date</span>
+                        {sortIcon("date")}
+                      </Button>
                     </TableHead>
-                    <TableHead className="w-24 pr-3 text-left">HT</TableHead>
-                    <TableHead className="w-24 pr-3 text-left">TVA</TableHead>
-                    <TableHead className="w-24 pr-3 text-left">TTC</TableHead>
+                    <TableHead className="w-24 pr-3 text-left">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-0 text-left font-semibold"
+                        onClick={() => toggleSort("ht")}
+                      >
+                        <span className="mr-1">HT</span>
+                        {sortIcon("ht")}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-24 pr-3 text-left">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-0 text-left font-semibold"
+                        onClick={() => toggleSort("tva")}
+                      >
+                        <span className="mr-1">TVA</span>
+                        {sortIcon("tva")}
+                      </Button>
+                    </TableHead>
+                    <TableHead className="w-24 pr-3 text-left">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-0 text-left font-semibold"
+                        onClick={() => toggleSort("ttc")}
+                      >
+                        <span className="mr-1">TTC</span>
+                        {sortIcon("ttc")}
+                      </Button>
+                    </TableHead>
                     <TableHead className="w-8 pr-3 text-left" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInvoices.map((invoice) => (
+                  {sortedInvoices.map((invoice) => (
                     <TableRow
                       key={invoice.id}
                       className="pl-3 cursor-pointer"

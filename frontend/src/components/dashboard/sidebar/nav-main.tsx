@@ -46,7 +46,7 @@ export function NavMain({
         {items.map((item) => {
           const hasSubItems = Boolean(item.items && item.items.length > 0)
           const subActive = hasSubItems
-            ? item.items!.some((subItem) => isPathActive(subItem.url, false))
+            ? item.items!.some((subItem) => isPathActive(subItem.url, true))
             : false
           const active = !hasSubItems
             ? isPathActive(item.url, item.url !== "/dashboard")
@@ -73,7 +73,7 @@ export function NavMain({
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton
                           asChild
-                          isActive={isPathActive(subItem.url, false)}
+                          isActive={isPathActive(subItem.url, true)}
                         >
                           <Link to={subItem.url}>
                             <span>{subItem.title}</span>
