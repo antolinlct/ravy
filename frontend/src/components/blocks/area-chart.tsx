@@ -75,6 +75,7 @@ export type AreaChartProps<TPoint extends AreaChartPoint = AreaChartPoint> = {
   primaryValue?: number | React.ReactNode
   primaryValueFormatter?: (value: number, point?: TPoint) => string
   primaryValueClassName?: string
+  showPrimaryValue?: boolean
   changePercent?: number
   changeFormatter?: (value: number) => string
   deltaClassName?: string
@@ -145,6 +146,7 @@ export type AreaChartProps<TPoint extends AreaChartPoint = AreaChartPoint> = {
   tooltipProps?: Partial<React.ComponentProps<typeof ChartTooltip>>
   referenceAreaProps?: Partial<ReferenceAreaProps>
   actions?: React.ReactNode
+  resetAlign?: "end" | "inline"
   resetLabel?: string
   emptyState?: React.ReactNode
 }
@@ -383,6 +385,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
   primaryValue,
   primaryValueFormatter,
   primaryValueClassName,
+  showPrimaryValue = true,
   changePercent,
   changeFormatter = defaultFormatChange,
   deltaClassName,
@@ -448,6 +451,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
   tooltipProps,
   referenceAreaProps,
   actions,
+  resetAlign = "end",
   resetLabel = "Réinitialiser le graph",
   emptyState,
 }: AreaChartProps<TPoint>) {
@@ -670,14 +674,16 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
       : undefined
 
   const resolvedPrimaryValue =
-    typeof primaryValue === "number"
-      ? primaryValueFormatter?.(primaryValue, zoomedSeries.at(-1) as TPoint) ??
-        formatValue(primaryValue, zoomedSeries.at(-1) ?? {})
-      : primaryValue ??
-        (typeof lastValue === "number"
-          ? primaryValueFormatter?.(lastValue, zoomedSeries.at(-1) as TPoint) ??
-            formatValue(lastValue, zoomedSeries.at(-1) ?? {})
-          : undefined)
+    showPrimaryValue === false
+      ? undefined
+      : typeof primaryValue === "number"
+        ? primaryValueFormatter?.(primaryValue, zoomedSeries.at(-1) as TPoint) ??
+          formatValue(primaryValue, zoomedSeries.at(-1) ?? {})
+        : primaryValue ??
+          (typeof lastValue === "number"
+            ? primaryValueFormatter?.(lastValue, zoomedSeries.at(-1) as TPoint) ??
+              formatValue(lastValue, zoomedSeries.at(-1) ?? {})
+            : undefined)
 
   const changeIsPositive = typeof changePercent === "number" && changePercent >= 0
   const deltaClass =
@@ -779,6 +785,12 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
     (yTickClassName ? { className: yTickClassName } : undefined)
   const shouldShowDatePicker = showDatePicker && datePickerMode !== "hidden"
   const datePickerInteractive = datePickerMode === "editable"
+  const hasHeaderInfo =
+    Boolean(title || subtitle) ||
+    resolvedPrimaryValue !== undefined ||
+    typeof changePercent === "number"
+  const hasHeaderControls =
+    Boolean(actions) || shouldShowDatePicker || showIntervalTabs || enableZoom
   const horizontalCoordinatesGenerator = useMemo<
     React.ComponentProps<typeof CartesianGrid>["horizontalCoordinatesGenerator"]
   >(() => {
@@ -795,12 +807,12 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
     }
   }, [cartesianGridProps?.horizontalCoordinatesGenerator, yTicks])
 
-  const showHeaderSection =
-    showHeader &&
-    (title || subtitle || resolvedPrimaryValue !== undefined || typeof changePercent === "number")
+  const showHeaderSection = showHeader && (hasHeaderInfo || hasHeaderControls)
   const headerPaddingClass = isBare ? "pb-2" : "px-6 pt-6 pb-2 text-left"
   const chartPaddingClass = isBare
-    ? ""
+    ? showHeaderSection
+      ? "pt-3"
+      : ""
     : showHeaderSection
       ? "border-t border-border/70 px-6 pb-6 pt-4"
       : "px-6 pb-6 pt-6"
@@ -819,53 +831,60 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
       {showHeaderSection ? (
         <div className={headerPaddingClass}>
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1.5">
-              {title ? (
-                <p
-                  className={cn(
-                    "text-sm text-muted-foreground break-words whitespace-normal",
-                    titleClassName
-                  )}
-                >
-                  {title}
-                </p>
-              ) : null}
-              {resolvedPrimaryValue !== undefined ? (
-                <div className="flex items-end gap-3">
-                  <span
+            {hasHeaderInfo ? (
+              <div className="space-y-1.5">
+                {title ? (
+                  <p
                     className={cn(
-                      "text-2xl font-medium leading-none tracking-tight",
-                      primaryValueClassName
+                      "text-sm text-muted-foreground break-words whitespace-normal",
+                      titleClassName
                     )}
                   >
-                    {resolvedPrimaryValue}
-                  </span>
-                  {typeof changePercent === "number" ? (
+                    {title}
+                  </p>
+                ) : null}
+                {resolvedPrimaryValue !== undefined ? (
+                  <div className="flex items-end gap-3">
                     <span
                       className={cn(
-                        "inline-flex items-center text-sm",
-                        deltaClassName,
-                        deltaClass
+                        "text-2xl font-medium leading-none tracking-tight",
+                        primaryValueClassName
                       )}
                     >
-                      <DeltaIcon className="size-4" />
-                      {changeFormatter(changePercent)}
+                      {resolvedPrimaryValue}
                     </span>
-                  ) : null}
-                </div>
-              ) : null}
-              {subtitle ? (
-                <p
-                  className={cn(
-                    "text-xs text-muted-foreground break-words whitespace-normal",
-                    subtitleClassName
-                  )}
-                >
-                  {subtitle}
-                </p>
-              ) : null}
-            </div>
-            <div className="w-full flex flex-wrap items-center gap-3 pt-2">
+                    {typeof changePercent === "number" ? (
+                      <span
+                        className={cn(
+                          "inline-flex items-center text-sm",
+                          deltaClassName,
+                          deltaClass
+                        )}
+                      >
+                        <DeltaIcon className="size-4" />
+                        {changeFormatter(changePercent)}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {subtitle ? (
+                  <p
+                    className={cn(
+                      "text-xs text-muted-foreground break-words whitespace-normal",
+                      subtitleClassName
+                    )}
+                  >
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            <div
+              className={cn(
+                "w-full flex flex-wrap items-center gap-3",
+                isBare ? "pt-0" : "pt-2"
+              )}
+            >
               {actions}
               {shouldShowDatePicker ? (
                 <div
@@ -889,55 +908,59 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
                 </div>
               ) : null}
 
-              {showIntervalTabs ? (
-                <Tabs
-                  value={interval}
-                  onValueChange={(value) => handleIntervalChange(value as IntervalKey)}
-                  className="w-fit ml-auto"
-                >
-                  <TabsList>
-                    <TabsTrigger
-                      value="day"
-                      className="text-sm data-[state=inactive]:font-normal"
+              {showIntervalTabs || enableZoom ? (
+                <div className={cn("flex items-center gap-3", resetAlign === "end" && "ml-auto")}>
+                  {showIntervalTabs ? (
+                    <Tabs
+                      value={interval}
+                      onValueChange={(value) => handleIntervalChange(value as IntervalKey)}
+                      className="w-fit"
                     >
-                      {intervalCopy.day}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="week"
-                      className="text-sm data-[state=inactive]:font-normal"
-                    >
-                      {intervalCopy.week}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="month"
-                      className="text-sm data-[state=inactive]:font-normal"
-                    >
-                      {intervalCopy.month}
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              ) : null}
+                      <TabsList>
+                        <TabsTrigger
+                          value="day"
+                          className="text-sm data-[state=inactive]:font-normal"
+                        >
+                          {intervalCopy.day}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="week"
+                          className="text-sm data-[state=inactive]:font-normal"
+                        >
+                          {intervalCopy.week}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="month"
+                          className="text-sm data-[state=inactive]:font-normal"
+                        >
+                          {intervalCopy.month}
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  ) : null}
 
-              {enableZoom ? (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleResetZoom}
-                        disabled={!zoomRange.start && !zoomRange.end}
-                        className="h-9 w-9"
-                        aria-label={resetLabel}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{resetLabel}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                  {enableZoom ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleResetZoom}
+                            disabled={!zoomRange.start && !zoomRange.end}
+                            className="h-9 w-9"
+                            aria-label={resetLabel}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{resetLabel}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : null}
+                </div>
               ) : null}
               
             </div>

@@ -128,7 +128,7 @@ export function DoubleDatePicker({
         value={start}
         onChange={handleStartChange}
         placeholder={startPlaceholder}
-        buttonClassName={startButtonClassName ?? "w-[150px]"}
+        buttonClassName={startButtonClassName ?? "w-[160px]"}
         fromDate={minDate}
         leadingIcon={leadingIcon}
         displayFormat={displayFormat}
@@ -145,7 +145,7 @@ export function DoubleDatePicker({
         value={end}
         onChange={handleEndChange}
         placeholder={endPlaceholder}
-        buttonClassName={endButtonClassName ?? "w-[150px]"}
+        buttonClassName={endButtonClassName ?? "w-[160px]"}
         fromDate={start ?? minDate}
         leadingIcon={leadingIcon}
         displayFormat={displayFormat}
