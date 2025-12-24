@@ -53,7 +53,7 @@ import UsersSupportPage from "@/pages/dashboard/settings/users.tsx";
 import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx";
 import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
 import IntegrationsSupportPage from "@/pages/dashboard/settings/integrations.tsx";
-import HelpPage from "../pages/dashboard/help/help.tsx";
+import HelpPage from "../pages/dashboard/help/index.tsx";
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
 import { AppShell } from "@/layouts/AppShell"
 

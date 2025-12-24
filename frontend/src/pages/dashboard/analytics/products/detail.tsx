@@ -66,7 +66,7 @@ export default function ProductDetailPage() {
   const alternativesScrollRef = useRef<HTMLDivElement | null>(null)
   const [showAlternativesBottomFade, setShowAlternativesBottomFade] = useState(false)
   const [costMetric, setCostMetric] = useState("Prix unitaire")
-  const [costInterval, setCostInterval] = useState<IntervalKey>("month")
+  const [costInterval, setCostInterval] = useState<IntervalKey>("week")
   const [costZoomRange, setCostZoomRange] = useState<{ start?: Date; end?: Date }>({})
   const [analysisRange, setAnalysisRange] = useState<{ start?: Date; end?: Date }>(() => ({
     start: new Date("2025-01-01"),
@@ -138,20 +138,20 @@ export default function ProductDetailPage() {
     if (!selectedArticleId) return 0
     return selectedArticleId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
   }, [selectedArticleId])
-  const costSeriesBase = useMemo<AreaChartPoint[]>(
-    () => [
-      { label: "01 Jan. 25", value: 0.18, date: "2025-01-01" },
-      { label: "01 Fev. 25", value: 0.19, date: "2025-02-01" },
-      { label: "01 Mar. 25", value: 0.22, date: "2025-03-01" },
-      { label: "01 Avr. 25", value: 0.23, date: "2025-04-01" },
-      { label: "01 Mai. 25", value: 0.23, date: "2025-05-01" },
-      { label: "01 Juin. 25", value: 0.22, date: "2025-06-01" },
-      { label: "01 Juil. 25", value: 0.22, date: "2025-07-01" },
-      { label: "01 Aout. 25", value: 0.22, date: "2025-08-01" },
-      { label: "01 Sep. 25", value: 0.22, date: "2025-09-01" },
-    ],
-    []
-  )
+  const costSeriesBase = useMemo<AreaChartPoint[]>(() => {
+    const points: AreaChartPoint[] = []
+    const start = new Date("2025-01-01")
+    for (let i = 0; i < 365; i += 1) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const base = 0.19 + i * 0.00005
+      const wave = Math.sin(i / 20) * 0.015
+      const jitter = (i % 6) * 0.0008
+      const value = Number((base + wave + jitter).toFixed(3))
+      points.push({ date: d, value })
+    }
+    return points
+  }, [])
   const costFactor = useMemo(() => (selectionSeed ? 1 + (selectionSeed % 5) * 0.01 : 1), [selectionSeed])
   const metricMultiplier = useMemo(() => {
     switch (costMetric) {
@@ -308,6 +308,34 @@ export default function ProductDetailPage() {
     if (!analysisRange.end) return "--"
     return analysisRange.end.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
   }, [analysisRange.end])
+  const analysisEndLabelLong = useMemo(() => {
+    if (!analysisRange.end) return "--"
+    const formatted = analysisRange.end.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+    return formatted.replace(".", "").replace(/\s(\d{4})$/, ", $1")
+  }, [analysisRange.end])
+  const today = useMemo(() => {
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    return now
+  }, [])
+  const analysisEndDate = useMemo(() => {
+    if (!analysisRange.end) return null
+    const date = new Date(analysisRange.end)
+    if (Number.isNaN(date.getTime())) return null
+    date.setHours(0, 0, 0, 0)
+    return date
+  }, [analysisRange.end])
+  const costMetricTitle = useMemo(() => {
+    if (!analysisEndDate || analysisEndDate >= today) {
+      const suffix = ["Réductions", "Taxes"].includes(costMetric) ? "actuelles" : "actuel"
+      return `${costMetric} ${suffix}`
+    }
+    return `${costMetric} au ${analysisEndLabelLong}`
+  }, [analysisEndDate, analysisEndLabelLong, costMetric, today])
   const sortedRecipesRows = useMemo(() => {
     const getRank = (row: (typeof recipesRows)[number]) => {
       if (row.isActive && row.isSold) return 0
@@ -585,9 +613,7 @@ export default function ProductDetailPage() {
                     tooltipLabel={costMetric}
                     valueFormatter={(value) => euroFormatter.format(value)}
                     tooltipValueFormatter={(value) => euroFormatter.format(value)}
-                    xTickFormatter={(date) =>
-                      date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
-                    }
+                    xTickFormatter={(_date, label) => label}
                     yTickFormatter={(value) => euroFormatter.format(value)}
                     yTickCount={4}
                     actions={
@@ -631,7 +657,7 @@ export default function ProductDetailPage() {
                 <div className="lg:col-span-4 flex h-full flex-col justify-end">
                   <div className="lg:border-l lg:pl-6">
                     <div className="mb-4 rounded-md border bg-card p-3">
-                      <p className="text-base font-semibold text-primary">{costMetric}</p>
+                      <p className="text-base font-semibold text-primary">{costMetricTitle}</p>
                       <div className="mt-2 flex items-end justify-between gap-2">
                           <span className="text-lg font-semibold tabular-nums">
                             {latestCostValue !== null ? euroFormatter.format(latestCostValue) : "--"}

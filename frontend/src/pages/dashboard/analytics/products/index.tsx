@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -53,7 +52,7 @@ export default function ProductAnalyticsPage() {
   const [showProductsListFade, setShowProductsListFade] = useState(false)
   const [selectedLabel, setSelectedLabel] = useState<string>("all")
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
-  const [supplierInterval, setSupplierInterval] = useState<IntervalKey>("month")
+  const [supplierInterval, setSupplierInterval] = useState<IntervalKey>("week")
   const minSupplierDate = useMemo(() => new Date("2022-01-01"), [])
   const [supplierRange, setSupplierRange] = useState<{ start?: Date; end?: Date }>(() => ({
     start: new Date("2025-01-01"),
@@ -342,20 +341,20 @@ export default function ProductAnalyticsPage() {
     []
   )
 
-  const supplierTrendBase = useMemo<AreaChartPoint[]>(
-    () => [
-      { label: "Jan. 25", value: 19374.51, date: "2025-01-01" },
-      { label: "Fév. 25", value: 14458.93, date: "2025-02-01" },
-      { label: "Mar. 25", value: 16511.48, date: "2025-03-01" },
-      { label: "Avr. 25", value: 14979.53, date: "2025-04-01" },
-      { label: "Mai 25", value: 12730.48, date: "2025-05-01" },
-      { label: "Juin 25", value: 14761.87, date: "2025-06-01" },
-      { label: "Juil. 25", value: 8420.35, date: "2025-07-01" },
-      { label: "Sep. 25", value: 1263.17, date: "2025-09-01" },
-      { label: "Déc. 25", value: 12, date: "2025-12-01" },
-    ],
-    []
-  )
+  const supplierTrendBase = useMemo<AreaChartPoint[]>(() => {
+    const points: AreaChartPoint[] = []
+    const start = new Date("2025-01-01")
+    for (let i = 0; i < 365; i += 1) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const trend = 16000 - i * 12
+      const wave = Math.sin(i / 18) * 2500
+      const jitter = (i % 7) * 80
+      const value = Math.max(500, trend + wave + jitter)
+      points.push({ date: d, value: Number(value.toFixed(2)) })
+    }
+    return points
+  }, [])
   const supplierWeights = useMemo<Record<string, number>>(
     () => ({
       sysco: 0.45,
@@ -552,7 +551,8 @@ export default function ProductAnalyticsPage() {
           <CardContent className="p-6 space-y-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div className="flex flex-col gap-1">
-                <CardTitle>Dépenses fournisseurs HT</CardTitle>
+                <CardTitle>Dépenses fournisseurs</CardTitle>
+                <p className="text-sm text-muted-foreground">Évolution des dépenses fournisseurs hors taxes.</p>
               </div>
             </div>
 
@@ -623,23 +623,22 @@ export default function ProductAnalyticsPage() {
                   <div className="lg:col-span-8">
                     <AreaChartBlock
                       key={`suppliers-${supplierInterval}-${supplierRange.start?.toISOString() ?? ""}-${supplierRange.end?.toISOString() ?? ""}`}
-                      data={supplierSeries}
-                      variant="bare"
-                      showHeader={false}
-                      showDatePicker={false}
-                      showIntervalTabs={false}
-                      defaultInterval={supplierInterval}
-                      startDate={supplierRange.start}
-                      endDate={supplierRange.end}
+                    data={supplierSeries}
+                    variant="bare"
+                    showHeader={false}
+                    showDatePicker={false}
+                    showIntervalTabs={false}
+                    enableZoom={false}
+                    defaultInterval={supplierInterval}
+                    startDate={supplierRange.start}
+                    endDate={supplierRange.end}
                       areaColor="var(--chart-1)"
                       height={300}
                       margin={{ left: -10 }}
                       tooltipLabel="Dépenses HT"
                       valueFormatter={(value) => euroFormatter.format(value)}
                       tooltipValueFormatter={(value) => euroFormatter.format(value)}
-                      xTickFormatter={(date) =>
-                        date.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" })
-                      }
+                    xTickFormatter={(_date, label) => label}
                       yTickFormatter={(value) => euroFormatter0.format(Math.round(value))}
                       yTickCount={4}
                     />
@@ -746,9 +745,14 @@ export default function ProductAnalyticsPage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <CardTitle>
-                {productTop === "all" ? "Produits consommés" : `Top ${productTop} des produits consommés`}
-              </CardTitle>
+              <div className="space-y-1">
+                <CardTitle>
+                  {productTop === "all" ? "Produits consommés" : `Top ${productTop} des produits consommés`}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Suivi des produits les plus consommés et de leurs écarts de prix.
+                </p>
+              </div>
               <div className="flex flex-wrap items-start gap-3">
                 <MultipleCombobox
                   className="max-w-xs"
