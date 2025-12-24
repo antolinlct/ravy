@@ -1,0 +1,5373 @@
+{
+  "ia": {
+    "messages_ia": {
+      "schema": "ia",
+      "table": "messages_ia",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "session_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "sessions_ia",
+            "field": "id"
+          }
+        },
+        "sender": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "content": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "metadata": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "sessions_ia": {
+      "schema": "ia",
+      "table": "sessions_ia",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "user_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "context": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "started_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ended_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "messages": {
+      "schema": "ia",
+      "table": "messages",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "session_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "sessions",
+            "field": "id"
+          }
+        },
+        "sender": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "content": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "metadata": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "logs_ia": {
+      "schema": "ia",
+      "table": "logs_ia",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "session_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "sessions_ia",
+            "field": "id"
+          }
+        },
+        "action": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "input": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "output": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "success": {
+          "type": "boolean",
+          "required": false,
+          "default": "True",
+          "relation": null
+        },
+        "error_message": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "sessions": {
+      "schema": "ia",
+      "table": "sessions",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "user_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "context": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "started_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ended_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "logs": {
+      "schema": "ia",
+      "table": "logs",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "session_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "sessions",
+            "field": "id"
+          }
+        },
+        "action": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "input": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "output": {
+          "type": "jsonb",
+          "required": false,
+          "default": "'{}'::jsonb",
+          "relation": null
+        },
+        "success": {
+          "type": "boolean",
+          "required": false,
+          "default": "True",
+          "relation": null
+        },
+        "error_message": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    }
+  },
+  "internal": {
+    "regex_patterns": {
+      "schema": "internal",
+      "table": "regex_patterns",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "type": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "supplier_name",
+            "market_master_article_name",
+            "master_article_alternative"
+          ]
+        },
+        "regex": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "score_matrix": {
+      "schema": "internal",
+      "table": "score_matrix",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "purchase_result": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "financial_result": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "score": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "import_job": {
+      "schema": "internal",
+      "table": "import_job",
+      "fields": {
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "status": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "pending",
+            "running",
+            "completed",
+            "error",
+            "ocr_failed"
+          ]
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "file_path": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "ocr_result_json": {
+          "type": "jsonb",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_beverage": {
+          "type": "boolean",
+          "required": false,
+          "default": "False",
+          "relation": null
+        },
+        "invoice_date": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "maintenance": {
+      "schema": "internal",
+      "table": "maintenance",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "coutdown_hour": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "message": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "start_date": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "logs": {
+      "schema": "internal",
+      "table": "logs",
+      "fields": {
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "user_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "type": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": "'job'::internal.logs_type",
+          "relation": null,
+          "enum_values": [
+            "context",
+            "job"
+          ]
+        },
+        "action": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "login",
+            "logout",
+            "create",
+            "update",
+            "delete",
+            "view",
+            "import"
+          ]
+        },
+        "text": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "json": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "element_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "element_type": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "invoice",
+            "recipe",
+            "supplier",
+            "financial_reports",
+            "user",
+            "establishment",
+            "variation"
+          ]
+        },
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": null
+        }
+      }
+    }
+  },
+  "public": {
+    "countries": {
+      "schema": "public",
+      "table": "countries",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "currency_iso_code": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "currency_symbol": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_tax_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_tax_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "label_supplier": {
+      "schema": "public",
+      "table": "label_supplier",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "label": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "FOOD",
+            "BEVERAGES",
+            "FIXED COSTS",
+            "VARIABLE COSTS",
+            "OTHER"
+          ]
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "live_score": {
+      "schema": "public",
+      "table": "live_score",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "type": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "global",
+            "purchase",
+            "recipe",
+            "financial"
+          ]
+        },
+        "value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "subcategory": {
+      "schema": "public",
+      "table": "subcategory",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "category",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "product": {
+      "schema": "public",
+      "table": "product",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "internal_code": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "marketing_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "plan_or_addon": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'plan'::product_type",
+          "relation": null,
+          "enum_values": [
+            "plan",
+            "addon"
+          ],
+          "enum_default": "plan"
+        },
+        "description": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_product_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_product_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "included_seats": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "included_invoices": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "included_recipes": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "addon_category": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "seat",
+            "invoices",
+            "recipe"
+          ]
+        },
+        "addon_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "history_ingredients": {
+      "schema": "public",
+      "table": "history_ingredients",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "ingredient_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "ingredients",
+            "field": "id"
+          }
+        },
+        "recipe_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "master_article_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "master_articles",
+            "field": "id"
+          }
+        },
+        "subrecipe_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "unit_cost": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "quantity": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "version_number": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "gross_unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "percentage_loss": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "loss_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit_cost_per_portion_recipe": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "source_article_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "articles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "subscriptions": {
+      "schema": "public",
+      "table": "subscriptions",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "billing_account_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "billing_accounts",
+            "field": "id"
+          }
+        },
+        "plan_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "plans",
+            "field": "id"
+          }
+        },
+        "stripe_subscription_id": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "status": {
+          "type": "text",
+          "required": true,
+          "default": "'active'::text",
+          "relation": null
+        },
+        "current_period_start": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "current_period_end": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "cancel_at_period_end": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        }
+      }
+    },
+    "billing_item": {
+      "schema": "public",
+      "table": "billing_item",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "billling_acount_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "billing_account",
+            "field": "id"
+          }
+        },
+        "product_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "product_stripe",
+            "field": "id"
+          }
+        },
+        "price_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "price_stripe",
+            "field": "id"
+          }
+        },
+        "current_period_start": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "current_period_end": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "mercurial_request": {
+      "schema": "public",
+      "table": "mercurial_request",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "user_profile_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "message": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "internal_notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "users": {
+      "schema": "public",
+      "table": "users",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "email": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "first_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "phone": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "super_admin": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "CURRENT_TIMESTAMP",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "CURRENT_TIMESTAMP",
+          "relation": null
+        },
+        "last_login": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "last_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "alerts": {
+      "schema": "public",
+      "table": "alerts",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "type": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "payload": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "sent_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "mercuriale_subcategories": {
+      "schema": "public",
+      "table": "mercuriale_subcategories",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "mercuriale_categories",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "billing_account": {
+      "schema": "public",
+      "table": "billing_account",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "stripe_customer_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_customer_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "billing_cycle": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'monthly'::billing_cycle",
+          "relation": null,
+          "enum_values": [
+            "monthly",
+            "yearly"
+          ],
+          "enum_default": "monthly"
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "free_mode": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "stripe_subscription_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_subscription_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "financial_recipes": {
+      "schema": "public",
+      "table": "financial_recipes",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "financial_report_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "financial_reports",
+            "field": "id"
+          }
+        },
+        "recipe_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "sales_number": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total_revenue": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total_cost": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "balanced_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "financial_reports": {
+      "schema": "public",
+      "table": "financial_reports",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "month": {
+          "type": "date",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "ca_solid_ht": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_liquid_ht": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_total_ht": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_tracked_recipes_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_tracked_recipes_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_untracked_recipes_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ca_untracked_recipes_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_liquid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_ratio_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "material_cost_ratio_liquid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "labor_cost_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "labor_cost_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "fte_count": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "fixed_charges_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "fixed_charges_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "variable_charges_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "variable_charges_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_liquid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_solid_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_liquid_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "commercial_margin_total_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "production_cost_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "production_cost_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ebitda": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ebitda_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "break_even_point": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "safety_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "safety_margin_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "revenue_per_employee": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "result_per_employee": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "salary_per_employee": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "avg_revenue_per_dish": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "avg_cost_per_dish": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "avg_margin_per_dish": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "theoretical_sales_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "theoretical_material_cost_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "multiplier_global": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "multiplier_solid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "multiplier_liquid": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "mscv": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "mscv_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "score_global": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "score_financial": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "score_recipe": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "score_purchase": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "other_charges_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "other_charges_ratio": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "support_ticket": {
+      "schema": "public",
+      "table": "support_ticket",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "user_profile_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "invoice_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "status": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'open'::ticket_status",
+          "relation": null,
+          "enum_values": [
+            "open",
+            "in progress",
+            "resolved",
+            "error",
+            "canceled"
+          ],
+          "enum_default": "open"
+        },
+        "object": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "description": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "intern_notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "resolution_notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "resolved_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ticket_id": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "suppliers": {
+      "schema": "public",
+      "table": "suppliers",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "contact_email": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "contact_phone": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "active_analyses": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "label": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "FOOD",
+            "BEVERAGES",
+            "FIXED COSTS",
+            "VARIABLE COSTS",
+            "OTHER"
+          ]
+        }
+      }
+    },
+    "user_profiles": {
+      "schema": "public",
+      "table": "user_profiles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "first_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "last_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "intern_notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "phone_sms": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "variations": {
+      "schema": "public",
+      "table": "variations",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "master_article_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "master_articles",
+            "field": "id"
+          }
+        },
+        "date": {
+          "type": "date",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "old_unit_price": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "new_unit_price": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "percentage": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "alert_logs_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "alert_logs",
+            "field": "id"
+          }
+        },
+        "is_viewed": {
+          "type": "boolean",
+          "required": false,
+          "default": "False",
+          "relation": null
+        },
+        "invoice_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "invoices",
+            "field": "id"
+          }
+        },
+        "is_deleted": {
+          "type": "boolean",
+          "required": false,
+          "default": "False",
+          "relation": null
+        }
+      }
+    },
+    "recipes_subcategories": {
+      "schema": "public",
+      "table": "recipes_subcategories",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipe_categories",
+            "field": "id"
+          }
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "recipes": {
+      "schema": "public",
+      "table": "recipes",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "vat_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "vat_rates",
+            "field": "id"
+          }
+        },
+        "recommanded_retail_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "saleable": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "contains_sub_recipe": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "purchase_cost_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "portion": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "purchase_cost_per_portion": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "technical_data_sheet_instructions": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "current_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "portion_weight": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_excl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_incl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipe_categories",
+            "field": "id"
+          }
+        },
+        "subcategory_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes_subcategories",
+            "field": "id"
+          }
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "technical_data_sheet_image_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "mercuriale_supplier": {
+      "schema": "public",
+      "table": "mercuriale_supplier",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "name": {
+          "type": "uuid",
+          "required": false,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "label": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "FOOD",
+            "BEVERAGES",
+            "FIXED COSTS",
+            "VARIABLE COSTS",
+            "OTHER"
+          ]
+        }
+      }
+    },
+    "recommendations_ai": {
+      "schema": "public",
+      "table": "recommendations_ai",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "context": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "suggestion": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "estimated_impact": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "accepted": {
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "billing_accounts": {
+      "schema": "public",
+      "table": "billing_accounts",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "owner_type": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "USER",
+            "ESTABLISHMENT"
+          ]
+        },
+        "owner_user_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "users",
+            "field": "id"
+          }
+        },
+        "owner_establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "stripe_customer_id": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "CURRENT_TIMESTAMP",
+          "relation": null
+        }
+      }
+    },
+    "price_stripe": {
+      "schema": "public",
+      "table": "price_stripe",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "product_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "product_stripe",
+            "field": "id"
+          }
+        },
+        "billing_cycle": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'monthly'::billing_cycle",
+          "relation": null,
+          "enum_values": [
+            "monthly",
+            "yearly"
+          ],
+          "enum_default": "monthly"
+        },
+        "stripe_price_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_price_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit_amount": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "user_establishment": {
+      "schema": "public",
+      "table": "user_establishment",
+      "fields": {
+        "user_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "role": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'staff'::user_role",
+          "relation": null,
+          "enum_values": [
+            "padrino",
+            "owner",
+            "admin",
+            "manager",
+            "staff"
+          ],
+          "enum_default": "staff"
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "invoices_rejected": {
+      "schema": "public",
+      "table": "invoices_rejected",
+      "fields": {
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "file_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "rejection_reason": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "vat_rates": {
+      "schema": "public",
+      "table": "vat_rates",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "country_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "countries",
+            "field": "id"
+          }
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "percentage_rate": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "absolute_rate": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "financial_ingredients": {
+      "schema": "public",
+      "table": "financial_ingredients",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "financial_report_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "financial_reports",
+            "field": "id"
+          }
+        },
+        "master_article_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "master_articles",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "financial_recipe_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "financial_recipes",
+            "field": "id"
+          }
+        },
+        "ingredient_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "ingredients",
+            "field": "id"
+          }
+        },
+        "quantity": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "consumed_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "accumulated_loss": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_gap_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_gap_percentage": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_total_savings": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_balanced": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "alert_logs": {
+      "schema": "public",
+      "table": "alert_logs",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "content": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "payload": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "sent_to_number": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "sent_to_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "invoices": {
+      "schema": "public",
+      "table": "invoices",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "supplier_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "suppliers",
+            "field": "id"
+          }
+        },
+        "invoice_number": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "date": {
+          "type": "date",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "total_excl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total_incl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "file_storage_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "import_mode": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "EMAIL",
+            "FILEUPLOADER",
+            "MANUALLY"
+          ]
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "recommendations": {
+      "schema": "public",
+      "table": "recommendations",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "context": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "suggestion": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "estimated_impact": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "accepted": {
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "CURRENT_TIMESTAMP",
+          "relation": null
+        }
+      }
+    },
+    "category": {
+      "schema": "public",
+      "table": "category",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "mercuriale_categories": {
+      "schema": "public",
+      "table": "mercuriale_categories",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "plans": {
+      "schema": "public",
+      "table": "plans",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "code": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "stripe_price_id": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "sort_order": {
+          "type": "integer",
+          "required": false,
+          "default": "0",
+          "relation": null
+        }
+      }
+    },
+    "usage_counters": {
+      "schema": "public",
+      "table": "usage_counters",
+      "fields": {
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "period_start": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "period_end": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "used_value": {
+          "type": "numeric",
+          "required": true,
+          "default": "0",
+          "relation": null
+        },
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "limit_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "value_category": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "seat",
+            "invoices",
+            "recipe"
+          ]
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        }
+      }
+    },
+    "supplier_merge_suggestions": {
+      "schema": "public",
+      "table": "supplier_merge_suggestions",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "reviewed_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "target_market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "suppliers",
+            "field": "id"
+          }
+        },
+        "similarity_score": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "status": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'pending'::supplier_merge_suggestions_status",
+          "relation": null,
+          "enum_values": [
+            "pending",
+            "accepted",
+            "ignored",
+            "dismissed"
+          ],
+          "enum_default": "pending"
+        },
+        "source_market_supplier_ids": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "subscription_applied_features": {
+      "schema": "public",
+      "table": "subscription_applied_features",
+      "fields": {
+        "subscription_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "subscriptions",
+            "field": "id"
+          }
+        },
+        "feature_key": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "feature_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "enabled": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        }
+      }
+    },
+    "articles": {
+      "schema": "public",
+      "table": "articles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "invoice_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "invoices",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "supplier_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "suppliers",
+            "field": "id"
+          }
+        },
+        "date": {
+          "type": "date",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "quantity": {
+          "type": "numeric",
+          "required": false,
+          "default": "1",
+          "relation": null
+        },
+        "unit_price": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "master_article_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "master_articles",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "discounts": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "duties_and_taxes": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "gross_unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "supplier_alias": {
+      "schema": "public",
+      "table": "supplier_alias",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "alias": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "supplier_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "suppliers",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "mercuriale_articles": {
+      "schema": "public",
+      "table": "mercuriale_articles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "mercuriale_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "mercuriales",
+            "field": "id"
+          }
+        },
+        "mercurial_master_article_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "mercuriale_master_article",
+            "field": "id"
+          }
+        },
+        "price_standard": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_plus": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_premium": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": false,
+          "default": "True",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "ingredients": {
+      "schema": "public",
+      "table": "ingredients",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "recipe_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "type": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'ARTICLE'::ingredient_type",
+          "relation": null,
+          "enum_values": [
+            "ARTICLE",
+            "FIXED",
+            "SUBRECIPE"
+          ],
+          "enum_default": "ARTICLE"
+        },
+        "master_article_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "master_articles",
+            "field": "id"
+          }
+        },
+        "subrecipe_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "unit_cost": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "quantity": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "percentage_loss": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "gross_unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "loss_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit_cost_per_portion_recipe": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "master_articles": {
+      "schema": "public",
+      "table": "master_articles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "supplier_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "suppliers",
+            "field": "id"
+          }
+        },
+        "unformatted_name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_master_article_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "current_unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "recipe_margin_subcategory": {
+      "schema": "public",
+      "table": "recipe_margin_subcategory",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "average_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "responsible_recipe": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "subcategory_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes_subcategories",
+            "field": "id"
+          }
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "recipe_margin_category": {
+      "schema": "public",
+      "table": "recipe_margin_category",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "average_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "responsible_recipe": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipe_categories",
+            "field": "id"
+          }
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "mercuriale_master_article": {
+      "schema": "public",
+      "table": "mercuriale_master_article",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "mercurial_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "vat_rate": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "description": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_master_article": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "category_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "mercuriale_categories",
+            "field": "id"
+          }
+        },
+        "subcategory_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "mercuriale_subcategories",
+            "field": "id"
+          }
+        },
+        "race_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "recipe_margin": {
+      "schema": "public",
+      "table": "recipe_margin",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "average_margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "responsible_recipe": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "supplier_merge_request": {
+      "schema": "public",
+      "table": "supplier_merge_request",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "now()",
+          "relation": null
+        },
+        "status": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'pending'::supplier_merge_request_status",
+          "relation": null,
+          "enum_values": [
+            "pending",
+            "to_confirm",
+            "accepted",
+            "resolved",
+            "refused"
+          ],
+          "enum_default": "pending"
+        },
+        "source_market_supplier_ids": {
+          "type": "jsonb",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "target_market_supplier_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "requesting_establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "recipe_categories": {
+      "schema": "public",
+      "table": "recipe_categories",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "product_stripe": {
+      "schema": "public",
+      "table": "product_stripe",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "internal_code": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "marketing_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "plan_or_addon": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'plan'::product_type",
+          "relation": null,
+          "enum_values": [
+            "plan",
+            "addon"
+          ],
+          "enum_default": "plan"
+        },
+        "description": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_product_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_product_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "included_seats": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "included_invoices": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "included_recipes": {
+          "type": "numeric",
+          "required": false,
+          "default": "'0'::numeric",
+          "relation": null
+        },
+        "addon_category": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "seat",
+            "invoices",
+            "recipe"
+          ]
+        },
+        "addon_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "establishments": {
+      "schema": "public",
+      "table": "establishments",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "slug": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "country_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "countries",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "recommended_retail_price_method": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'MULTIPLIER'::recommended_retail_price",
+          "relation": null,
+          "enum_values": [
+            "MULTIPLIER",
+            "PERCENTAGE",
+            "VALUE"
+          ],
+          "enum_default": "MULTIPLIER"
+        },
+        "recommended_retail_price_value": {
+          "type": "numeric",
+          "required": false,
+          "default": "'3'::numeric",
+          "relation": null
+        },
+        "logo_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "plan_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "average_daily_covers": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "average_annual_revenue": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "email": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "phone": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "intern_notes": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active_sms": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "type_sms": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'FOOD'::sms_type",
+          "relation": null,
+          "enum_values": [
+            "FOOD",
+            "FOOD & BEVERAGES"
+          ],
+          "enum_default": "FOOD"
+        },
+        "sms_variation_trigger": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": "'ALL'::sms_variation_trigger",
+          "relation": null,
+          "enum_values": [
+            "ALL",
+            "±5%",
+            "±10%"
+          ]
+        },
+        "full_adresse": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "siren": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "price": {
+      "schema": "public",
+      "table": "price",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "product_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "product",
+            "field": "id"
+          }
+        },
+        "billing_cycle": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'monthly'::billing_cycle",
+          "relation": null,
+          "enum_values": [
+            "monthly",
+            "yearly"
+          ],
+          "enum_default": "monthly"
+        },
+        "stripe_price_id_prod": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "stripe_price_id_live": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit_amount": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "impersonations": {
+      "schema": "public",
+      "table": "impersonations",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "actor_user_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "users",
+            "field": "id"
+          }
+        },
+        "target_user_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "users",
+            "field": "id"
+          }
+        },
+        "reason": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "started_at": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": "CURRENT_TIMESTAMP",
+          "relation": null
+        },
+        "ended_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "mercuriales": {
+      "schema": "public",
+      "table": "mercuriales",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "uuid_generate_v4()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "description": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "effective_from": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "effective_to": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "mercuriale_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "mercuriale_supplier",
+            "field": "id"
+          }
+        },
+        "market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "impersonations_padrino": {
+      "schema": "public",
+      "table": "impersonations_padrino",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "actor_user_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "target_establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "reason": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "started_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "ended_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "establishment_email_alias": {
+      "schema": "public",
+      "table": "establishment_email_alias",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "custom_email": {
+          "type": "text",
+          "required": false,
+          "default": "''::text",
+          "relation": null
+        },
+        "enabled": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "custom_email_prefix": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "user_mercuriale_access": {
+      "schema": "public",
+      "table": "user_mercuriale_access",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "user_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "mercuriale_level": {
+          "type": "USER-DEFINED",
+          "required": true,
+          "default": "'STANDARD'::mercuriale_level",
+          "relation": null,
+          "enum_values": [
+            "STANDARD",
+            "PLUS",
+            "PREMIUM"
+          ],
+          "enum_default": "STANDARD"
+        },
+        "assigned_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "history_recipes": {
+      "schema": "public",
+      "table": "history_recipes",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "recipe_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "recipes",
+            "field": "id"
+          }
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "establishments",
+            "field": "id"
+          }
+        },
+        "version_number": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "purchase_cost_total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "purchase_cost_per_portion": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "portion": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "invoice_affected": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "vat_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "vat_rates",
+            "field": "id"
+          }
+        },
+        "price_excl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_incl_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "price_tax": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "margin": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "user_profiles",
+            "field": "id"
+          }
+        }
+      }
+    },
+    "plan_features": {
+      "schema": "public",
+      "table": "plan_features",
+      "fields": {
+        "plan_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "plans",
+            "field": "id"
+          }
+        },
+        "feature_key": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "feature_value": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "enabled": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        }
+      }
+    }
+  },
+  "market": {
+    "market_articles": {
+      "schema": "market",
+      "table": "market_articles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "market_master_article_id": {
+          "type": "uuid",
+          "required": true,
+          "default": null,
+          "relation": {
+            "table": "market_master_articles",
+            "field": "id"
+          }
+        },
+        "date": {
+          "type": "timestamp with time zone",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "market_suppliers",
+            "field": "id"
+          }
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "discounts": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "duties_and_taxes": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "establishment_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "invoice_path": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "quantity": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "invoice_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "total": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": "True",
+          "relation": null
+        },
+        "gross_unit_price": {
+          "type": "numeric",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    },
+    "market_master_articles": {
+      "schema": "market",
+      "table": "market_master_articles",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "market_supplier_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "market_suppliers",
+            "field": "id"
+          }
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "unit": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "unformatted_name": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "current_unit_price": {
+          "type": "numeric",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        }
+      }
+    },
+    "market_suppliers": {
+      "schema": "market",
+      "table": "market_suppliers",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "default": null,
+          "relation": null
+        },
+        "active": {
+          "type": "boolean",
+          "required": true,
+          "default": "False",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "updated_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "created_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "updated_by": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": null
+        },
+        "label": {
+          "type": "USER-DEFINED",
+          "required": false,
+          "default": null,
+          "relation": null,
+          "enum_values": [
+            "FOOD",
+            "BEVERAGES",
+            "FIXED COSTS",
+            "VARIABLE COSTS",
+            "OTHER"
+          ]
+        }
+      }
+    },
+    "market_supplier_alias": {
+      "schema": "market",
+      "table": "market_supplier_alias",
+      "fields": {
+        "id": {
+          "type": "uuid",
+          "required": true,
+          "default": "gen_random_uuid()",
+          "relation": null
+        },
+        "created_at": {
+          "type": "timestamp with time zone",
+          "required": false,
+          "default": "now()",
+          "relation": null
+        },
+        "supplier_market_id": {
+          "type": "uuid",
+          "required": false,
+          "default": null,
+          "relation": {
+            "table": "market_suppliers",
+            "field": "id"
+          }
+        },
+        "alias": {
+          "type": "text",
+          "required": false,
+          "default": null,
+          "relation": null
+        }
+      }
+    }
+  }
+}

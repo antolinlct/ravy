@@ -146,8 +146,6 @@ Thumbs.db
 # ============================================
 # Tous les scripts d’entraînement ou exports IA
 /backend/agents/
-backend/app/data_contracts/
-backend/contracts_summary.json
 backend/schemas_summary.json
 
 
