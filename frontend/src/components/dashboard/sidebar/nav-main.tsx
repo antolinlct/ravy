@@ -1,5 +1,5 @@
 import { ChevronRight, type LucideIcon } from "lucide-react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   Collapsible,
   CollapsibleContent,
@@ -32,6 +32,7 @@ export function NavMain({
 }) {
   const location = useLocation()
   const currentPath = location.pathname
+  const navigate = useNavigate()
 
   const isPathActive = (path: string, allowNested = true) => {
     if (currentPath === path || currentPath === `${path}/`) return true
@@ -52,6 +53,8 @@ export function NavMain({
             ? isPathActive(item.url, item.url !== "/dashboard")
             : false
 
+          const firstSubUrl = hasSubItems ? item.items?.[0]?.url : undefined
+
           return hasSubItems ? (
             <Collapsible
               key={`${item.title}-${subActive ? "active" : "inactive"}`}
@@ -61,7 +64,15 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} isActive={false}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={false}
+                    onClick={() => {
+                      if (firstSubUrl) {
+                        navigate(firstSubUrl)
+                      }
+                    }}
+                  >
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />

@@ -10,7 +10,14 @@ import NotFoundPage from "../pages/system/NotFoundPage.tsx";
 import SignupPage from "@/pages/system/SignupPage.tsx";
 
 // --- Page Admin (backoffice) ---
-import AdminPage from "../pages/admin/AdminPage.tsx";
+import AdminEstablishmentsPage from "@/pages/admin/establishments/index.tsx";
+import AdminLogsPage from "@/pages/admin/logs/index.tsx";
+import AdminMarketPage from "@/pages/admin/market/index.tsx";
+import AdminMercurialesPage from "@/pages/admin/mercuriales/index.tsx";
+import AdminMergesPage from "@/pages/admin/merges/index.tsx";
+import AdminRegexPage from "@/pages/admin/regex/index.tsx";
+import AdminTicketsPage from "@/pages/admin/tickets/index.tsx";
+
 
 // --- Landing (publique) ---
 import LandingPage from "../pages/Landing.tsx";
@@ -37,9 +44,13 @@ import RecipeAnalyticsPage from "../pages/dashboard/analytics/recipes/index.tsx"
 import RecipeAnalyticsDetailPage from "../pages/dashboard/analytics/recipes/detail.tsx";
 
 // Performances
-import PerformancePage from "../pages/dashboard/performance/index.tsx";
-import FinancialReportsPage from "../pages/dashboard/performance/reports.tsx";
-import PerformancePurchasesPage from "../pages/dashboard/performance/purchases.tsx";
+import PerformanceScoresPage from "../pages/dashboard/performance/scores.tsx";
+import PerformancesReportsPage from "../pages/dashboard/performance/reports.tsx";
+import PerformancesReportsDetailsPage from "../pages/dashboard/performance/details.tsx";
+
+// Marché & Achats
+import MarketPurchasesPage from "../pages/dashboard/market/purchases.tsx";
+import MarketMercurialesPage from "../pages/dashboard/market/mercuriales.tsx";
 
 // Consultant
 import ConsultantPage from "../pages/dashboard/consultant/consultant.tsx";
@@ -54,6 +65,8 @@ import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx
 import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";
 import IntegrationsSupportPage from "@/pages/dashboard/settings/integrations.tsx";
 import HelpPage from "../pages/dashboard/help/index.tsx";
+
+// Composants de sécurité et layout
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
 import { AppShell } from "@/layouts/AppShell"
 
@@ -67,9 +80,6 @@ export const appRoutes: RouteObject[] = [
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/maintenance", element: <MaintenancePage /> },
   { path: "/signup", element: <SignupPage/>},
-
-  // Backoffice admin
-  { path: "/admin", element: <AdminPage /> },
 
   // Dashboard principal
 {
@@ -103,9 +113,13 @@ export const appRoutes: RouteObject[] = [
     { path: "analytics/recipes/:id", element: <RecipeAnalyticsDetailPage /> },
 
     // Performances
-    { path: "performance", element: <PerformancePage /> },
-    { path: "performance/reports", element: <FinancialReportsPage /> },
-    { path: "performance/purchases", element: <PerformancePurchasesPage /> },
+    { path: "performance/scores", element: <PerformanceScoresPage /> },
+    { path: "performance/reports", element: <PerformancesReportsPage /> },
+    {path: "performance/reports/:id", element: <PerformancesReportsDetailsPage /> },
+
+    // Marché & Achats
+    { path: "market/purchases", element: <MarketPurchasesPage /> },
+    { path: "market/mercuriales", element: <MarketMercurialesPage /> },
 
     // Consultant IA
     { path: "consultant", element: <ConsultantPage /> },
@@ -131,6 +145,43 @@ export const appRoutes: RouteObject[] = [
   ],
 },
 
+// Backoffice Admin
+{
+  path: "/backoffice",
+  element: (
+    <RequireAuth>
+      <AppShell>
+        <DashboardLayout />
+      </AppShell>
+    </RequireAuth>
+  ),
+  children: [
+    // Backoffice - Accueil redirige vers établissements
+    { path: "", element: <AdminEstablishmentsPage /> },
+
+    // Backoffice - Établissements
+    { path: "establishments", element: <AdminEstablishmentsPage /> },
+
+    // Backoffice - Logs
+    { path: "logs", element: <AdminLogsPage /> },
+
+    // Backoffice - Marché
+    { path: "market", element: <AdminMarketPage /> },
+
+    // Backoffice - Mercuriales
+    { path: "mercuriales", element: <AdminMercurialesPage /> },
+
+    // Backoffice - Fusions fournisseurs
+    {path: "merges", element: <AdminMergesPage /> },
+
+    // Backoffice - Regex
+    { path: "regex", element: <AdminRegexPage /> },
+
+    // Backoffice - Tickets Support
+    { path: "tickets", element: <AdminTicketsPage /> },
+      
+  ],
+},
   // Fallback 404
   { path: "*", element: <NotFoundPage /> },
 ];

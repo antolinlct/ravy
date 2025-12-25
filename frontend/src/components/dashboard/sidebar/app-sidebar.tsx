@@ -10,6 +10,7 @@ import {
   House,
   ReceiptEuro,
   Wrench,
+  Wallet,
 } from "lucide-react"
 
 import { NavAnnex } from "@/components/dashboard/sidebar/nav-annex"
@@ -82,20 +83,31 @@ const data = {
     },
     {
       title: "Performances",
-      url: "/dashboard/performance",
+      url: "/dashboard/performance/scores",
       icon: HandCoins,
       items: [
         {
           title: "Scores",
-          url: "/dashboard/performance",
+          url: "/dashboard/performance/scores",
         },
         {
           title: "Rapports financiers",
           url: "/dashboard/performance/reports",
         },
+      ],
+    },
+    {
+      title: "Marché & Achats",
+      url: "/dashboard/market/purchases",
+      icon: Wallet,
+      items: [
         {
-        title: "Achats",
-          url: "/dashboard/performance/purchases",
+          title: "Prix du marché",
+          url: "/dashboard/market/purchases",
+        },
+        {
+          title: "Mercuriales Ravy",
+          url: "/dashboard/market/mercuriales",
         },
       ],
     },

@@ -123,7 +123,7 @@ const ScoreRadial = ({
   )
 }
 
-export default function PerformancePage() {
+export default function PerformanceScoresPage() {
   const globalScore = 83
   const globalDelta = 12
   const globalDeltaIsPositive = globalDelta >= 0
