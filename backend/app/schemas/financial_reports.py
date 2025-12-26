@@ -33,6 +33,8 @@ class FinancialReports(BaseModel):
     fixed_charges_ratio: Optional[float] = None
     variable_charges_total: Optional[float] = None
     variable_charges_ratio: Optional[float] = None
+    other_charges_total: Optional[float] = None
+    other_charges_ratio: Optional[float] = None
     commercial_margin_solid: Optional[float] = None
     commercial_margin_liquid: Optional[float] = None
     commercial_margin_total: Optional[float] = None
