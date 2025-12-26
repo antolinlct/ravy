@@ -1,15 +1,29 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ChangeEvent } from "react"
 import { ArrowDown, ArrowRight, ArrowUp, Calendar, FilePlus, Info } from "lucide-react"
 import { Area, Bar, CartesianGrid, ComposedChart, XAxis, YAxis } from "recharts"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function PerformancesReportsPage() {
   const navigate = useNavigate()
@@ -20,16 +34,62 @@ export default function PerformancesReportsPage() {
     (_, index) => `${startYear + index}`
   )
   const [reportYear, setReportYear] = useState(`${currentYear}`)
+  const monthNames = [
+    "janvier",
+    "fevrier",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "aout",
+    "septembre",
+    "octobre",
+    "novembre",
+    "decembre",
+  ]
+  const monthOptions = useMemo(() => {
+    const options: { value: string; label: string; monthIndex: number; year: number }[] = []
+    const now = new Date()
+    for (let offset = 1; offset <= 6; offset += 1) {
+      const date = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+      const monthIndex = date.getMonth()
+      const year = date.getFullYear()
+      const label =
+        `${monthNames[monthIndex].charAt(0).toUpperCase()}${monthNames[monthIndex].slice(1)}` +
+        ` ${year}`
+      options.push({
+        value: `${year}-${monthIndex}`,
+        label,
+        monthIndex,
+        year,
+      })
+    }
+    return options
+  }, [monthNames])
+  const [selectedMonthKey, setSelectedMonthKey] = useState("")
+  const selectedMonth = monthOptions.find((option) => option.value === selectedMonthKey)
   const yearSuffix = reportYear.slice(-2)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [financialInputs, setFinancialInputs] = useState({
+    laborCost: "",
+    headcount: "",
+    fixedCosts: "",
+    variableCosts: "",
+    otherCosts: "",
+    revenueFood: "",
+    revenueTotal: "",
+  })
+  const [showValidation, setShowValidation] = useState(false)
 
   const baseSeries = useMemo(
     () => [
-      { shortLabel: "Oct.", fullLabel: "Octobre", revenue: 1025000, expenses: 612400, lastUpdated: "15 Janv. 25" },
-      { shortLabel: "Nov.", fullLabel: "Novembre", revenue: 1082000, expenses: 598300, lastUpdated: "15 Janv. 25" },
-      { shortLabel: "Dec.", fullLabel: "Decembre", revenue: 987500, expenses: 684200, lastUpdated: "20 Dec. 25" },
-      { shortLabel: "Janv.", fullLabel: "Janvier", revenue: 1018000, expenses: 623900, lastUpdated: "12 Fev. 25" },
-      { shortLabel: "Fev.", fullLabel: "Fevrier", revenue: 965400, expenses: 575600, lastUpdated: "18 Mars 25" },
-      { shortLabel: "Mars", fullLabel: "Mars", revenue: 1123000, expenses: 642800, lastUpdated: "08 Avr. 25" },
+      { shortLabel: "Oct.", fullLabel: "Octobre", monthIndex: 9, revenue: 1025000, expenses: 612400, lastUpdated: "15 Janv. 25" },
+      { shortLabel: "Nov.", fullLabel: "Novembre", monthIndex: 10, revenue: 1082000, expenses: 598300, lastUpdated: "15 Janv. 25" },
+      { shortLabel: "Dec.", fullLabel: "Decembre", monthIndex: 11, revenue: 987500, expenses: 684200, lastUpdated: "20 Dec. 25" },
+      { shortLabel: "Janv.", fullLabel: "Janvier", monthIndex: 0, revenue: 1018000, expenses: 623900, lastUpdated: "12 Fev. 25" },
+      { shortLabel: "Fev.", fullLabel: "Fevrier", monthIndex: 1, revenue: 965400, expenses: 575600, lastUpdated: "18 Mars 25" },
+      { shortLabel: "Mars", fullLabel: "Mars", monthIndex: 2, revenue: 1123000, expenses: 642800, lastUpdated: "08 Avr. 25" },
     ],
     []
   )
@@ -44,6 +104,7 @@ export default function PerformancesReportsPage() {
       monthFull: `${item.fullLabel} ${reportYear}`,
       result: item.revenue - item.expenses,
       sortIndex: index,
+      monthKey: `${reportYear}-${item.monthIndex}`,
     }))
   }, [baseSeries, currentYear, reportYear, yearSuffix])
 
@@ -65,6 +126,22 @@ export default function PerformancesReportsPage() {
     `${new Intl.NumberFormat("fr-FR").format(value)}\u00a0\u20ac`
   const formatPercent = (value: number) =>
     `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)}%`
+  const reportableRecipes = [
+    { id: "aiguillettes", name: "Aiguillettes de poulet", price: 9.0, isActive: true, isSellable: true },
+    { id: "andouillette", name: "Andouillette", price: 20.9, isActive: true, isSellable: true },
+    { id: "bavette", name: "Bavette de boeuf, frites", price: 21.9, isActive: true, isSellable: true },
+    { id: "camembert", name: "Camembert roti", price: 10.0, isActive: true, isSellable: true },
+    { id: "bruschetta", name: "Bruschetta", price: 9.0, isActive: true, isSellable: true },
+    { id: "burger", name: "Burger Tradition", price: 17.9, isActive: true, isSellable: true },
+    { id: "creme", name: "Creme caramel", price: 8.0, isActive: true, isSellable: true },
+    { id: "salade", name: "Salade Lyonnaise XL", price: 14.5, isActive: true, isSellable: true },
+  ].filter((recipe) => recipe.isActive && recipe.isSellable)
+  const selectedMonthLabel = selectedMonth?.label ?? "ce mois"
+  const [salesByRecipe, setSalesByRecipe] = useState<Record<string, string>>({})
+  const hasAtLeastOneSale = useMemo(
+    () => Object.values(salesByRecipe).some((value) => Number(value) >= 1),
+    [salesByRecipe]
+  )
 
   const reportSummary = useMemo(() => {
     if (!reportSeries.length) return null
@@ -102,6 +179,7 @@ export default function PerformancesReportsPage() {
         result: item.result,
         margin: item.revenue ? (item.result / item.revenue) * 100 : 0,
         sortIndex: item.sortIndex,
+        monthKey: item.monthKey,
       })),
     [reportSeries, reportYear]
   )
@@ -110,6 +188,56 @@ export default function PerformancesReportsPage() {
     () => [...reportRows].sort((a, b) => b.sortIndex - a.sortIndex),
     [reportRows]
   )
+  const existingReportMonths = useMemo(
+    () => new Set(reportRows.map((row) => row.monthKey)),
+    [reportRows]
+  )
+  const firstAvailableMonth = useMemo(
+    () => monthOptions.find((option) => !existingReportMonths.has(option.value))?.value ?? "",
+    [monthOptions, existingReportMonths]
+  )
+
+  useEffect(() => {
+    const isSelectedAvailable =
+      selectedMonthKey &&
+      monthOptions.some((option) => option.value === selectedMonthKey) &&
+      !existingReportMonths.has(selectedMonthKey)
+    if (!isSelectedAvailable) {
+      setSelectedMonthKey(firstAvailableMonth)
+    }
+  }, [existingReportMonths, firstAvailableMonth, monthOptions, selectedMonthKey])
+  const isSelectedMonthTaken = selectedMonthKey ? existingReportMonths.has(selectedMonthKey) : false
+  const isFinancialComplete = useMemo(
+    () => Object.values(financialInputs).every((value) => value.trim() !== ""),
+    [financialInputs]
+  )
+  const isFormReady =
+    Boolean(selectedMonthKey) && !isSelectedMonthTaken && isFinancialComplete && hasAtLeastOneSale
+  const showFinancialErrors = showValidation && !isFinancialComplete
+  const showSalesError = showValidation && !hasAtLeastOneSale
+  const handleFinancialInput =
+    (key: keyof typeof financialInputs) => (event: ChangeEvent<HTMLInputElement>) => {
+      setFinancialInputs((prev) => ({ ...prev, [key]: event.target.value }))
+    }
+  const handleSalesInput = (recipeId: string) => (event: ChangeEvent<HTMLInputElement>) => {
+    setSalesByRecipe((prev) => ({ ...prev, [recipeId]: event.target.value }))
+  }
+  const requiredInputClass = (value: string) =>
+    showFinancialErrors && !value.trim() ? "border-destructive focus-visible:ring-destructive" : ""
+  const handleCreateAttempt = () => {
+    if (!isFormReady) {
+      setShowValidation(true)
+      toast.error("Création du rapport impossible.")
+      return
+    }
+    toast.success(
+      <>
+        Le rapport du mois de <span className="font-semibold">{selectedMonthLabel}</span> a été créé.
+      </>
+    )
+    setCreateOpen(false)
+    setShowValidation(false)
+  }
 
   const handleReportNavigate = (reportId: string) => {
     navigate(`/dashboard/performance/reports/${reportId}`)
@@ -283,10 +411,313 @@ export default function PerformancesReportsPage() {
               Historique des rapports generes pour votre etablissement.
             </p>
           </div>
-          <Button className="gap-2">
-            <FilePlus className="h-4 w-4" />
-            Creer un rapport
-          </Button>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <FilePlus className="h-4 w-4" />
+                Creer un rapport
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-full sm:w-[1020px] max-w-[98vw] sm:!max-w-[1100px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="space-y-2">
+                <DialogTitle>Créer un rapport financier</DialogTitle>
+                <DialogDescription>
+                  Sélectionnez la période, puis renseignez les ventes et les données financières.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,4fr)_minmax(0,5fr)]">
+                <div className="space-y-4">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Card className="border-border/60">
+                          <CardHeader className="p-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="space-y-1">
+                                <CardTitle>Période d&apos;activité</CardTitle>
+                                <p className="text-sm text-muted-foreground">Mois du rapport</p>
+                              </div>
+                              <Select value={selectedMonthKey} onValueChange={setSelectedMonthKey}>
+                                <SelectTrigger className="w-[160px]">
+                                  <SelectValue placeholder="Sélectionner un mois" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {monthOptions.map((option) => (
+                                    <SelectItem
+                                      key={option.value}
+                                      value={option.value}
+                                      disabled={existingReportMonths.has(option.value)}
+                                    >
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Choisissez le mois de reference du rapport financier.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Card className="border-border/60">
+                    <CardHeader className="p-4">
+                      <CardTitle>Données financières</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Remplissez les champs suivants pour {selectedMonthLabel}.
+                      </p>
+                    </CardHeader>
+                    <TooltipProvider delayDuration={100}>
+                      <CardContent className="space-y-4 p-4 pt-0">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Main d&apos;oeuvre</Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.laborCost)}`}
+                              required
+                              value={financialInputs.laborCost}
+                              onChange={handleFinancialInput("laborCost")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Montant total des salaires et charges sociales du mois.
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Nombre ETP</Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0"
+                              className={`pr-24 ${requiredInputClass(financialInputs.headcount)}`}
+                              required
+                              value={financialInputs.headcount}
+                              onChange={handleFinancialInput("headcount")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              personnes
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Nombre equivalent temps plein sur la periode.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Separator />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Charges fixes</Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.fixedCosts)}`}
+                              required
+                              value={financialInputs.fixedCosts}
+                              onChange={handleFinancialInput("fixedCosts")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Charges fixes liées à votre activité (loyer, intérêts, etc.).
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Charges variables</Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.variableCosts)}`}
+                              required
+                              value={financialInputs.variableCosts}
+                              onChange={handleFinancialInput("variableCosts")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Charges variables selon votre niveau d&apos;activité (gaz, énergies, etc.).
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2 sm:col-span-2">
+                              <Label className="text-xs font-medium text-muted-foreground">Autres charges</Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.otherCosts)}`}
+                              required
+                              value={financialInputs.otherCosts}
+                              onChange={handleFinancialInput("otherCosts")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Autres charges exceptionnelles ou ponctuelles du mois.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Separator />
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">
+                                Chiffre d&apos;affaires solide HT
+                              </Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.revenueFood)}`}
+                              required
+                              value={financialInputs.revenueFood}
+                              onChange={handleFinancialInput("revenueFood")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Chiffre d&apos;affaires hors taxes sur vos ventes de plats solides.
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground">
+                                Chiffre d&apos;affaires total HT
+                              </Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="0,00"
+                              className={`pr-8 ${requiredInputClass(financialInputs.revenueTotal)}`}
+                              required
+                              value={financialInputs.revenueTotal}
+                              onChange={handleFinancialInput("revenueTotal")}
+                            />
+                            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                              €
+                            </span>
+                          </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Chiffre d&apos;affaires HT total (solide + liquide).
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </CardContent>
+                    </TooltipProvider>
+                  </Card>
+                </div>
+
+                <Card
+                  className={`border-border/60 bg-transparent shadow-none ${
+                    showSalesError ? "border-destructive" : ""
+                  }`}
+                >
+                  <CardHeader className="space-y-1 p-4 pb-6 pt-6">
+                    <CardTitle>Récapitulatif de vos ventes</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Indiquez le nombre de ventes par recette effectuées sur {selectedMonthLabel}.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="overflow-hidden p-0">
+                    <Table className="w-full table-fixed">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="pl-3 text-left">Recette</TableHead>
+                          <TableHead className="w-[140px] text-left">Prix de vente</TableHead>
+                          <TableHead className="w-[160px] pr-3 text-left">Nombre vendu</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                    </Table>
+                    <ScrollArea className="h-[360px]">
+                      <Table className="w-full table-fixed">
+                        <TableBody>
+                          {[...reportableRecipes]
+                            .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+                            .map((recipe) => (
+                            <TableRow key={recipe.id}>
+                              <TableCell className="pl-3">
+                                <p className="text-sm font-medium">{recipe.name}</p>
+                              </TableCell>
+                              <TableCell className="w-[140px] text-left">
+                                <Badge variant="secondary" className="text-sm font-semibold">
+                                  {formatEuro(recipe.price)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="w-[160px] pr-3 text-left">
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  min={0}
+                                  step={1}
+                                  placeholder="Indiquez ici"
+                                  className="w-[110px]"
+                                  value={salesByRecipe[recipe.id] ?? ""}
+                                  onChange={handleSalesInput(recipe.id)}
+                                  onKeyDown={(event) => {
+                                    if ([".", ",", "e", "E", "+", "-"].includes(event.key)) {
+                                      event.preventDefault()
+                                    }
+                                  }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleCreateAttempt}
+                  aria-disabled={!isFormReady}
+                  className={!isFormReady ? "cursor-not-allowed opacity-50" : ""}
+                >
+                  Créer un rapport
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">

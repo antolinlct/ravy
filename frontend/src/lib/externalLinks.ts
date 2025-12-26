@@ -20,25 +20,31 @@
  */
 
 export const EXTERNAL_LINKS = {
-  website: "https://ravy.app",
+  website: "https://ravy.fr",
 
   documentation: {
-    base: "https://ravy.gitbook.io",
-    helpCenter: "https://ravy.gitbook.io/centre-daide",
+    base: "https://ravy-1.gitbook.io/centre-daide",
+    invoices:"",
+    recipes:"",
+    analysis_product:"",
+    analysis_recipes:"",
+    scores:"",
+    financial_reports:"",
+    market:"",
+    mercuriales:"",
+    settings:"",
   },
 
   booking: {
-    calendly: "https://calendly.com/xxxxx",
+    calendly: "https://calendly.com/ravy-meet/30min",
   },
 
   support: {
-    email: "mailto:support@ravy.app",
-    helpdesk: "https://support.ravy.app",
+    email: "mailto:support@ravy.fr",
   },
 
   legal: {
-    terms: "https://ravy.app/conditions",
-    privacy: "https://ravy.app/confidentialite",
+    terms: "https://ravy.fr/terms",
   },
 } as const
 
