@@ -25,6 +25,7 @@ import LandingPage from "../pages/Landing.tsx";
 // --- Dashboard ---
 import DashboardHomePage from "../pages/dashboard/home/index.tsx";
 import DashboardLayout from "../layouts/DashboardLayout.tsx";
+import BackofficeLayout from "@/layouts/BackofficeLayout.tsx";
 
 // Factures
 import InvoicesPage from "../pages/dashboard/invoices/index.tsx";
@@ -70,6 +71,7 @@ import HelpPage from "../pages/dashboard/help/index.tsx";
 // Composants de sécurité et layout
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
 import { AppShell } from "@/layouts/AppShell"
+import { BackofficeShell } from "@/layouts/BackofficeShell"
 
 // --- Déclaration de toutes les routes ---
 export const appRoutes: RouteObject[] = [
@@ -152,9 +154,9 @@ export const appRoutes: RouteObject[] = [
   path: "/backoffice",
   element: (
     <RequireAuth>
-      <AppShell>
-        <DashboardLayout />
-      </AppShell>
+      <BackofficeShell>
+        <BackofficeLayout />
+      </BackofficeShell>
     </RequireAuth>
   ),
   children: [

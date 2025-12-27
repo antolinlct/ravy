@@ -73,7 +73,7 @@ export function LoginForm({
       return
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -84,7 +84,26 @@ export function LoginForm({
       return
     }
 
-    navigate("/dashboard")
+    const userId = signInData?.user?.id
+    if (!userId) {
+      navigate("/dashboard")
+      return
+    }
+
+    const { data: roles, error: rolesError } = await supabase
+      .from("user_establishment")
+      .select("role")
+      .eq("user_id", userId)
+
+    if (rolesError) {
+      console.error("user_establishment fetch error:", rolesError)
+      navigate("/dashboard")
+      return
+    }
+
+    const isPadrino =
+      roles?.some((row) => row.role === "padrino" || row.role === "is_padrino") ?? false
+    navigate(isPadrino ? "/backoffice" : "/dashboard")
   }
 
   function handleResetDialogChange(open: boolean) {
