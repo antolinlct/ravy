@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
 } from "lucide-react"
 
-import { Logo } from "@/assets/branding/Logo"
 import {
   Sidebar,
   SidebarContent,
@@ -86,8 +85,7 @@ export function BackofficeSidebar({
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <Logo className="h-7 w-auto" />
-          <span className="text-sm font-semibold">Backoffice</span>
+          <span className="text-sm font-semibold">Backoffice - Padrino</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

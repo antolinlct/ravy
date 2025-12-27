@@ -1,5 +1,5 @@
-import { Fragment, useEffect } from "react"
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom"
+import { Fragment } from "react"
+import { Link, Outlet, useLocation } from "react-router-dom"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { supabase } from "@/lib/supabaseClient"
 
 type Crumb = {
   label: string
@@ -30,50 +29,9 @@ const backofficeLabels: Record<string, string> = {
 
 export default function BackofficeLayout() {
   const location = useLocation()
-  const navigate = useNavigate()
   const segments = location.pathname.split("/").filter(Boolean)
   const section = segments[1]
   const sectionLabel = (section && backofficeLabels[section]) || null
-
-  useEffect(() => {
-    let isActive = true
-
-    const verifyBackofficeAccess = async () => {
-      const { data, error } = await supabase.auth.getUser()
-      if (!isActive) return
-
-      if (error || !data?.user) {
-        navigate("/login", { replace: true })
-        return
-      }
-
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_establishment")
-        .select("role")
-        .eq("user_id", data.user.id)
-
-      if (!isActive) return
-
-      if (rolesError) {
-        navigate("/login", { replace: true })
-        return
-      }
-
-      const isPadrino =
-        roles?.some((row) => row.role === "padrino" || row.role === "is_padrino") ??
-        false
-
-      if (!isPadrino) {
-        navigate("/login", { replace: true })
-      }
-    }
-
-    void verifyBackofficeAccess()
-
-    return () => {
-      isActive = false
-    }
-  }, [location.pathname, navigate])
 
   const breadcrumbItems: Crumb[] = sectionLabel
     ? [

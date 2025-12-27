@@ -70,6 +70,7 @@ import HelpPage from "../pages/dashboard/help/index.tsx";
 
 // Composants de sécurité et layout
 import { RequireAuth } from "@/components/auth/RequireAuth.tsx";
+import { RequirePadrino } from "@/components/auth/RequirePadrino.tsx";
 import { AppShell } from "@/layouts/AppShell"
 import { BackofficeShell } from "@/layouts/BackofficeShell"
 
@@ -153,11 +154,11 @@ export const appRoutes: RouteObject[] = [
 {
   path: "/backoffice",
   element: (
-    <RequireAuth>
+    <RequirePadrino>
       <BackofficeShell>
         <BackofficeLayout />
       </BackofficeShell>
-    </RequireAuth>
+    </RequirePadrino>
   ),
   children: [
     // Backoffice - Accueil redirige vers établissements

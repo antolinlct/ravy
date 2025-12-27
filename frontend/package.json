@@ -12,6 +12,7 @@
   "dependencies": {
     "@fontsource/funnel-display": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
+    "@fontsource/share-tech-mono": "^5.2.7",
     "@hookform/resolvers": "^5.2.2",
     "@lexical/code": "^0.39.0",
     "@lexical/list": "^0.39.0",
