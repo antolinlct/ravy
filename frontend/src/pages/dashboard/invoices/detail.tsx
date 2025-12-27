@@ -6,8 +6,6 @@ import {
   Pencil,
   UnfoldHorizontal,
   FoldHorizontal,
-  ArrowUp,
-  ArrowDown,
   Wallet,
   Percent,
   TicketPercent,
@@ -395,7 +393,6 @@ export default function InvoiceDetailPage() {
     }
 
     const isPositive = value > 0
-    const Icon = isPositive ? ArrowUp : ArrowDown
     const formatted = `${isPositive ? "+" : ""}${value.toLocaleString("fr-FR", {
       maximumFractionDigits: 2,
       minimumFractionDigits: 1,
@@ -403,8 +400,7 @@ export default function InvoiceDetailPage() {
     const colorClass = isPositive ? "text-red-500" : "text-green-500"
 
     return (
-      <span className={`inline-flex items-center gap-1 text-xs font-medium ${colorClass}`}>
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      <span className={`inline-flex items-center text-xs font-medium ${colorClass}`}>
         {formatted}
       </span>
     )

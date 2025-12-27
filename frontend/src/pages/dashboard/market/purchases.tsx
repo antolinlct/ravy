@@ -1,7 +1,14 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { AgGridReact } from "ag-grid-react"
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community"
-import type { ColDef, GetRowIdParams, RowHeightParams } from "ag-grid-community"
+import type {
+  ColDef,
+  GetRowIdParams,
+  IHeaderParams,
+  PostSortRowsParams,
+  RowClassParams,
+  RowHeightParams,
+} from "ag-grid-community"
 import {
   Area,
   AreaChart as RechartsAreaChart,
@@ -9,10 +16,27 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Check, ChevronDown, ChevronRight, ChevronsUpDown, Info } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  ChevronsUpDown,
+  Expand,
+  Flame,
+  Info,
+  Plus,
+  Rocket,
+  Search,
+  Shrink,
+  Skull,
+} from "lucide-react"
 
 import ConsultantAvatar from "@/assets/avatar.png"
 import { useTheme } from "@/components/dark/theme-provider"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,7 +51,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import MultipleCombobox from "@/components/ui/multiple_combobox"
+import { Input } from "@/components/ui/input"
 import {
   ChartContainer,
   ChartTooltip,
@@ -35,6 +63,7 @@ import {
 } from "@/components/ui/chart"
 import { DoubleDatePicker } from "@/components/blocks/double-datepicker"
 import type { IntervalKey } from "@/components/blocks/area-chart"
+import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -63,6 +92,83 @@ type MarketProductRow = {
 }
 
 type MarketGridRow = MarketGroupRow | MarketProductRow
+
+type InterestHeaderProps = IHeaderParams<MarketGridRow>
+
+const InterestHeader = ({
+  displayName,
+  enableSorting,
+  progressSort,
+  column,
+}: InterestHeaderProps) => {
+  const label = displayName ?? "Interet"
+  const [sort, setSort] = useState<"asc" | "desc" | null>(column?.getSort() ?? null)
+
+  useEffect(() => {
+    if (!column) return
+    const handleSortChanged = () => {
+      setSort(column.getSort() ?? null)
+    }
+    column.addEventListener("sortChanged", handleSortChanged)
+    return () => {
+      column.removeEventListener("sortChanged", handleSortChanged)
+    }
+  }, [column])
+
+  const SortIcon = sort === "asc" ? ChevronUp : sort === "desc" ? ChevronDown : ChevronsUpDown
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={(event) => {
+          if (enableSorting && progressSort) {
+            progressSort(event.shiftKey)
+          }
+        }}
+        className="inline-flex items-center gap-1 text-sm font-medium text-foreground"
+      >
+        <span>{label}</span>
+        {enableSorting ? (
+          <SortIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+        ) : null}
+      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Informations sur l'interet"
+          >
+            <Info className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          Pourcentage de restaurateurs achetant ce produit sur la periode.
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
+
+const RECOMMENDATION_RANK: Record<string, number> = {
+  "Bon prix": 6,
+  "Très demandé": 5,
+  "Dans la moyenne": 4,
+  "Intérêt faible": 3,
+  "À surveiller": 2,
+  "Prix instable": 1,
+  "Données anciennes": 0,
+}
+const FULL_COLUMN_OPTIONS = [
+  { id: "volatility", label: "Volatilité" },
+  { id: "avgPrice", label: "Prix moyen" },
+  { id: "variation", label: "Variation" },
+  { id: "lastPrice", label: "Dernier prix" },
+  { id: "updatedAt", label: "Mise à jour" },
+  { id: "interest", label: "Intérêt" },
+  { id: "recommendation", label: "Recommandations" },
+]
 
 const supplierOptions = [
   { id: "sysco", label: "Sysco France", usedByUser: true },
@@ -186,6 +292,10 @@ const productUsageById: Record<string, { monthlyQty: number }> = {
   "pasta-penne": { monthlyQty: 110 },
   mozzarella: { monthlyQty: 95 },
 }
+const maxProductMonthlyQty = Math.max(
+  1,
+  ...Object.values(productUsageById).map((usage) => usage.monthlyQty)
+)
 
 const axisDayFormatter = new Intl.DateTimeFormat("fr-FR", {
   day: "2-digit",
@@ -205,6 +315,13 @@ const formatAxisLabel = (date: Date, interval: IntervalKey) => {
     return axisMonthFormatter.format(date)
   }
   return axisDayFormatter.format(date)
+}
+
+const normalizeSearchValue = (value: string) => {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
 }
 
   const formatTooltipDate = (date: Date) => {
@@ -228,6 +345,12 @@ const formatAxisLabel = (date: Date, interval: IntervalKey) => {
 
 export default function MarketPurchasesPage() {
   const { theme = "system" } = useTheme()
+  const [isGridFullscreen, setIsGridFullscreen] = useState(false)
+  const [isProductSheetOpen, setIsProductSheetOpen] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
+  const [productSearch, setProductSearch] = useState("")
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<string>>(() => new Set())
   const [comparisonRange, setComparisonRange] = useState<{ start?: Date; end?: Date }>(() => {
     const end = new Date()
     const start = new Date(end)
@@ -257,6 +380,14 @@ export default function MarketPurchasesPage() {
     () => supplierOptions.find((supplier) => supplier.id === rightSupplierId)?.usedByUser ?? false,
     [rightSupplierId]
   )
+  const supplierFilterOptions = useMemo(
+    () => supplierOptions.map((supplier) => ({ value: supplier.id, label: supplier.label })),
+    []
+  )
+  const normalizedProductQuery = useMemo(() => {
+    const normalized = normalizeSearchValue(productSearch).trim()
+    return normalized.length ? normalized.split(/\s+/).filter(Boolean) : []
+  }, [productSearch])
   const leftProductLabel = useMemo(
     () => productOptions.find((product) => product.id === leftProductId)?.label ?? "Produit 1",
     [leftProductId]
@@ -287,6 +418,15 @@ export default function MarketPurchasesPage() {
       new Intl.NumberFormat("fr-FR", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
+      }),
+    []
+  )
+  const updateDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
       }),
     []
   )
@@ -524,8 +664,14 @@ export default function MarketPurchasesPage() {
     })
   }, [])
   const marketGridRows = useMemo<MarketGridRow[]>(() => {
+    const matchesQuery = (label: string) => {
+      if (normalizedProductQuery.length === 0) return true
+      const normalizedLabel = normalizeSearchValue(label)
+      return normalizedProductQuery.every((token) => normalizedLabel.includes(token))
+    }
     const productsBySupplier = new Map<string, MarketProductRow[]>()
     marketProductRows.forEach((product) => {
+      if (!matchesQuery(product.productLabel)) return
       const bucket = productsBySupplier.get(product.supplierId)
       if (bucket) {
         bucket.push(product)
@@ -534,8 +680,13 @@ export default function MarketPurchasesPage() {
       }
     })
     const rows: MarketGridRow[] = []
-    supplierOptions.forEach((supplier) => {
+    const activeSuppliers =
+      selectedSuppliers.length > 0
+        ? supplierOptions.filter((supplier) => selectedSuppliers.includes(supplier.id))
+        : supplierOptions
+    activeSuppliers.forEach((supplier) => {
       const products = productsBySupplier.get(supplier.id) ?? []
+      if (normalizedProductQuery.length > 0 && products.length === 0) return
       rows.push({
         id: `group-${supplier.id}`,
         rowType: "group",
@@ -543,7 +694,7 @@ export default function MarketPurchasesPage() {
         supplierLabel: supplier.label,
         productCount: products.length,
       })
-      if (!collapsedSuppliers.has(supplier.id)) {
+      if (normalizedProductQuery.length > 0 || !collapsedSuppliers.has(supplier.id)) {
         products.forEach((product, index) => {
           rows.push({
             ...product,
@@ -553,13 +704,17 @@ export default function MarketPurchasesPage() {
       }
     })
     return rows
-  }, [collapsedSuppliers, marketProductRows, supplierOptions])
+  }, [collapsedSuppliers, marketProductRows, normalizedProductQuery, selectedSuppliers])
   const marketGetRowId = useCallback((params: GetRowIdParams<MarketGridRow>) => {
     return params.data?.id ?? ""
   }, [])
   const marketRowHeight = useCallback((params: RowHeightParams<MarketGridRow>) => {
     if (params.data?.rowType === "group") return 40
-    return 52
+    return 40
+  }, [])
+  const marketGetRowClass = useCallback((params: RowClassParams<MarketGridRow>) => {
+    if (params.data?.rowType === "group") return "!bg-sidebar"
+    return "!bg-white dark:!bg-black"
   }, [])
   const getProductVolatility = useCallback(
     (productId: string) => {
@@ -594,135 +749,599 @@ export default function MarketPurchasesPage() {
     if (!points.length) return null
     return points[points.length - 1]?.value ?? null
   }, [])
+  const getProductLastDate = useCallback((productId: string): Date | null => {
+    const points = priceSeriesByProduct[productId] ?? []
+    if (!points.length) return null
+    let latest: Date | null = null
+    points.forEach((point) => {
+      const parsed = new Date(point.date)
+      if (Number.isNaN(parsed.getTime())) return
+      if (!latest || parsed > latest) {
+        latest = parsed
+      }
+    })
+    return latest
+  }, [])
+  const formatUpdateDate = useCallback(
+    (date: Date) => {
+      const parts = updateDateFormatter.formatToParts(date)
+      const day = parts.find((part) => part.type === "day")?.value
+      const month = parts.find((part) => part.type === "month")?.value
+      const year = parts.find((part) => part.type === "year")?.value
+      if (!day || !month || !year) return updateDateFormatter.format(date)
+      return `${day} ${month}, ${year}`
+    },
+    [updateDateFormatter]
+  )
+  const getProductLastUpdated = useCallback(
+    (productId: string) => {
+      const lastDate = getProductLastDate(productId)
+      if (!lastDate) return null
+      return formatUpdateDate(lastDate)
+    },
+    [formatUpdateDate, getProductLastDate]
+  )
+  const getDaysSinceLastUpdate = useCallback(
+    (productId: string) => {
+      const lastDate = getProductLastDate(productId)
+      if (!lastDate) return null
+      const diffMs = Date.now() - lastDate.getTime()
+      if (diffMs < 0) return null
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    },
+    [getProductLastDate]
+  )
+  const getMockUserVsMarketPercent = useCallback(
+    (productId: string) => {
+      const avg = getProductAverage(productId)
+      if (!avg || avg === 0) return null
+      const hash = productId.split("").reduce((total, char) => total + char.charCodeAt(0), 0)
+      const offset = (hash % 17) - 8
+      return offset
+    },
+    [getProductAverage]
+  )
+  const getMarketVolatilityIndex = useCallback(
+    (productId: string) => {
+      const avg = getProductAverage(productId)
+      const volatility = getProductVolatility(productId)
+      if (!avg || !volatility) return null
+      return (volatility.max - volatility.min) / avg
+    },
+    [getProductAverage, getProductVolatility]
+  )
+  const getInterestPercent = useCallback(
+    (productId: string) => {
+      const monthlyQty = productUsageById[productId]?.monthlyQty
+      if (!monthlyQty) return null
+      return Math.round((monthlyQty / maxProductMonthlyQty) * 100)
+    },
+    []
+  )
+  const getInterestTone = useCallback((interest: number) => {
+    if (interest >= 50) return { icon: Rocket, className: "text-green-500" }
+    if (interest >= 20) return { icon: Flame, className: "text-orange-500" }
+    return { icon: Skull, className: "text-red-500" }
+  }, [])
+  const getRecommendationBadge = useCallback(
+    (productId: string) => {
+      const userVsPct = getMockUserVsMarketPercent(productId)
+      const volIndex = getMarketVolatilityIndex(productId)
+      const daysSince = getDaysSinceLastUpdate(productId)
+      const interest = getInterestPercent(productId)
+      const hasSignal =
+        userVsPct !== null || volIndex !== null || daysSince !== null || interest !== null
+      if (!hasSignal) return null
+      if (daysSince !== null && daysSince > 45) return "Données anciennes"
+      if (volIndex !== null && volIndex > 0.25) return "Prix instable"
+      if (userVsPct !== null && userVsPct <= -5) return "Bon prix"
+      if (userVsPct !== null && userVsPct >= 5) return "À surveiller"
+      if (interest !== null && interest >= 70) return "Très demandé"
+      if (interest !== null && interest <= 30) return "Intérêt faible"
+      return "Dans la moyenne"
+    },
+    [
+      getDaysSinceLastUpdate,
+      getInterestPercent,
+      getMarketVolatilityIndex,
+      getMockUserVsMarketPercent,
+    ]
+  )
+  const selectedProduct = useMemo(() => {
+    if (!selectedProductId) return null
+    return marketProductRows.find((product) => product.productId === selectedProductId) ?? null
+  }, [selectedProductId])
+  const selectedProductMetrics = useMemo(() => {
+    if (!selectedProduct) return null
+    const productId = selectedProduct.productId
+    return {
+      avgPrice: getProductAverage(productId),
+      lastPrice: getProductLastPrice(productId),
+      updatedAt: getProductLastUpdated(productId),
+      variation: getProductVariation(productId),
+      volatility: getProductVolatility(productId),
+      interest: getInterestPercent(productId),
+      recommendation: getRecommendationBadge(productId),
+    }
+  }, [
+    getInterestPercent,
+    getProductAverage,
+    getProductLastPrice,
+    getProductLastUpdated,
+    getProductVariation,
+    getProductVolatility,
+    getRecommendationBadge,
+    selectedProduct,
+  ])
+  const consultantNote = useMemo(() => {
+    if (!selectedProductMetrics) return null
+    const interest = selectedProductMetrics.interest
+    const variation = selectedProductMetrics.variation
+    if (interest === null || interest === undefined || variation === null || variation === undefined) {
+      return {
+        title: "Données insuffisantes",
+        message: "Je n'ai pas assez de données pour te conseiller correctement pour le moment.",
+      }
+    }
+    const strongIncrease = variation >= 8
+    if (interest >= 50) {
+      if (strongIncrease) {
+        return {
+          title: "À surveiller",
+          message:
+            "La demande est forte mais la hausse est marquée. Attends un meilleur timing ou renégocie.",
+        }
+      }
+      if (variation <= 0) {
+        return {
+          title: "Achat recommandé",
+          message:
+            "La demande est forte et le prix est stable (ou en baisse). Ça vaut le coup d’acheter, mais vérifie quand même le franco de port.",
+        }
+      }
+      return {
+        title: "Achat recommandé",
+        message:
+          "Bonne traction mais le prix grimpe. Tu peux acheter, en gardant un œil sur le franco de port.",
+      }
+    }
+    if (interest >= 20) {
+      if (strongIncrease) {
+        return {
+          title: "À surveiller",
+          message:
+            "Intérêt correct, mais la hausse est marquée. Je patienterais ou je comparerais davantage.",
+        }
+      }
+      if (variation <= 0) {
+        return {
+          title: "À surveiller",
+          message:
+            "Intérêt correct et prix plutôt stable. Compare vite avec un ou deux fournisseurs avant de valider.",
+        }
+      }
+      return {
+        title: "À surveiller",
+        message: "L’intérêt est correct, mais le prix monte. Je garderais la main sur le timing.",
+      }
+    }
+    if (variation <= 0) {
+      return {
+        title: "Pas prioritaire",
+        message: "Peu d’intérêt côté marché, même si le prix baisse. Pas urgent.",
+      }
+    }
+    return {
+      title: "Pas prioritaire",
+      message: "Peu d’intérêt et prix en hausse : je laisserais passer pour l’instant.",
+    }
+  }, [selectedProductMetrics])
+  const marketPostSortRows = useCallback((params: PostSortRowsParams<MarketGridRow>) => {
+    const grouped = new Map<
+      string,
+      { group?: typeof params.nodes[number]; items: typeof params.nodes[number][] }
+    >()
+    const orderedSupplierIds: string[] = []
+    const seenSuppliers = new Set<string>()
+
+    params.nodes.forEach((node) => {
+      const data = node.data
+      if (!data) return
+      const supplierId = data.supplierId
+      const bucket =
+        grouped.get(supplierId) ?? { items: [] }
+      if (data.rowType === "group") {
+        bucket.group = node
+      } else {
+        bucket.items.push(node)
+        if (!seenSuppliers.has(supplierId)) {
+          seenSuppliers.add(supplierId)
+          orderedSupplierIds.push(supplierId)
+        }
+      }
+      grouped.set(supplierId, bucket)
+    })
+
+    grouped.forEach((_value, supplierId) => {
+      if (!seenSuppliers.has(supplierId)) {
+        orderedSupplierIds.push(supplierId)
+      }
+    })
+
+    const sortedNodes: typeof params.nodes = []
+    orderedSupplierIds.forEach((supplierId) => {
+      const bucket = grouped.get(supplierId)
+      if (!bucket) return
+      if (bucket.group) sortedNodes.push(bucket.group)
+      sortedNodes.push(...bucket.items)
+    })
+
+    params.nodes.length = 0
+    params.nodes.push(...sortedNodes)
+  }, [])
+  const setColumnVisibility = useCallback((columnId: string, visible: boolean) => {
+    setHiddenColumnIds((prev) => {
+      const next = new Set(prev)
+      if (visible) {
+        next.delete(columnId)
+      } else {
+        next.add(columnId)
+      }
+      return next
+    })
+  }, [])
+  const resetColumnVisibility = useCallback(() => {
+    setHiddenColumnIds(new Set())
+  }, [])
+  const openProductSheet = useCallback((productId: string) => {
+    setSelectedProductId(productId)
+    setIsProductSheetOpen(true)
+  }, [])
+  const handleProductSheetOpenChange = useCallback((open: boolean) => {
+    setIsProductSheetOpen(open)
+    if (!open) {
+      setSelectedProductId(null)
+    }
+  }, [])
   const marketDefaultColDef = useMemo<ColDef<MarketGridRow>>(
     () => ({
       cellClass: "flex items-center",
+      suppressMenu: true,
+      sortable: true,
     }),
     []
   )
-  const marketGridColumnDefs = useMemo<ColDef<MarketGridRow>[]>(
-    () => [
-      {
-        headerName: "Fournisseur / Produit",
-        field: "supplierLabel",
-        flex: 1,
-        minWidth: 260,
-        cellRenderer: ({ data }: { data?: MarketGridRow }) => {
-          if (!data) return null
-          if (data.rowType === "group") {
-            const isCollapsed = collapsedSuppliers.has(data.supplierId)
-            return (
+  const applyHiddenColumn = useCallback(
+    (colDef: ColDef<MarketGridRow>) => {
+      if (!colDef.colId) return colDef
+      return { ...colDef, hide: hiddenColumnIds.has(colDef.colId) }
+    },
+    [hiddenColumnIds]
+  )
+  const supplierColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Fournisseur / Produit",
+      colId: "supplier",
+      field: "supplierLabel",
+      flex: 2.5,
+      minWidth: 230,
+      valueGetter: ({ data }) => {
+        if (!data) return null
+        return data.supplierLabel
+      },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data) return null
+        if (data.rowType === "group") {
+          const isCollapsed = collapsedSuppliers.has(data.supplierId)
+          return (
             <button
               type="button"
               onClick={() => toggleSupplierGroup(data.supplierId)}
               className="flex h-full w-full items-center gap-2 text-left text-sm text-foreground"
             >
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="font-semibold">{data.supplierLabel}</span>
-              </button>
-            )
-          }
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="text-base font-semibold text-foreground">
+                {data.supplierLabel}
+              </span>
+            </button>
+          )
+        }
+        return (
+          <div className="flex h-full items-center pl-10 text-sm text-foreground">
+            {data.productLabel}
+          </div>
+        )
+      },
+    }),
+    [collapsedSuppliers, toggleSupplierGroup]
+  )
+  const volatilityColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Volatilité",
+      colId: "volatility",
+      flex: 1,
+      minWidth: 160,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        const volatility = getProductVolatility(data.productId)
+        return volatility ? volatility.max - volatility.min : null
+      },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const volatility = getProductVolatility(data.productId)
+        if (!volatility) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        return (
+          <div className="flex h-full items-center text-sm text-muted-foreground">
+            {euroFormatter.format(volatility.min)} → {euroFormatter.format(volatility.max)}
+          </div>
+        )
+      },
+    }),
+    [euroFormatter, getProductVolatility]
+  )
+  const avgPriceColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Prix moyen",
+      colId: "avgPrice",
+      flex: 1,
+      minWidth: 140,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        return getProductAverage(data.productId)
+      },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const avgValue = getProductAverage(data.productId)
+        if (avgValue === null) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
           return (
-            <div className="flex h-full items-center pl-10 text-sm text-foreground">
-              {data.productLabel}
+            <div className="flex h-full items-center text-sm font-semibold text-foreground">
+              {unitPriceFormatter.format(avgValue)}€
+              <span className="ml-1 text-muted-foreground">/{data.unit}</span>
             </div>
           )
         },
+      }),
+    [getProductAverage, unitPriceFormatter]
+  )
+  const variationColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Variation",
+      colId: "variation",
+      flex: 1,
+      minWidth: 80,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        return getProductVariation(data.productId)
       },
-      {
-        headerName: "Volatilité",
-        colId: "volatility",
-        flex: 1,
-        minWidth: 220,
-        cellRenderer: ({ data }: { data?: MarketGridRow }) => {
-          if (!data || data.rowType !== "product") return null
-          const volatility = getProductVolatility(data.productId)
-          if (!volatility) {
-            return <div className="flex h-full items-center text-sm text-foreground">—</div>
-          }
-          return (
-            <div className="flex h-full items-center text-sm text-foreground">
-              {euroFormatter.format(volatility.min)} → {euroFormatter.format(volatility.max)}
-            </div>
-          )
-        },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const variation = getProductVariation(data.productId)
+        if (variation === null) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        const sign = variation > 0 ? "+" : variation < 0 ? "-" : ""
+        const formatted = `${sign}${Math.abs(variation).toFixed(1)}%`
+        const toneClass =
+          variation > 0
+            ? "text-red-500"
+            : variation < 0
+              ? "text-green-500"
+              : "text-muted-foreground"
+        return <div className={cn("flex h-full items-center text-sm", toneClass)}>{formatted}</div>
       },
-      {
-        headerName: "Prix moyen",
-        colId: "avgPrice",
-        flex: 1,
-        minWidth: 200,
-        cellRenderer: ({ data }: { data?: MarketGridRow }) => {
-          if (!data || data.rowType !== "product") return null
-          const avgValue = getProductAverage(data.productId)
-          if (avgValue === null) {
-            return <div className="flex h-full items-center text-sm text-foreground">—</div>
-          }
-          return (
-            <div className="flex h-full items-center text-sm text-foreground">
-              {unitPriceFormatter.format(avgValue)}€/{data.unit}
-            </div>
-          )
-        },
+    }),
+    [getProductVariation]
+  )
+  const lastPriceColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Dernier prix",
+      colId: "lastPrice",
+      flex: 1,
+      minWidth: 150,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        return getProductLastPrice(data.productId)
       },
-      {
-        headerName: "Variation",
-        colId: "variation",
-        flex: 1,
-        minWidth: 160,
-        cellRenderer: ({ data }: { data?: MarketGridRow }) => {
-          if (!data || data.rowType !== "product") return null
-          const variation = getProductVariation(data.productId)
-          if (variation === null) {
-            return <div className="flex h-full items-center text-sm text-foreground">—</div>
-          }
-          const sign = variation > 0 ? "+" : variation < 0 ? "-" : ""
-          const formatted = `${sign}${Math.abs(variation).toFixed(1)}%`
-          const toneClass =
-            variation > 0
-              ? "text-emerald-500"
-              : variation < 0
-                ? "text-rose-500"
-                : "text-muted-foreground"
-          return (
-            <div className={cn("flex h-full items-center text-sm", toneClass)}>
-              {formatted}
-            </div>
-          )
-        },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const lastPrice = getProductLastPrice(data.productId)
+        if (lastPrice === null) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        return (
+          <div className="flex h-full items-center text-sm text-foreground">
+            {unitPriceFormatter.format(lastPrice)}€
+            <span className="ml-1 text-muted-foreground">/{data.unit}</span>
+          </div>
+        )
       },
-      {
-        headerName: "Dernier prix",
-        colId: "lastPrice",
-        flex: 1,
-        minWidth: 200,
-        cellRenderer: ({ data }: { data?: MarketGridRow }) => {
-          if (!data || data.rowType !== "product") return null
-          const lastPrice = getProductLastPrice(data.productId)
-          if (lastPrice === null) {
-            return <div className="flex h-full items-center text-sm text-foreground">—</div>
-          }
-          return (
-            <div className="flex h-full items-center text-sm text-foreground">
-              {unitPriceFormatter.format(lastPrice)}€/{data.unit}
-            </div>
-          )
-        },
+    }),
+    [getProductLastPrice, unitPriceFormatter]
+  )
+  const updatedAtColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Mise à jour",
+      colId: "updatedAt",
+      flex: 1,
+      minWidth: 140,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        return getProductLastDate(data.productId)?.getTime() ?? null
       },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const lastUpdated = getProductLastUpdated(data.productId)
+        if (!lastUpdated) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        return (
+          <div className="flex h-full items-center text-sm text-muted-foreground">
+            {lastUpdated}
+          </div>
+        )
+      },
+    }),
+    [getProductLastUpdated]
+  )
+  const interestColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Intérêt",
+      colId: "interest",
+      flex: 1,
+      minWidth: 130,
+      headerComponent: InterestHeader,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        return getInterestPercent(data.productId)
+      },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const interest = getInterestPercent(data.productId)
+        if (interest === null) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        const tone = getInterestTone(interest)
+        const Icon = tone.icon
+        return (
+          <div className={cn("flex h-full items-center gap-2 text-sm font-medium", tone.className)}>
+            <span>{interest}%</span>
+            <Icon className="h-4 w-4" aria-hidden />
+          </div>
+        )
+      },
+    }),
+    [getInterestPercent, getInterestTone]
+  )
+  const recommendationColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "Recommandations",
+      colId: "recommendation",
+      flex: 1,
+      minWidth: 160,
+      valueGetter: ({ data }) => {
+        if (!data || data.rowType !== "product") return null
+        const badge = getRecommendationBadge(data.productId)
+        return badge ? RECOMMENDATION_RANK[badge] ?? 0 : null
+      },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        const badge = getRecommendationBadge(data.productId)
+        if (!badge) {
+          return <div className="flex h-full items-center text-sm text-foreground">—</div>
+        }
+        const badgeTone =
+          badge === "Bon prix"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+            : badge === "Très demandé"
+              ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300"
+              : badge === "À surveiller"
+                ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+                : badge === "Prix instable"
+                  ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                  : badge === "Intérêt faible"
+                    ? "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300"
+                    : badge === "Données anciennes"
+                      ? "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300"
+                      : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300"
+        return (
+          <div className="flex h-full items-center">
+            <span
+              className={cn(
+                "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+                badgeTone
+              )}
+            >
+              {badge}
+            </span>
+          </div>
+        )
+      },
+    }),
+    [getRecommendationBadge]
+  )
+  const actionColumn = useMemo<ColDef<MarketGridRow>>(
+    () => ({
+      headerName: "-",
+      colId: "actions",
+      width: 56,
+      maxWidth: 56,
+      headerClass:
+        "justify-center px-0 [&_.ag-header-cell-label]:!justify-center [&_.ag-header-cell-label]:!overflow-visible",
+      sortable: false,
+      filter: false,
+      suppressHeaderMenuButton: true,
+      suppressHeaderFilterButton: true,
+      suppressHeaderContextMenu: true,
+      suppressMenu: true,
+      resizable: false,
+      cellClass:
+        "flex items-center justify-center px-0 [&_.ag-cell-value]:!flex [&_.ag-cell-value]:!w-full [&_.ag-cell-value]:!justify-center [&_.ag-cell-value]:!overflow-visible [&_.ag-cell-value]:!text-clip",
+      cellStyle: { paddingLeft: 0, paddingRight: 0 },
+      cellRenderer: ({ data }: { data?: MarketGridRow }) => {
+        if (!data || data.rowType !== "product") return null
+        return (
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={`Ajouter ${data.productLabel}`}
+            onClick={() => openProductSheet(data.productId)}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        )
+      },
+    }),
+    [openProductSheet]
+  )
+  const marketGridColumnDefsCompact = useMemo<ColDef<MarketGridRow>[]>(
+    () => [
+      supplierColumn,
+      avgPriceColumn,
+      variationColumn,
+      lastPriceColumn,
+      updatedAtColumn,
+      interestColumn,
     ],
     [
-      collapsedSuppliers,
-      euroFormatter,
-      getProductAverage,
-      getProductLastPrice,
-      getProductVolatility,
-      getProductVariation,
-      toggleSupplierGroup,
-      unitPriceFormatter,
+      supplierColumn,
+      avgPriceColumn,
+      variationColumn,
+      lastPriceColumn,
+      updatedAtColumn,
+      interestColumn,
+    ]
+  )
+  const marketGridColumnDefsFull = useMemo<ColDef<MarketGridRow>[]>(
+    () => [
+      supplierColumn,
+      applyHiddenColumn(volatilityColumn),
+      applyHiddenColumn(avgPriceColumn),
+      applyHiddenColumn(variationColumn),
+      applyHiddenColumn(lastPriceColumn),
+      applyHiddenColumn(updatedAtColumn),
+      applyHiddenColumn(interestColumn),
+      applyHiddenColumn(recommendationColumn),
+      actionColumn,
+    ],
+    [
+      applyHiddenColumn,
+      supplierColumn,
+      volatilityColumn,
+      avgPriceColumn,
+      variationColumn,
+      lastPriceColumn,
+      updatedAtColumn,
+      interestColumn,
+      recommendationColumn,
+      actionColumn,
     ]
   )
   return (
@@ -1259,27 +1878,309 @@ export default function MarketPurchasesPage() {
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <CardTitle>Base de données</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Partagez et consultez des prix de marché pour comparer vos achats aux références
-            collectives.
-          </p>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle>Base de données</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Consultez les prix du marché payé par vos concurrents.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <MultipleCombobox
+              className="max-w-xs"
+              placeholder="Sélectionner des fournisseurs"
+              items={supplierFilterOptions}
+              value={selectedSuppliers}
+              onChange={setSelectedSuppliers}
+            />
+            <div className="relative w-[220px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={productSearch}
+                onChange={(event) => setProductSearch(event.target.value)}
+                placeholder="Rechercher un produit"
+                className="w-full pl-9"
+              />
+            </div>
+            <Button
+              variant="secondary"
+              size="icon"
+              type="button"
+              onClick={() => setIsGridFullscreen(true)}
+              className="self-start"
+              aria-label="Agrandir le tableau"
+            >
+              <Expand className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div style={{ height: 320, width: "100%" }} data-ag-theme-mode={agThemeMode}>
+          <div style={{ height: 620, width: "100%" }} data-ag-theme-mode={agThemeMode}>
             <AgGridReact<MarketGridRow>
               rowData={marketGridRows}
-              columnDefs={marketGridColumnDefs}
+              columnDefs={marketGridColumnDefsCompact}
               defaultColDef={marketDefaultColDef}
               theme={themeQuartz}
+              suppressDragLeaveHidesColumns
               getRowId={marketGetRowId}
+              getRowClass={marketGetRowClass}
               getRowHeight={marketRowHeight}
+              postSortRows={marketPostSortRows}
               domLayout="normal"
             />
           </div>
         </CardContent>
       </Card>
+      <Dialog open={isGridFullscreen} onOpenChange={setIsGridFullscreen}>
+        <DialogContent
+          showCloseButton={false}
+          className="inset-0 h-[100svh] w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-6 sm:max-w-none"
+        >
+          <div className="flex h-full flex-col gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold">Base de données</h2>
+                <p className="text-sm text-muted-foreground">
+                  Consultez les prix du marché payé par vos concurrents.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <MultipleCombobox
+                  className="max-w-xs"
+                  placeholder="Sélectionner des fournisseurs"
+                  items={supplierFilterOptions}
+                  value={selectedSuppliers}
+                  onChange={setSelectedSuppliers}
+                />
+                <div className="relative w-[220px]">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={productSearch}
+                    onChange={(event) => setProductSearch(event.target.value)}
+                    placeholder="Rechercher un produit"
+                    className="w-full pl-9"
+                  />
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="secondary" type="button">
+                      Colonnes
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-56 space-y-2">
+                    <div className="space-y-2">
+                      {FULL_COLUMN_OPTIONS.map((column) => {
+                        const isVisible = !hiddenColumnIds.has(column.id)
+                        return (
+                          <label
+                            key={column.id}
+                            className="flex items-center gap-2 text-sm text-foreground"
+                          >
+                            <Checkbox
+                              checked={isVisible}
+                              onCheckedChange={(checked) =>
+                                setColumnVisibility(column.id, checked === true)
+                              }
+                              aria-label={`Afficher la colonne ${column.label}`}
+                            />
+                            <span>{column.label}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="w-full justify-center"
+                      onClick={resetColumnVisibility}
+                    >
+                      Réinitialiser
+                    </Button>
+                  </PopoverContent>
+                </Popover>
+                <DialogClose asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    type="button"
+                    aria-label="Réduire le tableau"
+                  >
+                    <Shrink className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </div>
+            </div>
+            <div className="flex-1" data-ag-theme-mode={agThemeMode}>
+              <div style={{ height: "100%", width: "100%" }}>
+                <AgGridReact<MarketGridRow>
+                  rowData={marketGridRows}
+                  columnDefs={marketGridColumnDefsFull}
+                  defaultColDef={marketDefaultColDef}
+                  theme={themeQuartz}
+                  suppressDragLeaveHidesColumns
+                  getRowId={marketGetRowId}
+                  getRowClass={marketGetRowClass}
+                  getRowHeight={marketRowHeight}
+                  postSortRows={marketPostSortRows}
+                  domLayout="normal"
+                />
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Sheet open={isProductSheetOpen} onOpenChange={handleProductSheetOpenChange}>
+        <SheetContent side="right" className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{selectedProduct?.productLabel ?? "Détail du produit"}</SheetTitle>
+            <SheetDescription>
+              {selectedProduct
+                ? selectedProduct.supplierLabel
+                : "Sélectionnez un produit pour afficher les détails."}
+            </SheetDescription>
+          </SheetHeader>
+          {selectedProduct ? (
+            <div className="mt-6 space-y-4">
+              <div className="rounded-md border bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Volatilité</span>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedProductMetrics?.volatility
+                      ? `${euroFormatter.format(
+                          selectedProductMetrics.volatility.min
+                        )} → ${euroFormatter.format(selectedProductMetrics.volatility.max)}`
+                      : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Prix moyen</span>
+                  <div className="flex items-center gap-3">
+                    {selectedProductMetrics?.avgPrice !== null &&
+                    selectedProductMetrics?.avgPrice !== undefined ? (
+                      <Badge variant="secondary" className="px-2.5 py-0.5 text-sm font-semibold">
+                        {unitPriceFormatter.format(selectedProductMetrics.avgPrice)}€
+                        <span className="ml-1 text-sm text-muted-foreground">
+                          /{selectedProduct.unit}
+                        </span>
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-foreground">—</span>
+                    )}
+                    {selectedProductMetrics?.variation === null ||
+                    selectedProductMetrics?.variation === undefined ? (
+                      <span className="text-sm text-foreground">—</span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-sm font-medium",
+                          selectedProductMetrics.variation > 0
+                            ? "text-red-500"
+                            : selectedProductMetrics.variation < 0
+                              ? "text-green-500"
+                              : "text-muted-foreground"
+                        )}
+                      >
+                        {selectedProductMetrics.variation > 0 ? (
+                          <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+                        ) : selectedProductMetrics.variation < 0 ? (
+                          <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+                        ) : null}
+                        {selectedProductMetrics.variation > 0 ? "+" : ""}
+                        {selectedProductMetrics.variation.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedProductMetrics?.updatedAt
+                      ? `Prix au ${selectedProductMetrics.updatedAt}`
+                      : "Prix au —"}
+                  </span>
+                  <span className="text-sm text-foreground">
+                    {selectedProductMetrics?.lastPrice !== null &&
+                    selectedProductMetrics?.lastPrice !== undefined
+                      ? `${unitPriceFormatter.format(selectedProductMetrics.lastPrice)}€/${selectedProduct.unit}`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-md bg-muted/10 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Acheté par</span>
+                  {selectedProductMetrics?.interest !== null &&
+                  selectedProductMetrics?.interest !== undefined ? (
+                    (() => {
+                      const tone = getInterestTone(selectedProductMetrics.interest)
+                      const Icon = tone.icon
+                      const count = Math.max(
+                        1,
+                        Math.round((selectedProductMetrics.interest / 100) * 120)
+                      )
+                      return (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 text-sm font-medium",
+                            tone.className
+                          )}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                          {count} restaurants / 120
+                        </span>
+                      )
+                    })()
+                  ) : (
+                    <span className="text-sm text-foreground">—</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">Recommandations</span>
+                  {selectedProductMetrics?.recommendation ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+                        selectedProductMetrics.recommendation === "Bon prix"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+                          : selectedProductMetrics.recommendation === "Très demandé"
+                            ? "border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300"
+                            : selectedProductMetrics.recommendation === "À surveiller"
+                              ? "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+                              : selectedProductMetrics.recommendation === "Prix instable"
+                                ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                                : selectedProductMetrics.recommendation === "Intérêt faible"
+                                  ? "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300"
+                                  : selectedProductMetrics.recommendation === "Données anciennes"
+                                    ? "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300"
+                                    : "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300"
+                      )}
+                    >
+                      {selectedProductMetrics.recommendation}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-foreground">—</span>
+                  )}
+                </div>
+              </div>
+              {consultantNote ? (
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={ConsultantAvatar} alt="Consultant" />
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">{consultantNote.title}</p>
+                    <p className="text-sm text-muted-foreground">{consultantNote.message}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-6 text-sm text-muted-foreground">
+              Sélectionnez un produit dans le tableau pour afficher le détail.
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

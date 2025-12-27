@@ -50,7 +50,8 @@ import PerformancesReportsDetailsPage from "../pages/dashboard/performance/detai
 
 // Marché & Achats
 import MarketPurchasesPage from "../pages/dashboard/market/purchases.tsx";
-import MarketMercurialesPage from "../pages/dashboard/market/mercuriales.tsx";
+import MarketMercurialesPage from "../pages/dashboard/market/mercuriales/mercuriales.tsx";
+import MarketMercurialesDetailsPage from "../pages/dashboard/market/mercuriales/details.tsx";
 
 // Consultant
 import ConsultantPage from "../pages/dashboard/consultant/consultant.tsx";
@@ -120,6 +121,7 @@ export const appRoutes: RouteObject[] = [
     // Marché & Achats
     { path: "market/purchases", element: <MarketPurchasesPage /> },
     { path: "market/mercuriales", element: <MarketMercurialesPage /> },
+    { path: "market/mercuriales/:id", element: <MarketMercurialesDetailsPage /> },
 
     // Consultant IA
     { path: "consultant", element: <ConsultantPage /> },
