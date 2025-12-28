@@ -23,12 +23,6 @@ CONTRACT = {
         "default": null,
         "relation": null
 },
-        'name': {
-        "type": "uuid",
-        "required": false,
-        "default": "gen_random_uuid()",
-        "relation": null
-},
         'label': {
         "type": "USER-DEFINED",
         "required": false,
@@ -41,6 +35,24 @@ CONTRACT = {
                 "VARIABLE COSTS",
                 "OTHER"
         ]
+},
+        'mercurial_logo_path': {
+        "type": "text",
+        "required": false,
+        "default": null,
+        "relation": null
+},
+        'active': {
+        "type": "boolean",
+        "required": true,
+        "default": "false",
+        "relation": null
+},
+        'name': {
+        "type": "text",
+        "required": true,
+        "default": null,
+        "relation": null
 },
     }
 }

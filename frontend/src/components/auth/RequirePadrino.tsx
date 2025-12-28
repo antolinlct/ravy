@@ -1,10 +1,11 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabaseClient"
 
 export function RequirePadrino({ children }: { children: React.ReactNode }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [allowed, setAllowed] = useState(false)
   const hasCheckedRef = useRef(false)
@@ -23,7 +24,8 @@ export function RequirePadrino({ children }: { children: React.ReactNode }) {
 
       if (error || !data?.user) {
         setAllowed(false)
-        window.location.href = "/login"
+        setLoading(false)
+        navigate("/login", { replace: true })
         return
       }
 
@@ -36,7 +38,8 @@ export function RequirePadrino({ children }: { children: React.ReactNode }) {
 
       if (rolesError) {
         setAllowed(false)
-        window.location.href = "/login"
+        setLoading(false)
+        navigate("/login", { replace: true })
         return
       }
 
@@ -46,14 +49,13 @@ export function RequirePadrino({ children }: { children: React.ReactNode }) {
 
       if (!isPadrino) {
         setAllowed(false)
-        window.location.href = "/login"
+        setLoading(false)
+        navigate("/login", { replace: true })
         return
       }
 
       setAllowed(true)
-      if (showBlocking) {
-        setLoading(false)
-      }
+      setLoading(false)
     }
 
     const showBlocking = !hasCheckedRef.current
@@ -68,14 +70,14 @@ export function RequirePadrino({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        window.location.href = "/login"
+        navigate("/login", { replace: true })
       }
     })
 
     return () => {
       data.subscription.unsubscribe()
     }
-  }, [])
+  }, [navigate])
 
   if (loading) return null
   if (!allowed) return null

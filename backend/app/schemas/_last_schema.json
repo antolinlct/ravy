@@ -2091,14 +2091,24 @@
       "udt_name": "uuid"
     },
     {
-      "column": "name",
-      "data_type": "uuid",
-      "udt_name": "uuid"
-    },
-    {
       "column": "label",
       "data_type": "USER-DEFINED",
       "udt_name": "supplier_label"
+    },
+    {
+      "column": "mercurial_logo_path",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "active",
+      "data_type": "boolean",
+      "udt_name": "bool"
+    },
+    {
+      "column": "name",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "mercuriales": [

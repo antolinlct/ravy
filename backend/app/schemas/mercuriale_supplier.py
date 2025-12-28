@@ -10,8 +10,10 @@ class MercurialeSupplier(BaseModel):
     id: Optional[UUID] = None
     created_at: Optional[datetime] = None
     market_supplier_id: Optional[UUID] = None
-    name: Optional[UUID] = None
     label: Optional[Supplier_label] = None
+    mercurial_logo_path: Optional[str] = None
+    active: Optional[bool] = None
+    name: Optional[str] = None
 
     class Config:
         json_encoders = {

@@ -148,6 +148,8 @@ establishments = fake_db.create_establishments({
     "active_sms": True,
     "type_sms": "FOOD, FOOD & BEVERAGES",
     "sms_variation_trigger": "ALL, ±5%, ±10%",
+    "full_adresse": "string",
+    "siren": "string",
 })
 
 # CREATION D'UNE FINANCIAL_INGREDIENTS
@@ -623,8 +625,10 @@ mercuriale_supplier = fake_db.create_mercuriale_supplier({
     "id": uuid4(),
     "created_at": datetime(2025, 1, 1, 12, 00),
     "market_supplier_id": "uuid",
-    "name": "uuid",
     "label": "FOOD, BEVERAGES, FIXED COSTS, VARIABLE COSTS, OTHER",
+    "mercurial_logo_path": "string",
+    "active": True,
+    "name": "string",
 })
 
 # CREATION D'UNE MERCURIALES
@@ -1034,7 +1038,7 @@ support_ticket = fake_db.create_support_ticket({
     "establishment_id": establishments["id"],
     "user_profile_id": user_profiles["id"],
     "invoice_path": "string",
-    "status": "open, in progress, resolved, error",
+    "status": "open, in progress, resolved, error, canceled",
     "object": "string",
     "description": "string",
     "intern_notes": "string",
@@ -1042,6 +1046,7 @@ support_ticket = fake_db.create_support_ticket({
     "created_at": datetime(2025, 1, 1, 12, 00),
     "updated_at": datetime(2025, 1, 1, 12, 00),
     "resolved_at": datetime(2025, 1, 1, 12, 00),
+    "ticket_id": "string",
 })
 
 # CREATION D'UN USAGE_COUNTERS

@@ -99,6 +99,16 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+  color-scheme: dark;
   font-family: var(--font-sans);
   letter-spacing: var(--tracking-normal);
+}
+
+.backoffice-theme [data-slot="input"],
+.backoffice-theme [data-slot="select"],
+.backoffice-theme [data-slot="select-trigger"],
+.backoffice-theme [data-slot="textarea"] {
+  border-color: hsl(208.1172 100% 53.1373% / 0.4);
 }
