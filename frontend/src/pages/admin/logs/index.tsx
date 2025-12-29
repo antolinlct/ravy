@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Expand, Shrink } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -31,6 +33,35 @@ import {
 } from "@/components/ui/alert-dialog"
 
 ModuleRegistry.registerModules([AllCommunityModule])
+
+const logsTheme = themeQuartz.withParams({
+  accentColor: "#00A2FF",
+  backgroundColor: "#000000",
+  borderColor: "#108FFF",
+  borderRadius: 0,
+  browserColorScheme: "dark",
+  cellHorizontalPaddingScale: 0.8,
+  cellTextColor: "#108FFF",
+  columnBorder: true,
+  fontFamily: "var(--font-mono)",
+  fontSize: 12,
+  foregroundColor: "#108FFF",
+  headerBackgroundColor: "#21222C",
+  headerFontSize: 14,
+  headerFontWeight: 700,
+  headerTextColor: "#108FFF",
+  headerVerticalPaddingScale: 1.5,
+  oddRowBackgroundColor: "#000000",
+  rangeSelectionBackgroundColor: "#108FFF",
+  rangeSelectionBorderColor: "#108FFF",
+  rangeSelectionBorderStyle: "dashed",
+  rowBorder: true,
+  rowVerticalPaddingScale: 1.5,
+  sidePanelBorder: true,
+  spacing: 4,
+  wrapperBorder: true,
+  wrapperBorderRadius: 0,
+})
 
 type MaintenanceState = {
   isActive: boolean
@@ -172,6 +203,7 @@ export default function AdminLogsPage() {
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceState>(maintenance)
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false)
   const [maintenanceConfirmOpen, setMaintenanceConfirmOpen] = useState(false)
+  const [isLogsFullscreen, setIsLogsFullscreen] = useState(false)
   const [startFilter, setStartFilter] = useState("")
   const [endFilter, setEndFilter] = useState("")
 
@@ -490,6 +522,15 @@ export default function AdminLogsPage() {
             >
               Reinitialiser
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              onClick={() => setIsLogsFullscreen(true)}
+              aria-label="Agrandir les logs"
+            >
+              <Expand className="h-4 w-4" />
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -498,13 +539,78 @@ export default function AdminLogsPage() {
               rowData={filteredLogs}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
-              theme={themeQuartz}
+              theme={logsTheme}
               suppressDragLeaveHidesColumns
               domLayout="normal"
             />
           </div>
         </CardContent>
       </Card>
+      <Dialog open={isLogsFullscreen} onOpenChange={setIsLogsFullscreen}>
+        <DialogContent
+          showCloseButton={false}
+          className="inset-0 h-[100svh] w-screen max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-6 sm:max-w-none"
+        >
+          <div className="flex h-full flex-col gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-semibold">Logs applicatifs</h2>
+                <p className="text-sm text-muted-foreground">
+                  Filtrez par periode pour analyser un incident precis.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-2">
+                  <Label>Debut</Label>
+                  <Input
+                    type="datetime-local"
+                    value={startFilter}
+                    onChange={(event) => setStartFilter(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fin</Label>
+                  <Input
+                    type="datetime-local"
+                    value={endFilter}
+                    onChange={(event) => setEndFilter(event.target.value)}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setStartFilter("")
+                    setEndFilter("")
+                  }}
+                >
+                  Reinitialiser
+                </Button>
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    aria-label="Reduire les logs"
+                  >
+                    <Shrink className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </div>
+            </div>
+            <div className="flex-1" data-ag-theme-mode="dark">
+              <AgGridReact<LogEntry>
+                rowData={filteredLogs}
+                columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
+                theme={logsTheme}
+                suppressDragLeaveHidesColumns
+                domLayout="normal"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
