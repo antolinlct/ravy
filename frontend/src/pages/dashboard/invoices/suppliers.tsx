@@ -12,7 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
 import { Switch } from "@/components/ui/switch"
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import {
@@ -38,76 +38,63 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-
-
-type MergeRequest = {
-  id: string
-  date: string
-  target: string
-  sources: string[]
-  status: string
-}
+import { useEstablishment } from "@/context/EstablishmentContext"
+import {
+  createSupplierMergeRequest,
+  supplierLabelOptions,
+  updateSupplier,
+  useSuppliersData,
+} from "./api"
+import type { MergeRequest, SupplierRow } from "./types"
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState([
-    { id: "1", name: "France Boissons", invoicesCount: 24, label: "Frais généraux", labelTone: "outline", analyses: true },
-    { id: "2", name: "PepsiCo France", invoicesCount: 12, label: "Coûts variables", labelTone: "secondary", analyses: true },
-    { id: "3", name: "Metro", invoicesCount: 18, label: "Nourriture", labelTone: "default", analyses: false },
-    { id: "4", name: "Coca-Cola", invoicesCount: 9, label: "Boissons", labelTone: "outline", analyses: true },
-  ])
+  const { estId } = useEstablishment()
+  const {
+    suppliers: fetchedSuppliers,
+    supplierOptions,
+    mergeRequests,
+    refresh,
+  } = useSuppliersData(estId)
+  const [suppliers, setSuppliers] = useState<SupplierRow[]>([])
   const [supplierFilter, setSupplierFilter] = useState<string[]>([])
   const [mergeOpen, setMergeOpen] = useState(false)
   const [mergeSources, setMergeSources] = useState<string[]>([])
   const [mergeTarget, setMergeTarget] = useState<string>("")
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
   const [mergeDetail, setMergeDetail] = useState<MergeRequest | null>(null)
-  const supplierOptions = useMemo(
-    () => suppliers.map((s) => ({ value: s.id, label: s.name })),
-    [suppliers]
-  )
-  const mergeRequests: MergeRequest[] = [
-    {
-      id: "req-1",
-      date: "12/03/2024",
-      target: "France Boissons",
-      sources: ["PepsiCo France", "Coca-Cola"],
-      status: "En attente",
-    },
-    {
-      id: "req-2",
-      date: "28/02/2024",
-      target: "Metro",
-      sources: ["Fournisseur X"],
-      status: "Validée",
-    },
-  ]
+  useEffect(() => {
+    setSuppliers(fetchedSuppliers)
+  }, [fetchedSuppliers])
 
   const resetMerge = () => {
     setMergeSources([])
     setMergeTarget("")
   }
 
-  const toggleAnalyses = (id: string, next: boolean) => {
+  const toggleAnalyses = async (id: string, next: boolean) => {
+    const previous = suppliers.find((s) => s.id === id)?.analyses ?? false
     setSuppliers((prev) =>
       prev.map((supplier) =>
         supplier.id === id ? { ...supplier, analyses: next } : supplier
       )
     )
     const supplierName = suppliers.find((s) => s.id === id)?.name || "Fournisseur"
-    if (next) {
-      toast.success(`Analyses activées pour ${supplierName}.`)
-    } else {
-      toast.error(`Analyses désactivées pour ${supplierName}.`)
+    try {
+      await updateSupplier(id, { active_analyses: next })
+      if (next) {
+        toast.success(`Analyses activées pour ${supplierName}.`)
+      } else {
+        toast.error(`Analyses désactivées pour ${supplierName}.`)
+      }
+    } catch {
+      setSuppliers((prev) =>
+        prev.map((supplier) =>
+          supplier.id === id ? { ...supplier, analyses: previous } : supplier
+        )
+      )
+      toast.error("Impossible de mettre à jour l'analyse.")
     }
   }
-
-  const labelOptions = [
-    { value: "Alimentaire", tone: "default" as const },
-    { value: "Boissons", tone: "outline" as const },
-    { value: "Charges fixes", tone: "secondary" as const },
-    { value: "Charges variables", tone: "secondary" as const },
-    { value: "Autres", tone: "outline" as const },
-  ]
 
   const labelStyle = (value: string) => {
     const base =
@@ -123,18 +110,39 @@ export default function SuppliersPage() {
     return `${base} ${map[value] ?? "bg-muted/40 text-foreground border-border"}`
   }
 
-  const handleLabelChange = (id: string, value: string) => {
-    const tone = labelOptions.find((opt) => opt.value === value)?.tone ?? "outline"
+  const handleLabelChange = async (id: string, value: string) => {
+    const option = supplierLabelOptions.find((opt) => opt.label === value)
+    const tone = option?.tone ?? "outline"
+    const previousLabel = suppliers.find((s) => s.id === id)?.labelValue ?? null
     setSuppliers((prev) =>
       prev.map((supplier) =>
-        supplier.id === id ? { ...supplier, label: value, labelTone: tone } : supplier
+        supplier.id === id
+          ? { ...supplier, label: value, labelValue: option?.value ?? null, labelTone: tone }
+          : supplier
       )
     )
     const supplierName = suppliers.find((s) => s.id === id)?.name || "Fournisseur"
-    toast(`Label mis à jour pour ${supplierName}.`, {
-      icon: <Info className="h-4 w-4 text-muted-foreground" />,
-      description: `Nouveau label : ${value}`,
-    })
+    try {
+      await updateSupplier(id, { label: option?.value ?? null })
+      toast(`Label mis à jour pour ${supplierName}.`, {
+        icon: <Info className="h-4 w-4 text-muted-foreground" />,
+        description: `Nouveau label : ${value}`,
+      })
+    } catch {
+      setSuppliers((prev) =>
+        prev.map((supplier) =>
+          supplier.id === id
+            ? {
+                ...supplier,
+                labelValue: previousLabel,
+                label: supplierLabelOptions.find((opt) => opt.value === previousLabel)?.label ?? "Autres",
+                labelTone: supplierLabelOptions.find((opt) => opt.value === previousLabel)?.tone ?? "outline",
+              }
+            : supplier
+        )
+      )
+      toast.error("Impossible de mettre à jour le label.")
+    }
   }
 
   const handleMergeSourcesChange = (values: string[]) => {
@@ -150,14 +158,36 @@ export default function SuppliersPage() {
     }
   }
 
-  const handleMergeSubmit = () => {
-    const targetName = suppliers.find((s) => s.id === mergeTarget)?.name ?? "fournisseur cible"
-    const sources = suppliers.filter((s) => mergeSources.includes(s.id)).map((s) => s.name)
-    toast.success(`Regroupement lancé vers ${targetName}`, {
-      description: sources.length ? `Sources : ${sources.join(", ")}` : undefined,
-    })
-    setMergeOpen(false)
-    resetMerge()
+  const handleMergeSubmit = async () => {
+    if (!estId) {
+      toast.error("Impossible de lancer la demande (établissement manquant).")
+      return
+    }
+    const targetSupplier = suppliers.find((s) => s.id === mergeTarget)
+    const sourceSuppliers = suppliers.filter((s) => mergeSources.includes(s.id))
+    const targetMarketId = targetSupplier?.marketSupplierId
+    const sourceMarketIds = sourceSuppliers.map((s) => s.marketSupplierId).filter(Boolean) as string[]
+
+    if (!targetMarketId || !sourceMarketIds.length) {
+      toast.error("Sélection invalide pour le regroupement.")
+      return
+    }
+
+    try {
+      await createSupplierMergeRequest({
+        target_market_supplier_id: targetMarketId,
+        source_market_supplier_ids: sourceMarketIds,
+        requesting_establishment_id: estId,
+      })
+      toast.success(`Regroupement lancé vers ${targetSupplier?.name ?? "fournisseur cible"}`, {
+        description: sourceSuppliers.length ? `Sources : ${sourceSuppliers.map((s) => s.name).join(", ")}` : undefined,
+      })
+      setMergeOpen(false)
+      resetMerge()
+      refresh()
+    } catch {
+      toast.error("Impossible de créer la demande de regroupement.")
+    }
   }
 
   return (
@@ -433,9 +463,9 @@ export default function SuppliersPage() {
                             <SelectValue placeholder="Choisir un label" />
                           </SelectTrigger>
                           <SelectContent>
-                            {labelOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.value}
+                            {supplierLabelOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.label}>
+                                {opt.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
