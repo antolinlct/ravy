@@ -24,9 +24,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DoubleDatePicker } from "@/components/blocks/double-datepicker"
-import { AreaChart as AreaChartBlock, type AreaChartPoint, type IntervalKey } from "@/components/blocks/area-chart"
+import { AreaChart as AreaChartBlock, type IntervalKey } from "@/components/blocks/area-chart"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
+import { useEstablishment } from "@/context/EstablishmentContext"
 import ConsultantAvatar from "@/assets/avatar.png"
+import {
+  buildSupplierOptions,
+  buildSupplierSeries,
+  formatVariationLabel,
+  supplierLabelDisplay,
+  useMarketComparisons,
+  useProductOverviewData,
+} from "./api"
+import type { SupplierLabel } from "./types"
 
 const getDeltaTier = (delta: number) => {
   if (delta < 0) return 0
@@ -44,6 +54,7 @@ const getBatteryTextClass = (delta: number) => {
 
 export default function ProductAnalyticsPage() {
   const navigate = useNavigate()
+  const { estId } = useEstablishment()
   const variationsTickerRef = useRef<HTMLDivElement | null>(null)
   const variationsTickerTrackRef = useRef<HTMLDivElement | null>(null)
   const suppliersScrollRef = useRef<HTMLDivElement | null>(null)
@@ -58,6 +69,13 @@ export default function ProductAnalyticsPage() {
     start: new Date("2025-01-01"),
     end: new Date("2025-12-31"),
   }))
+  const {
+    suppliers,
+    masterArticles,
+    invoices,
+    productAggregates,
+    variations,
+  } = useProductOverviewData(estId, supplierRange.start, supplierRange.end)
   const diffNumberFormatter = useMemo(
     () =>
       new Intl.NumberFormat("fr-FR", {
@@ -89,13 +107,8 @@ export default function ProductAnalyticsPage() {
   const euroFormatterWith2 = euroFormatter
 
   const productSuppliersOptions = useMemo(
-    () => [
-      { value: "distriporc", label: "Distriporc" },
-      { value: "dc-plateforme", label: "DC PLATEFORME" },
-      { value: "sysco", label: "Sysco France" },
-      { value: "bio-sud", label: "Bio Sud Appro" },
-    ],
-    []
+    () => buildSupplierOptions(suppliers),
+    [suppliers]
   )
   const [productSelectedSuppliers, setProductSelectedSuppliers] = useState<string[]>([])
   const [productTop, setProductTop] = useState<"10" | "25" | "50" | "all">("10")
@@ -113,108 +126,45 @@ export default function ProductAnalyticsPage() {
     const offset = elementRect.top - viewportRect.top
     viewport.scrollTo({ top: viewport.scrollTop + offset, behavior: "smooth" })
   }
-  const productItems = useMemo(
-    () => [
-      {
-        id: "p1",
-        name: "Tende de tranche S/P",
-        supplier: "Distriporc",
-        supplierId: "distriporc",
-        consumption: 409.93,
-        deltaPct: 1.2,
-        paidPrice: 10.2,
-        marketPrice: 10.1,
-        qty: "40,2 kg",
-        qtyValue: 40.2,
-        unit: "kg",
-        marketTrend: { from: 10.1, to: 10.21 },
-      },
-      {
-        id: "p2",
-        name: "Bavette PAD FR sous vide",
-        supplier: "Distriporc",
-        supplierId: "distriporc",
-        consumption: 197.51,
-        deltaPct: 3.4,
-        paidPrice: 9.8,
-        marketPrice: 9.47,
-        qty: "22,4 kg",
-        qtyValue: 22.4,
-        unit: "kg",
-        marketTrend: { from: 9.3, to: 9.5 },
-      },
-      {
-        id: "p3",
-        name: "Poitrine salée en 1/2 S/V",
-        supplier: "DC PLATEFORME",
-        supplierId: "dc-plateforme",
-        consumption: 79.96,
-        deltaPct: -1.2,
-        paidPrice: 7.12,
-        marketPrice: 7.22,
-        qty: "11,0 kg",
-        qtyValue: 11,
-        unit: "kg",
-        marketTrend: { from: 7.1, to: 7.25 },
-      },
-      {
-        id: "p4",
-        name: "PDT bintje cat 1 France",
-        supplier: "DC PLATEFORME",
-        supplierId: "dc-plateforme",
-        consumption: 45.23,
-        deltaPct: 6.3,
-        paidPrice: 1.92,
-        marketPrice: 1.81,
-        qty: "98,0 kg",
-        qtyValue: 98,
-        unit: "kg",
-        marketTrend: { from: 1.79, to: 1.84 },
-      },
-      {
-        id: "p5",
-        name: "Camembert au four 45%MG 120g x6",
-        supplier: "Sysco France",
-        supplierId: "sysco",
-        consumption: 43.95,
-        deltaPct: 11.2,
-        paidPrice: 2.55,
-        marketPrice: 2.29,
-        qty: "17,2 kg",
-        qtyValue: 17.2,
-        unit: "kg",
-        marketTrend: { from: 2.25, to: 2.29 },
-      },
-      {
-        id: "p6",
-        name: "Batavia brune cat 1 France",
-        supplier: "DC PLATEFORME",
-        supplierId: "dc-plateforme",
-        consumption: 66.58,
-        deltaPct: 4.5,
-        paidPrice: 1.65,
-        marketPrice: 1.58,
-        qty: "40,0 kg",
-        qtyValue: 40,
-        unit: "kg",
-        marketTrend: { from: 1.54, to: 1.6 },
-      },
-      {
-        id: "p7",
-        name: "Chene BL cat 1 France",
-        supplier: "DC PLATEFORME",
-        supplierId: "dc-plateforme",
-        consumption: 66.07,
-        deltaPct: 2.3,
-        paidPrice: 1.98,
-        marketPrice: 1.94,
-        qty: "32,0 kg",
-        qtyValue: 32,
-        unit: "kg",
-        marketTrend: { from: 1.9, to: 1.95 },
-      },
-    ],
+  const suppliersById = useMemo(() => new Map(suppliers.map((supplier) => [supplier.id, supplier])), [suppliers])
+  const masterArticlesById = useMemo(
+    () => new Map(masterArticles.map((article) => [article.id, article])),
+    [masterArticles]
+  )
+  const quantityFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("fr-FR", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
     []
+  )
+  const productBaseItems = useMemo(
+    () =>
+      productAggregates.map((aggregate) => {
+        const master = masterArticlesById.get(aggregate.masterArticleId)
+        const supplier = aggregate.supplierId ? suppliersById.get(aggregate.supplierId) : undefined
+        const unit = aggregate.unit ?? master?.unit ?? "unité"
+        const qtyLabel =
+          aggregate.totalQty > 0
+            ? `${quantityFormatter.format(aggregate.totalQty)} ${unit}`
+            : `-- ${unit}`
+        return {
+          id: aggregate.masterArticleId,
+          name: master?.name ?? "Article",
+          supplier: supplier?.name ?? "Fournisseur",
+          supplierId: aggregate.supplierId ?? "",
+          consumption: aggregate.totalSpend,
+          paidPrice: aggregate.avgUnitPrice,
+          marketPrice: aggregate.avgUnitPrice,
+          deltaPct: 0,
+          qty: qtyLabel,
+          qtyValue: aggregate.totalQty,
+          unit,
+          marketTrend: { from: aggregate.avgUnitPrice, to: aggregate.avgUnitPrice },
+        }
+      }),
+    [masterArticlesById, productAggregates, quantityFormatter, suppliersById]
   )
   const productTopOptions = [
     { value: "10", label: "Top 10" },
@@ -222,23 +172,56 @@ export default function ProductAnalyticsPage() {
     { value: "50", label: "Top 50" },
     { value: "all", label: "Tous" },
   ] as const
-  const filteredProductItems = useMemo(() => {
-    let list = productItems.filter(
-      (p) => productSelectedSuppliers.length === 0 || productSelectedSuppliers.includes(p.supplierId)
+  const topProductBaseItems = useMemo(() => {
+    let list = productBaseItems.filter(
+      (product) =>
+        productSelectedSuppliers.length === 0 ||
+        productSelectedSuppliers.includes(product.supplierId)
     )
     list = [...list].sort((a, b) => b.consumption - a.consumption)
     const limit = productTop === "all" ? list.length : Number(productTop)
-    let limited = list.slice(0, limit)
+    return list.slice(0, limit)
+  }, [productBaseItems, productSelectedSuppliers, productTop])
+
+  const topProductIds = useMemo(
+    () => topProductBaseItems.map((item) => item.id),
+    [topProductBaseItems]
+  )
+  const marketComparisons = useMarketComparisons(
+    estId,
+    topProductIds,
+    supplierRange.start,
+    supplierRange.end
+  )
+
+  const filteredProductItems = useMemo(() => {
+    let list = topProductBaseItems.map((item) => {
+      const comparison = marketComparisons[item.id]
+      const marketPrice = comparison?.statsMarket.avgPrice || item.marketPrice
+      const minPrice = comparison?.statsMarket.minPrice ?? marketPrice
+      const maxPrice = comparison?.statsMarket.maxPrice ?? marketPrice
+      const deltaPct =
+        marketPrice > 0 ? ((item.paidPrice - marketPrice) / marketPrice) * 100 : 0
+      return {
+        ...item,
+        marketPrice,
+        deltaPct,
+        marketTrend: {
+          from: Math.min(minPrice ?? marketPrice, maxPrice ?? marketPrice),
+          to: Math.max(minPrice ?? marketPrice, maxPrice ?? marketPrice),
+        },
+      }
+    })
     if (productSort !== "default") {
       const direction = productSort === "asc" ? 1 : -1
-      limited = [...limited].sort((a, b) => {
+      list = [...list].sort((a, b) => {
         const tierDiff = getDeltaTier(a.deltaPct) - getDeltaTier(b.deltaPct)
         if (tierDiff !== 0) return tierDiff * direction
         return b.consumption - a.consumption
       })
     }
-    return limited
-  }, [productItems, productSelectedSuppliers, productTop, productSort])
+    return list
+  }, [marketComparisons, productSort, topProductBaseItems])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const selectedProduct = useMemo(
     () => filteredProductItems.find((p) => p.id === selectedProductId) ?? filteredProductItems[0] ?? null,
@@ -316,127 +299,134 @@ export default function ProductAnalyticsPage() {
     }
   }, [filteredProductItems, selectedProduct])
   const supplierLabelEnum = useMemo(
-    () => ["FOOD", "BEVERAGES", "FIXED COSTS", "VARIABLE COSTS", "OTHER"] as const,
-    []
-  )
-  const supplierLabelDisplay: Record<(typeof supplierLabelEnum)[number], string> = {
-    FOOD: "Alimentaire",
-    BEVERAGES: "Boissons",
-    "FIXED COSTS": "Charges fixes",
-    "VARIABLE COSTS": "Charges variables",
-    OTHER: "Autres",
-  }
-
-  const supplierExpenses = useMemo(
-    () =>
-      [
-        { id: "sysco", name: "Sysco France", label: "FOOD", totalHT: 45281.6, invoices: 113 },
-        { id: "distriporc", name: "Distriporc", label: "FOOD", totalHT: 17441.42, invoices: 64 },
-        { id: "dc-plateforme", name: "DC PLATEFORME", label: "FOOD", totalHT: 12816.07, invoices: 16 },
-        { id: "episaveurs", name: "EpiSaveurs groupe pomona", label: "FOOD", totalHT: 9018.91, invoices: 25 },
-        { id: "relais-or", name: "Relais d'Or", label: "FOOD", totalHT: 6858.49, invoices: 21 },
-        { id: "metro", name: "Metro", label: "BEVERAGES", totalHT: 5420.77, invoices: 18 },
-        { id: "bio-sud", name: "Bio Sud Appro", label: "OTHER", totalHT: 3890.32, invoices: 14 },
-      ] as const,
+    () => Object.keys(supplierLabelDisplay) as SupplierLabel[],
     []
   )
 
-  const supplierTrendBase = useMemo<AreaChartPoint[]>(() => {
-    const points: AreaChartPoint[] = []
-    const start = new Date("2025-01-01")
-    for (let i = 0; i < 365; i += 1) {
-      const d = new Date(start)
-      d.setDate(start.getDate() + i)
-      const trend = 16000 - i * 12
-      const wave = Math.sin(i / 18) * 2500
-      const jitter = (i % 7) * 80
-      const value = Math.max(500, trend + wave + jitter)
-      points.push({ date: d, value: Number(value.toFixed(2)) })
-    }
-    return points
-  }, [])
-  const supplierWeights = useMemo<Record<string, number>>(
-    () => ({
-      sysco: 0.45,
-      distriporc: 0.2,
-      "dc-plateforme": 0.12,
-      episaveurs: 0.09,
-      "relais-or": 0.08,
-      metro: 0.06,
-    }),
-    []
-  )
   const labelOptions = useMemo(() => ["all", ...supplierLabelEnum], [supplierLabelEnum])
   const filteredSuppliers = useMemo(
     () =>
-      supplierExpenses
-        .filter((supplier) => selectedLabel === "all" || supplier.label === selectedLabel)
-        .filter((supplier) => selectedSuppliers.length === 0 || selectedSuppliers.includes(supplier.id))
+      suppliers.filter(
+        (supplier) =>
+          (selectedLabel === "all" || supplier.label === selectedLabel) &&
+          (selectedSuppliers.length === 0 || selectedSuppliers.includes(supplier.id))
+      ),
+    [selectedLabel, selectedSuppliers, suppliers]
+  )
+  const supplierTotalsById = useMemo(() => {
+    const totals = new Map<string, { total: number; count: number }>()
+    invoices.forEach((invoice) => {
+      const supplierId = invoice.supplierId
+      if (!supplierId) return
+      if (selectedLabel !== "all") {
+        const supplier = suppliersById.get(supplierId)
+        if (!supplier || supplier.label !== selectedLabel) return
+      }
+      if (selectedSuppliers.length && !selectedSuppliers.includes(supplierId)) return
+      if (supplierRange.start || supplierRange.end) {
+        if (!invoice.date) return
+        const date = new Date(invoice.date)
+        if (Number.isNaN(date.getTime())) return
+        if (supplierRange.start && date < supplierRange.start) return
+        if (supplierRange.end && date > supplierRange.end) return
+      }
+      const current = totals.get(supplierId) ?? { total: 0, count: 0 }
+      current.total += invoice.totalHt
+      current.count += 1
+      totals.set(supplierId, current)
+    })
+    return totals
+  }, [invoices, selectedLabel, selectedSuppliers, supplierRange.end, supplierRange.start, suppliersById])
+  const supplierExpenses = useMemo(
+    () =>
+      filteredSuppliers
+        .map((supplier) => {
+          const totals = supplierTotalsById.get(supplier.id) ?? { total: 0, count: 0 }
+          return {
+            id: supplier.id,
+            name: supplier.name,
+            label: supplier.label ?? "OTHER",
+            totalHT: totals.total,
+            invoices: totals.count,
+          }
+        })
         .sort((a, b) => b.totalHT - a.totalHT),
-    [supplierExpenses, selectedLabel, selectedSuppliers]
+    [filteredSuppliers, supplierTotalsById]
   )
   const totalSupplierHT = useMemo(
-    () => filteredSuppliers.reduce((sum, supplier) => sum + supplier.totalHT, 0),
-    [filteredSuppliers]
+    () => supplierExpenses.reduce((sum, supplier) => sum + supplier.totalHT, 0),
+    [supplierExpenses]
   )
-  const activeSupplierIds = useMemo(() => filteredSuppliers.map((s) => s.id), [filteredSuppliers])
   const supplierOptionsDetailed = useMemo(
     () =>
-      supplierExpenses
-        .filter((s) => selectedLabel === "all" || s.label === selectedLabel)
-        .map((s) => ({
-          value: s.id,
-          label: s.name,
+      suppliers
+        .filter((supplier) => selectedLabel === "all" || supplier.label === selectedLabel)
+        .map((supplier) => ({
+          value: supplier.id,
+          label: supplier.name,
         })),
-    [supplierExpenses, selectedLabel]
+    [selectedLabel, suppliers]
+  )
+  const filteredSupplierInvoices = useMemo(
+    () =>
+      invoices.filter((invoice) => {
+        const supplierId = invoice.supplierId
+        if (!supplierId) return false
+        if (selectedLabel !== "all") {
+          const supplier = suppliersById.get(supplierId)
+          if (!supplier || supplier.label !== selectedLabel) return false
+        }
+        if (selectedSuppliers.length && !selectedSuppliers.includes(supplierId)) return false
+        if (supplierRange.start || supplierRange.end) {
+          if (!invoice.date) return false
+          const date = new Date(invoice.date)
+          if (Number.isNaN(date.getTime())) return false
+          if (supplierRange.start && date < supplierRange.start) return false
+          if (supplierRange.end && date > supplierRange.end) return false
+        }
+        return true
+      }),
+    [invoices, selectedLabel, selectedSuppliers, supplierRange.end, supplierRange.start, suppliersById]
   )
 
   useEffect(() => {
     if (selectedLabel === "all") return
     setSelectedSuppliers((prev) =>
-      prev.filter((id) => {
-        const sup = supplierExpenses.find((s) => s.id === id)
-        return sup ? sup.label === selectedLabel : false
-      })
+      {
+        const next = prev.filter((id) => {
+          const sup = supplierExpenses.find((s) => s.id === id)
+          return sup ? sup.label === selectedLabel : false
+        })
+        if (next.length === prev.length && next.every((value, index) => value === prev[index])) {
+          return prev
+        }
+        return next
+      }
     )
   }, [selectedLabel, supplierExpenses])
-  const activeWeight = useMemo(() => {
-    if (selectedSuppliers.length === 1) {
-      return supplierWeights[selectedSuppliers[0]] ?? 1
-    }
-    const sum = activeSupplierIds.reduce((acc, id) => acc + (supplierWeights[id] ?? 0), 0)
-    return sum || 1
-  }, [activeSupplierIds, selectedSuppliers, supplierWeights])
-  const supplierSeries = useMemo(() => {
-    if (!filteredSuppliers.length) return []
-    const start = supplierRange.start
-    const end = supplierRange.end
-    return supplierTrendBase
-      .map((point) => ({
-        ...point,
-        value: typeof point.value === "number" ? point.value * activeWeight : point.value,
-      }))
-      .filter((point) => {
-        const d = point.date instanceof Date ? point.date : new Date(point.date ?? "")
-        if (!d || Number.isNaN(d.getTime())) return false
-        if (start && d < start) return false
-        if (end && d > end) return false
-        return true
-      })
-  }, [supplierTrendBase, activeWeight, supplierRange.start, supplierRange.end, filteredSuppliers.length])
-
-  const latestVariations = [
-    { article: "Eau gazeuse 33cl", supplier: "Sysco France", change: "+2,3%" },
-    { article: "Filet de poulet", supplier: "Transgourmet", change: "-1,4%" },
-    { article: "Beurre AOP 250g", supplier: "France Boissons", change: "+0,9%" },
-    { article: "Frites surgelées", supplier: "Brake", change: "-2,1%" },
-    { article: "Café moulu 1kg", supplier: "Metro", change: "+1,8%" },
-    { article: "Huile d'olive 5L", supplier: "Transgourmet", change: "-0,7%" },
-    { article: "Steak haché 15%", supplier: "Sysco France", change: "+3,2%" },
-    { article: "Vin rouge AOP", supplier: "France Boissons", change: "-1,9%" },
-    { article: "Sucre 5kg", supplier: "Metro", change: "+0,5%" },
-    { article: "Lait UHT 1L", supplier: "Brake", change: "-1,2%" },
-  ]
+  const supplierSeries = useMemo(
+    () => buildSupplierSeries(filteredSupplierInvoices, supplierInterval),
+    [filteredSupplierInvoices, supplierInterval]
+  )
+  const latestVariations = useMemo(
+    () =>
+      variations
+        .map((variation) => {
+          const master = variation.masterArticleId
+            ? masterArticlesById.get(variation.masterArticleId)
+            : undefined
+          const supplier = master?.supplierId ? suppliersById.get(master.supplierId) : undefined
+          return {
+            id: variation.id,
+            article: master?.name ?? "Article",
+            supplier: supplier?.name ?? "Fournisseur",
+            change: formatVariationLabel(variation.percentage),
+            isDown: (variation.percentage ?? 0) < 0,
+          }
+        })
+        .slice(0, 10),
+    [masterArticlesById, suppliersById, variations]
+  )
 
 
   useEffect(() => {
@@ -475,7 +465,7 @@ export default function ProductAnalyticsPage() {
       track.style.willChange = ""
       track.style.transform = ""
     }
-  }, [])
+  }, [latestVariations.length])
 
   useEffect(() => {
     const root = suppliersScrollRef.current
@@ -621,34 +611,40 @@ export default function ProductAnalyticsPage() {
               {filteredSuppliers.length ? (
                 <>
                   <div className="lg:col-span-8">
-                    <AreaChartBlock
-                      key={`suppliers-${supplierInterval}-${supplierRange.start?.toISOString() ?? ""}-${supplierRange.end?.toISOString() ?? ""}`}
-                    data={supplierSeries}
-                    variant="bare"
-                    showHeader={false}
-                    showDatePicker={false}
-                    showIntervalTabs={false}
-                    enableZoom={false}
-                    defaultInterval={supplierInterval}
-                    startDate={supplierRange.start}
-                    endDate={supplierRange.end}
-                      areaColor="var(--chart-1)"
-                      height={300}
-                      margin={{ left: -10 }}
-                      tooltipLabel="Dépenses HT"
-                      valueFormatter={(value) => euroFormatter.format(value)}
-                      tooltipValueFormatter={(value) => euroFormatter.format(value)}
-                    xTickFormatter={(_date, label) => label}
-                      yTickFormatter={(value) => euroFormatter0.format(Math.round(value))}
-                      yTickCount={4}
-                    />
+                    {supplierSeries.length ? (
+                      <AreaChartBlock
+                        key={`suppliers-${supplierInterval}-${supplierRange.start?.toISOString() ?? ""}-${supplierRange.end?.toISOString() ?? ""}`}
+                        data={supplierSeries}
+                        variant="bare"
+                        showHeader={false}
+                        showDatePicker={false}
+                        showIntervalTabs={false}
+                        enableZoom={false}
+                        defaultInterval={supplierInterval}
+                        startDate={supplierRange.start}
+                        endDate={supplierRange.end}
+                        areaColor="var(--chart-1)"
+                        height={300}
+                        margin={{ left: -10 }}
+                        tooltipLabel="Dépenses HT"
+                        valueFormatter={(value) => euroFormatter.format(value)}
+                        tooltipValueFormatter={(value) => euroFormatter.format(value)}
+                        xTickFormatter={(_date, label) => label}
+                        yTickFormatter={(value) => euroFormatter0.format(Math.round(value))}
+                        yTickCount={4}
+                      />
+                    ) : (
+                      <div className="flex h-[300px] items-center justify-center rounded-md border bg-muted/20 text-sm text-muted-foreground">
+                        Aucune dépense sur la période sélectionnée.
+                      </div>
+                    )}
                   </div>
                   <div className="lg:col-span-4">
                     <div className="flex h-[300px] flex-col overflow-hidden ">
                       <div className="relative flex-1 min-h-0" ref={suppliersScrollRef}>
                         <ScrollArea className="h-full">
                           <div className="space-y-2">
-                            {filteredSuppliers.map((supplier) => (
+                            {supplierExpenses.map((supplier) => (
                               <div
                                 key={supplier.id}
                                 className="flex items-center justify-between gap-3 rounded-lg border bg-muted/60 px-3 py-2"
@@ -695,31 +691,28 @@ export default function ProductAnalyticsPage() {
           </CardContent>
         </Card>
 
-        
-
         <Card className="bg-background">
           <CardContent className="p-4">
             <CardDescription>Dernières variations</CardDescription>
-            <div className="mt-1 overflow-hidden">
-              <div ref={variationsTickerRef} className="relative h-12 w-full overflow-hidden">
-                <div
-                  ref={variationsTickerTrackRef}
-                  className="absolute left-0 top-0 flex w-max items-center gap-3 pr-6"
-                >
-                  {[...latestVariations, ...latestVariations].map((item, index) => {
-                    const isDown = item.change.startsWith("-")
-                    return (
+            {latestVariations.length ? (
+              <div className="mt-1 overflow-hidden">
+                <div ref={variationsTickerRef} className="relative h-12 w-full overflow-hidden">
+                  <div
+                    ref={variationsTickerTrackRef}
+                    className="absolute left-0 top-0 flex w-max items-center gap-3 pr-6"
+                  >
+                    {[...latestVariations, ...latestVariations].map((item, index) => (
                       <div
-                        key={`${item.article}-${index}`}
+                        key={`${item.id}-${index}`}
                         className="flex min-w-[220px] flex-none items-end justify-between gap-3 px-3 py-2"
                       >
                         <div className="flex items-center gap-2">
                           <div
                             className={`flex h-7 w-7 items-center justify-center rounded-full border bg-background shadow-sm ${
-                              isDown ? "border-green-200/60" : "border-red-200/60"
+                              item.isDown ? "border-green-200/60" : "border-red-200/60"
                             }`}
                           >
-                            {isDown ? (
+                            {item.isDown ? (
                               <ArrowDown className="h-4 w-4 text-green-500" />
                             ) : (
                               <ArrowUp className="h-4 w-4 text-red-500" />
@@ -730,15 +723,19 @@ export default function ProductAnalyticsPage() {
                             <p className="text-xs text-muted-foreground">{item.supplier}</p>
                           </div>
                         </div>
-                        <span className={`text-sm font-semibold ${isDown ? "text-green-500" : "text-red-500"}`}>
+                        <span className={`text-sm font-semibold ${item.isDown ? "text-green-500" : "text-red-500"}`}>
                           {item.change}
                         </span>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="mt-3 flex h-12 items-center justify-center text-sm text-muted-foreground">
+                Aucune variation récente sur la période.
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -4,13 +4,10 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
-  BadgeEuro,
   BrainCircuit,
   Check,
   ChevronsUpDown,
   Info,
-  Percent,
-  TicketPercent,
   Wallet,
 } from "lucide-react"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
@@ -34,8 +31,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { AreaChart as AreaChartBlock, type AreaChartPoint, type IntervalKey } from "@/components/blocks/area-chart"
+import { AreaChart as AreaChartBlock, type IntervalKey } from "@/components/blocks/area-chart"
 import { cn } from "@/lib/utils"
+import { useEstablishment } from "@/context/EstablishmentContext"
+import { useMasterArticleDetailData, useMasterArticlesList, useSuppliersList } from "./api"
 
 const ColumnHeader = ({ label, tooltip }: { label: string; tooltip: string }) => (
   <div className="inline-flex items-center gap-1">
@@ -102,88 +101,59 @@ export default function ProductDetailPage() {
       }),
     []
   )
+  const { estId } = useEstablishment()
+  const { suppliers } = useSuppliersList(estId)
+  const { masterArticles } = useMasterArticlesList(estId, selectedSupplierId || null)
+  const {
+    analysis,
+    marketComparison,
+    recipes,
+    alternatives,
+    invoiceRows,
+    costSeries: rawCostSeries,
+    lastPurchaseDate,
+    supplierShare,
+    supplierMonthlySpend,
+  } = useMasterArticleDetailData(estId, selectedArticleId || null, analysisRange.start, analysisRange.end)
+
   const supplierOptions = useMemo(
-    () => [
-      { id: "sysco", label: "Sysco France" },
-      { id: "distriporc", label: "Distriporc" },
-      { id: "transgourmet", label: "Transgourmet" },
-      { id: "metro", label: "Metro" },
-    ],
-    []
+    () => suppliers.map((supplier) => ({ id: supplier.id, label: supplier.name })),
+    [suppliers]
   )
-
-  const masterArticles = useMemo(
-    () => [
-      { id: "art-1", label: "Filet de poulet", supplierId: "sysco", lastPurchase: "2026-02-12" },
-      { id: "art-2", label: "Steak hache 15%", supplierId: "sysco", lastPurchase: "2026-01-28" },
-      { id: "art-3", label: "Bavette PAD FR", supplierId: "distriporc", lastPurchase: "2026-02-03" },
-      { id: "art-4", label: "Tende de tranche", supplierId: "distriporc", lastPurchase: "2026-02-08" },
-      { id: "art-5", label: "Frites surgelees 2,5kg", supplierId: "transgourmet", lastPurchase: "2026-01-19" },
-      { id: "art-6", label: "Huile d'olive 5L", supplierId: "transgourmet", lastPurchase: "2026-02-01" },
-      { id: "art-7", label: "Beurre AOP 250g", supplierId: "metro", lastPurchase: "2026-01-26" },
-      { id: "art-8", label: "Cafe moulu 1kg", supplierId: "metro", lastPurchase: "2026-02-10" },
-    ],
-    []
-  )
-
-  const filteredArticles = useMemo(
-    () => masterArticles.filter((article) => article.supplierId === selectedSupplierId),
-    [masterArticles, selectedSupplierId]
-  )
+  const filteredArticles = useMemo(() => masterArticles, [masterArticles])
   const selectedArticle = useMemo(
     () => masterArticles.find((article) => article.id === selectedArticleId),
     [masterArticles, selectedArticleId]
   )
-  const selectionSeed = useMemo(() => {
-    if (!selectedArticleId) return 0
-    return selectedArticleId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  }, [selectedArticleId])
-  const costSeriesBase = useMemo<AreaChartPoint[]>(() => {
-    const points: AreaChartPoint[] = []
-    const start = new Date("2025-01-01")
-    for (let i = 0; i < 365; i += 1) {
-      const d = new Date(start)
-      d.setDate(start.getDate() + i)
-      const base = 0.19 + i * 0.00005
-      const wave = Math.sin(i / 20) * 0.015
-      const jitter = (i % 6) * 0.0008
-      const value = Number((base + wave + jitter).toFixed(3))
-      points.push({ date: d, value })
+
+  useEffect(() => {
+    if (!supplierOptions.length) return
+    if (!selectedSupplierId || !supplierOptions.some((supplier) => supplier.id === selectedSupplierId)) {
+      setSelectedSupplierId(supplierOptions[0].id)
     }
-    return points
-  }, [])
-  const costFactor = useMemo(() => (selectionSeed ? 1 + (selectionSeed % 5) * 0.01 : 1), [selectionSeed])
-  const metricMultiplier = useMemo(() => {
-    switch (costMetric) {
-      case "Réductions":
-        return 0.18
-      case "Taxes":
-        return 0.08
-      case "Prix brut":
-        return 1.12
-      case "Prix unitaire":
-      default:
-        return 1
+  }, [selectedSupplierId, supplierOptions])
+
+  useEffect(() => {
+    if (!selectedSupplierId) {
+      setSelectedArticleId("")
+      return
     }
-  }, [costMetric])
-  const unitCostSeries = useMemo(() => {
-    if (!selectedArticleId) return []
-    return costSeriesBase.map((point) => ({
-      ...point,
-      value: point.value ? Number((point.value * costFactor).toFixed(3)) : point.value,
-    }))
-  }, [costSeriesBase, costFactor, selectedArticleId])
-  const costSeries = useMemo(() => {
-    if (!selectedArticleId) return []
-    if (metricMultiplier === 1) return unitCostSeries
-    return unitCostSeries.map((point) => ({
-      ...point,
-      value: point.value ? Number((point.value * metricMultiplier).toFixed(3)) : point.value,
-    }))
-  }, [metricMultiplier, selectedArticleId, unitCostSeries])
+    if (!filteredArticles.length) {
+      setSelectedArticleId("")
+      return
+    }
+    if (!filteredArticles.some((article) => article.id === selectedArticleId)) {
+      setSelectedArticleId(filteredArticles[0].id)
+    }
+  }, [filteredArticles, selectedArticleId, selectedSupplierId])
+
+  const unitCostSeries = useMemo(
+    () => (selectedArticleId ? rawCostSeries : []),
+    [rawCostSeries, selectedArticleId]
+  )
   const filteredCostSeries = useMemo(() => {
-    if (!costSeries.length) return []
-    return costSeries.filter((point) => {
+    if (!unitCostSeries.length) return []
+    return unitCostSeries.filter((point) => {
       if (!point.date) return false
       const date = point.date instanceof Date ? point.date : new Date(point.date)
       if (Number.isNaN(date.getTime())) return false
@@ -191,7 +161,7 @@ export default function ProductDetailPage() {
       if (analysisRange.end && date > analysisRange.end) return false
       return true
     })
-  }, [analysisRange.end, analysisRange.start, costSeries])
+  }, [analysisRange.end, analysisRange.start, unitCostSeries])
   const zoomedCostSeries = useMemo(() => {
     if (!costZoomRange.start && !costZoomRange.end) return filteredCostSeries
     return filteredCostSeries.filter((point) => {
@@ -203,6 +173,7 @@ export default function ProductDetailPage() {
       return true
     })
   }, [costZoomRange.end, costZoomRange.start, filteredCostSeries])
+  const costSeries = filteredCostSeries
   const latestCostValue = useMemo(() => {
     const lastPoint = zoomedCostSeries[zoomedCostSeries.length - 1]
     return typeof lastPoint?.value === "number" ? lastPoint.value : null
@@ -223,54 +194,43 @@ export default function ProductDetailPage() {
   }, [costDelta, percentFormatter])
   const costDeltaIsPositive = costDelta !== null && costDelta >= 0
   const avgCost = useMemo(() => {
+    const avg = analysis?.stats?.avg_unit_price
+    if (typeof avg === "number") return avg
     if (!unitCostSeries.length) return null
     const sum = unitCostSeries.reduce((acc, point) => acc + (point.value ?? 0), 0)
     return sum / unitCostSeries.length
-  }, [unitCostSeries])
+  }, [analysis, unitCostSeries])
   const marketCost = useMemo(() => {
-    if (!avgCost) return null
-    return avgCost * (selectionSeed % 2 === 0 ? 0.98 : 1.02)
-  }, [avgCost, selectionSeed])
+    const avg = marketComparison?.statsMarket.avgPrice
+    return typeof avg === "number" ? avg : null
+  }, [marketComparison])
   const marketVolatility = useMemo(() => {
-    if (!marketCost) return null
-    const lower = marketCost * 0.92
-    const upper = marketCost * 1.08
+    const min = marketComparison?.statsMarket.minPrice
+    const max = marketComparison?.statsMarket.maxPrice
+    if (typeof min !== "number" || typeof max !== "number") return null
     return {
-      from: Math.min(lower, upper),
-      to: Math.max(lower, upper),
+      from: Math.min(min, max),
+      to: Math.max(min, max),
     }
-  }, [marketCost])
-  const unitLabel = "PC"
+  }, [marketComparison])
+  const unitLabel = selectedArticle?.unit ?? marketComparison?.marketUnit ?? "unité"
   const theoreticalConsumption = useMemo(() => {
-    if (!selectedArticleId) return null
-    return 252.9 + (selectionSeed % 4) * 18
-  }, [selectedArticleId, selectionSeed])
+    const qty = marketComparison?.statsUser.totalQty
+    if (typeof qty === "number") return qty
+    const totalQty = analysis?.stats?.total_quantity
+    return typeof totalQty === "number" ? totalQty : null
+  }, [analysis, marketComparison])
   const potentialSavings = useMemo(() => {
-    if (!avgCost || !marketCost || !theoreticalConsumption) return null
-    return (avgCost - marketCost) * theoreticalConsumption
-  }, [avgCost, marketCost, theoreticalConsumption])
-  const recipesRows = useMemo(
-    () => [
-      { id: "r1", name: "Creme caramel", costStart: 2.84, costEnd: 3.12, impactEuro: 0.48, isActive: true, isSold: true },
-      { id: "r2", name: "Salade Lyonnaise small", costStart: 1.92, costEnd: 2.05, impactEuro: 0.18, isActive: false, isSold: false },
-      { id: "r3", name: "Pate a tarte", costStart: 0.78, costEnd: 0.9, impactEuro: 0.12, isActive: true, isSold: false },
-      { id: "r4", name: "Moelleux chocolat", costStart: 3.21, costEnd: 3.83, impactEuro: 0.62, isActive: true, isSold: true },
-      { id: "r5", name: "Tarte pralines", costStart: 2.14, costEnd: 2.06, impactEuro: -0.08, isActive: true, isSold: true },
-    ],
-    []
-  )
-  const invoiceRows = useMemo(
-    () => [
-      { id: "inv-1", number: "SYS-2025-001", items: 6, date: "08/01/2025", ttc: 312.4 },
-      { id: "inv-2", number: "SYS-2025-014", items: 9, date: "22/02/2025", ttc: 486.9 },
-      { id: "inv-3", number: "SYS-2025-027", items: 12, date: "15/03/2025", ttc: 842.15 },
-      { id: "inv-4", number: "SYS-2025-039", items: 7, date: "28/04/2025", ttc: 398.7 },
-      { id: "inv-5", number: "SYS-2025-052", items: 10, date: "12/06/2025", ttc: 674.2 },
-      { id: "inv-6", number: "SYS-2025-071", items: 8, date: "03/09/2025", ttc: 521.35 },
-    ],
-    []
-  )
+    const savings = marketComparison?.comparison.potentialSavings
+    return typeof savings === "number" ? savings : null
+  }, [marketComparison])
+  const recipesRows = useMemo(() => recipes, [recipes])
   const parseInvoiceDate = (value: string) => {
+    if (!value) return null
+    if (value.includes("-")) {
+      const parsedDate = new Date(value)
+      return Number.isNaN(parsedDate.getTime()) ? null : parsedDate
+    }
     const [day, month, year] = value.split("/")
     if (!day || !month || !year) return null
     const parsedDate = new Date(Number(year), Number(month) - 1, Number(day))
@@ -352,10 +312,8 @@ export default function ProductDetailPage() {
       .map(({ row }) => row)
   }, [recipesRows])
   const lastPurchaseLabel = useMemo(() => {
-    if (!selectedArticleId) return "-"
-    if (!selectedArticle?.lastPurchase) return "-"
-    const date = new Date(selectedArticle.lastPurchase)
-    if (Number.isNaN(date.getTime())) return "-"
+    if (!lastPurchaseDate) return "-"
+    const date = lastPurchaseDate
     const months = [
       "janv",
       "fevr",
@@ -373,26 +331,17 @@ export default function ProductDetailPage() {
     const day = String(date.getDate()).padStart(2, "0")
     const month = months[date.getMonth()] ?? ""
     return `${day} ${month}, ${date.getFullYear()}`
-  }, [selectedArticle, selectedArticleId])
+  }, [lastPurchaseDate])
   const daysSinceLastPurchase = useMemo(() => {
-    if (!selectedArticle?.lastPurchase) return null
-    const date = new Date(selectedArticle.lastPurchase)
-    if (Number.isNaN(date.getTime())) return null
+    if (!lastPurchaseDate) return null
+    const date = lastPurchaseDate
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
     return diffDays
-  }, [selectedArticle])
-  const supplierShare = useMemo(() => {
-    if (!selectedArticleId) return null
-    return Math.min(0.08 + (selectionSeed % 9) * 0.02, 0.45)
-  }, [selectedArticleId, selectionSeed])
-  const supplierMonthlySpend = useMemo(() => {
-    if (!selectedArticleId) return null
-    return 1200 + (selectionSeed % 8) * 230
-  }, [selectedArticleId, selectionSeed])
+  }, [lastPurchaseDate])
   const supplierShareLabel = useMemo(() => {
-    if (supplierShare === null) return "--"
+    if (supplierShare == null) return "--"
     return percentFormatter.format(supplierShare)
   }, [percentFormatter, supplierShare])
   const hasSelection = Boolean(selectedArticleId)
@@ -519,7 +468,7 @@ export default function ProductDetailPage() {
                       disabled={!selectedSupplierId}
                     >
                       {selectedArticleId
-                        ? filteredArticles.find((opt) => opt.id === selectedArticleId)?.label
+                        ? filteredArticles.find((opt) => opt.id === selectedArticleId)?.name
                         : selectedSupplierId
                           ? "Sélectionnez un produit"
                           : "Choisissez un fournisseur"}
@@ -542,7 +491,7 @@ export default function ProductDetailPage() {
                                 setArticleComboOpen(false)
                               }}
                             >
-                              {opt.label}
+                              {opt.name}
                               <Check
                                 className={cn(
                                   "ml-auto h-4 w-4",
@@ -582,7 +531,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>
-                Analyse du produit {selectedArticle?.label ?? "-"}
+                Analyse du produit {selectedArticle?.name ?? "-"}
               </CardTitle>
             </div>
           </div>
@@ -595,64 +544,52 @@ export default function ProductDetailPage() {
             <>
               <div className="grid gap-4 lg:grid-cols-12">
                 <div className="lg:col-span-8">
-                  <AreaChartBlock
-                    data={costSeries}
-                    variant="bare"
-                    showHeader
-                    showPrimaryValue={false}
-                    title={null}
-                    showDatePicker={false}
-                    showIntervalTabs
-                    defaultInterval={costInterval}
-                    onIntervalChange={(value) => setCostInterval(value as IntervalKey)}
-                    startDate={analysisRange.start}
-                    endDate={analysisRange.end}
-                    onZoomChange={setCostZoomRange}
-                    height={260}
-                    margin={{ left: -10 }}
-                    tooltipLabel={costMetric}
-                    valueFormatter={(value) => euroFormatter.format(value)}
-                    tooltipValueFormatter={(value) => euroFormatter.format(value)}
-                    xTickFormatter={(_date, label) => label}
-                    yTickFormatter={(value) => euroFormatter.format(value)}
-                    yTickCount={4}
-                    actions={
-                      <Select value={costMetric} onValueChange={setCostMetric}>
-                        <SelectTrigger className="w-fit min-w-[160px] bg-background dark:bg-secondary shadow-none">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel className="text-xs font-normal text-muted-foreground">Données</SelectLabel>
-                            <SelectItem value="Prix unitaire">
-                              <span className="flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-muted-foreground" />
-                                Prix unitaire
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="Réductions">
-                              <span className="flex items-center gap-2">
-                                <TicketPercent className="h-4 w-4 text-muted-foreground" />
-                                Réductions
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="Taxes">
-                              <span className="flex items-center gap-2">
-                                <Percent className="h-4 w-4 text-muted-foreground" />
-                                Taxes
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="Prix brut">
-                              <span className="flex items-center gap-2">
-                                <BadgeEuro className="h-4 w-4 text-muted-foreground" />
-                                Prix brut
-                              </span>
-                            </SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    }
-                  />
+                  {costSeries.length ? (
+                    <AreaChartBlock
+                      data={costSeries}
+                      variant="bare"
+                      showHeader
+                      showPrimaryValue={false}
+                      title={null}
+                      showDatePicker={false}
+                      showIntervalTabs
+                      defaultInterval={costInterval}
+                      onIntervalChange={(value) => setCostInterval(value as IntervalKey)}
+                      startDate={analysisRange.start}
+                      endDate={analysisRange.end}
+                      onZoomChange={setCostZoomRange}
+                      height={260}
+                      margin={{ left: -10 }}
+                      tooltipLabel={costMetric}
+                      valueFormatter={(value) => euroFormatter.format(value)}
+                      tooltipValueFormatter={(value) => euroFormatter.format(value)}
+                      xTickFormatter={(_date, label) => label}
+                      yTickFormatter={(value) => euroFormatter.format(value)}
+                      yTickCount={4}
+                      actions={
+                        <Select value={costMetric} onValueChange={setCostMetric}>
+                          <SelectTrigger className="w-fit min-w-[160px] bg-background dark:bg-secondary shadow-none">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectLabel className="text-xs font-normal text-muted-foreground">Données</SelectLabel>
+                              <SelectItem value="Prix unitaire">
+                                <span className="flex items-center gap-2">
+                                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                                  Prix unitaire
+                                </span>
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      }
+                    />
+                  ) : (
+                    <div className="flex h-[260px] items-center justify-center rounded-md border bg-muted/20 text-sm text-muted-foreground">
+                      Aucune donnée disponible sur la période sélectionnée.
+                    </div>
+                  )}
                 </div>
                 <div className="lg:col-span-4 flex h-full flex-col justify-end">
                   <div className="lg:border-l lg:pl-6">
@@ -685,7 +622,7 @@ export default function ProductDetailPage() {
                             <p className="text-xs text-muted-foreground">Prix moyen d&apos;achat</p>
                             <div className="mt-2 flex items-center gap-2">
                               <Badge variant="secondary" className="text-sm font-semibold">
-                                {avgCost ? euroFormatter.format(avgCost) : "--"}
+                                {avgCost !== null ? euroFormatter.format(avgCost) : "--"}
                               </Badge>
                               <span className="text-xs text-muted-foreground">/ {unitLabel}</span>
                             </div>
@@ -700,14 +637,14 @@ export default function ProductDetailPage() {
                           <div className="rounded-md bg-muted/30 p-3">
                             <p className="text-xs text-muted-foreground">Prix du marché</p>
                             <p className="mt-2 text-sm font-semibold">
-                              {marketCost ? euroFormatter.format(marketCost) : "--"}{" "}
+                              {marketCost !== null ? euroFormatter.format(marketCost) : "--"}{" "}
                               <span className="text-xs text-muted-foreground">/ {unitLabel}</span>
                             </p>
                           </div>
                       </TooltipTrigger>
                       <TooltipContent side="top" sideOffset={6} className="max-w-[220px] text-wrap text-center">
                         {marketVolatility
-                          ? `Le marché paye en moyenne ce prix par ${unitLabel} avec une volatilité entre ${euroFormatter.format(
+                          ? `Le marché paie en moyenne ce prix par ${unitLabel} avec une volatilité entre ${euroFormatter.format(
                               marketVolatility.from
                             )} et ${euroFormatter.format(marketVolatility.to)}.`
                           : `Prix moyen observé sur le marché pour ce produit.`}
@@ -718,7 +655,9 @@ export default function ProductDetailPage() {
                           <div className="rounded-md bg-muted/30 p-3">
                             <p className="text-xs text-muted-foreground">Quantité consommée</p>
                             <p className="mt-2 text-sm font-semibold">
-                              {theoreticalConsumption ? theoreticalConsumption.toFixed(1).replace(".", ",") : "--"}{" "}
+                              {theoreticalConsumption !== null
+                                ? theoreticalConsumption.toFixed(1).replace(".", ",")
+                                : "--"}{" "}
                               <span className="text-xs text-muted-foreground">{unitLabel}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">par mois</p>
@@ -753,7 +692,7 @@ export default function ProductDetailPage() {
                   Vous n&apos;avez pas commandé chez ce fournisseur depuis{" "}
                   {daysSinceLastPurchase ?? "--"} jours, il représente{" "}
                   {supplierShareLabel} de vos achats mensuels (
-                  {supplierMonthlySpend !== null
+                  {supplierMonthlySpend != null
                     ? euroFormatterNoDecimals.format(Math.round(supplierMonthlySpend))
                     : "--"}
                   /mois).
@@ -804,19 +743,19 @@ export default function ProductDetailPage() {
                         const costDelta =
                           typeof costStart === "number" && typeof costEnd === "number" && costStart !== 0
                             ? ((costEnd - costStart) / costStart) * 100
-                          : null
-                      const hasCost = row.isActive || row.isSold
-                      const hasSignificantDelta =
-                        typeof costDelta === "number" && Math.abs(costDelta) >= 0.001
-                      const hasSignificantImpact =
-                        typeof row.impactEuro === "number" && Math.abs(row.impactEuro) >= 0.001
-                      const impactClass =
-                        hasSignificantImpact
-                          ? row.impactEuro >= 0
-                            ? "text-red-500"
-                            : "text-green-500"
-                          : "text-muted-foreground"
-                      return (
+                            : null
+                        const hasCost = typeof costStart === "number" && typeof costEnd === "number"
+                        const hasSignificantDelta =
+                          typeof costDelta === "number" && Math.abs(costDelta) >= 0.001
+                        const hasSignificantImpact =
+                          typeof row.impactEuro === "number" && Math.abs(row.impactEuro) >= 0.001
+                        const impactClass =
+                          hasSignificantImpact
+                            ? row.impactEuro >= 0
+                              ? "text-red-500"
+                              : "text-green-500"
+                            : "text-muted-foreground"
+                        return (
                         <TableRow key={row.id}>
                           <TableCell className="w-[40%]">
                             <div className="space-y-1">
@@ -927,12 +866,12 @@ export default function ProductDetailPage() {
           <CardContent className="p-6 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <CardTitle>Produits alternatif</CardTitle>
+                <CardTitle>Produits alternatifs</CardTitle>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="secondary" className="text-xs font-medium">
                       <BrainCircuit className="mr-1 h-3.5 w-3.5" />
-                      Version beta
+                      Version bêta
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent side="top" sideOffset={6} className="max-w-[220px] text-wrap text-center">
@@ -948,29 +887,28 @@ export default function ProductDetailPage() {
               <div className="relative flex-1 min-h-0" ref={alternativesScrollRef}>
                 <ScrollArea className="h-full">
                   <div className="space-y-2">
-                    {[
-                      { id: "alt-1", name: "Beurre AOP 250g", supplier: "Metro", price: 2.48 },
-                      { id: "alt-2", name: "Beurre doux 250g", supplier: "Sysco France", price: 2.32 },
-                      { id: "alt-3", name: "Beurre demi-sel 250g", supplier: "Distriporc", price: 2.26 },
-                      { id: "alt-4", name: "Beurre doux 500g", supplier: "Metro", price: 4.62 },
-                      { id: "alt-5", name: "Beurre doux 1kg", supplier: "Sysco France", price: 9.18 },
-                      { id: "alt-6", name: "Beurre extra-fin 250g", supplier: "Transgourmet", price: 2.54 },
-                    ].map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border bg-muted/60 px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{item.supplier}</p>
+                    {alternatives.length ? (
+                      alternatives.map((item, index) => (
+                        <div
+                          key={item.id || `alt-${index}`}
+                          className="flex items-center justify-between gap-3 rounded-lg border bg-muted/60 px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{item.supplier}</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="secondary" className="text-sm font-semibold">
+                              {item.price !== null ? euroFormatter.format(item.price) : "--"}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <Badge variant="secondary" className="text-sm font-semibold">
-                            {euroFormatter.format(item.price)}
-                          </Badge>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="flex h-24 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
+                        Aucune alternative trouvée sur la période.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </ScrollArea>
                 <div
@@ -986,7 +924,7 @@ export default function ProductDetailPage() {
           <CardContent className="p-6 space-y-4">
             <div className="space-y-3">
               <CardTitle>Factures liées au produit</CardTitle>
-              <p className="text-sm text-muted-foreground">Factures qui contiennent le produit analysé</p>
+              <p className="text-sm text-muted-foreground">Factures contenant le produit analysé</p>
             </div>
             <div className="rounded-md border">
               <Table className="table-fixed w-full">
@@ -1006,7 +944,7 @@ export default function ProductDetailPage() {
                       <TableRow key={invoice.id}>
                         <TableCell className="pl-3">
                           <div className="space-y-1">
-                            <p className="text-sm font-medium">Facture N° {invoice.number}</p>
+                            <p className="text-sm font-medium">{invoice.number}</p>
                             <p className="text-xs text-muted-foreground">
                               {invoice.items} {invoice.items > 1 ? "articles" : "article"}
                             </p>
