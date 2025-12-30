@@ -7,6 +7,15 @@ Files
 - detail.tsx: product deep‑dive (unit price series, market comparison, recipes impact, alternatives, invoices).
 - api.ts: all data fetching + mapping helpers + aggregation logic (kept outside pages).
 - types.ts: shared DTOs for UI.
+- utils.ts: UI helper rules for tiering/alert colors.
+- components/AnalyticsPageHeader.tsx: shared header/tabs for overview/detail.
+- components/SupplierSpendCard.tsx: supplier spend filters + chart + spend list.
+- components/VariationsTickerCard.tsx: variations ticker rendering + animation.
+- components/ProductConsumptionCard.tsx: top products list + insight panel.
+- components/ProductSelectionCard.tsx: supplier/product/date selectors for detail.
+- components/ProductAnalysisCard.tsx: charts, KPIs, alert, and recipes impact table.
+- components/ProductAlternativesCard.tsx: alternatives list with scroll fade.
+- components/ProductInvoicesCard.tsx: invoice table, date parsing/formatting per row.
 
 Routes & contracts
 - Suppliers: GET /suppliers (filters: establishment_id, order_by, direction).

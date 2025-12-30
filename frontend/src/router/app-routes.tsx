@@ -50,7 +50,7 @@ import PerformancesReportsPage from "../pages/dashboard/performance/reports.tsx"
 import PerformancesReportsDetailsPage from "../pages/dashboard/performance/details.tsx";
 
 // Marché & Achats
-import MarketPurchasesPage from "../pages/dashboard/market/purchases.tsx";
+import MarketPurchasesPage from "../pages/dashboard/market/purchases/index.tsx";
 import MarketMercurialesPage from "../pages/dashboard/market/mercuriales/mercuriales.tsx";
 import MarketMercurialesDetailsPage from "../pages/dashboard/market/mercuriales/details.tsx";
 
