@@ -6,12 +6,11 @@ from typing import Iterable, List, Optional
 
 import requests
 from fpdf import FPDF
-from fpdf.svg import SVGMixin
 
 from app.schemas.recipes import Recipes
 
 
-class PDF(FPDF, SVGMixin):
+class PDF(FPDF):
     """Simple PDF builder with helpers for tables and images."""
 
 
