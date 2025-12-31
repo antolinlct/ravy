@@ -18,7 +18,7 @@
   - Report detail: `ReportDetailHeader`, `ReportEditDialog`, `ReportPerformanceMetrics`,
     `ReportSectionsCard`, `ReportConsultantCard`, `ReportAnnexesCard`,
     `CostsSection`, `MarginsSection`, `LaborSection`, `MenuSection`.
-- Data is currently mock-driven in all pages; replace with API calls.
+- Data is now fetched via `frontend/src/pages/dashboard/performance/api.ts` (no mocks).
 
 ## Backend logic to use
 - **Write / compute**: `backend/app/logic/write/financial_reports.py`
@@ -48,6 +48,8 @@
 - Trend series by month for the selected year.
 - Ranking position / total to select the reward badge.
 - Consultant message derived from the weakest score.
+- Score values come from `/live_score` with fallback to the latest `financial_reports` score fields.
+- Score deltas are point differences between the latest and previous report.
 
 ### `reports.tsx`
 - Monthly report list:
@@ -58,6 +60,7 @@
 - Create dialog:
   - Requires list of active/sellable recipes (for per-recipe sales).
   - Must prevent duplicate month creation.
+- Creation uses `submitFinancialReport` to call `/logic/write/financial-report`, then reloads `/financial_reports`.
 
 ### `details.tsx`
 - Header:
@@ -72,23 +75,27 @@
 - Annexes:
   - Product consumption table (from `financial_ingredients`).
   - Recipe efficiency table (from `financial_recipes`).
+  - Category and subcategory filters are provided by `recipe_categories` and `recipes_subcategories`.
 
-## Derived calculations (needed when wiring API)
+## Derived calculations (used in the UI)
 - `result = revenue - expenses` (for list and trend).
 - `margin = result / revenue` (percentage).
 - `otherChargesTotal = production - material - labor` (used in Costs section).
 - Ratios can be stored as percent (0-100) or ratio (0-1); normalize consistently.
 - Deltas are month-over-month changes against previous report.
+- `expenses` uses `variable_charges_total` when available, otherwise `ca_total_ht - ebitda`.
+- `avgPrice` in annexes uses `consumed_value / quantity` when quantity is available.
 
-## Endpoints (expected usage)
+## Endpoints (usage)
 - `GET /financial_reports?establishment_id=...&order_by=month&direction=desc`
 - `GET /financial_reports?establishment_id=...&month=...` (detail)
 - `GET /financial_ingredients?establishment_id=...&financial_report_id=...`
 - `GET /financial_recipes?establishment_id=...&financial_report_id=...`
-- `POST /financial_reports` (create/refresh via `financial_reports.py`)
+- `GET /live_score?establishment_id=...` (scores)
+- `POST /logic/write/financial-report` (create/update report)
 
 ## Important implementation notes
-- `ReportCreateDialog` and `ReportEditDialog` are UI-only; replace toast stubs with API calls.
-- Use the **latest report** as reference when computing deltas.
+- `ReportCreateDialog` and `ReportEditDialog` call `submitFinancialReport` and then reload reports.
+- Use the **latest report** as reference when computing deltas and score point changes.
 - Annexes require joins to display product/recipe names and categories.
 - Keep formatting consistent: `fr-FR`, euro formatting, percent with sign, and safe `--` fallback for missing data.

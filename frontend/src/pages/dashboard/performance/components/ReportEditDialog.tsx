@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from "react"
+import { useEffect, useMemo, useState, type ChangeEvent } from "react"
 import { FilePenLine } from "lucide-react"
 import { toast } from "sonner"
 
@@ -40,23 +40,38 @@ type FinancialInputs = {
 
 type ReportEditDialogProps = {
   reportMonth: string
+  reportMonthDate: Date | null
   initialFinancialInputs: FinancialInputs
   initialSalesByRecipe: Record<string, string>
   reportableRecipes: ReportableRecipe[]
   formatEuro: (value: number) => string
+  onSubmit: (payload: {
+    targetMonth: Date
+    financialInputs: FinancialInputs
+    salesByRecipe: Record<string, string>
+  }) => Promise<void>
 }
 
 export default function ReportEditDialog({
   reportMonth,
+  reportMonthDate,
   initialFinancialInputs,
   initialSalesByRecipe,
   reportableRecipes,
   formatEuro,
+  onSubmit,
 }: ReportEditDialogProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [financialInputs, setFinancialInputs] = useState<FinancialInputs>(initialFinancialInputs)
   const [salesByRecipe, setSalesByRecipe] = useState<Record<string, string>>(initialSalesByRecipe)
   const [showEditValidation, setShowEditValidation] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (editOpen) return
+    setFinancialInputs(initialFinancialInputs)
+    setSalesByRecipe(initialSalesByRecipe)
+  }, [editOpen, initialFinancialInputs, initialSalesByRecipe])
 
   const hasAtLeastOneSale = useMemo(
     () => Object.values(salesByRecipe).some((value) => Number(value) >= 1),
@@ -80,19 +95,35 @@ export default function ReportEditDialog({
   const handleSalesInput = (recipeId: string) => (event: ChangeEvent<HTMLInputElement>) => {
     setSalesByRecipe((prev) => ({ ...prev, [recipeId]: event.target.value }))
   }
-  const handleEditAttempt = () => {
+  const handleEditAttempt = async () => {
     if (!isEditReady) {
       setShowEditValidation(true)
       toast.error("Modification du rapport impossible.")
       return
     }
-    toast.success(
-      <>
-        Le rapport du mois de <span className="font-semibold">{reportMonth}</span> a été modifié.
-      </>
-    )
-    setEditOpen(false)
-    setShowEditValidation(false)
+    if (!reportMonthDate) {
+      toast.error("Date du rapport invalide.")
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await onSubmit({
+        targetMonth: reportMonthDate,
+        financialInputs,
+        salesByRecipe,
+      })
+      toast.success(
+        <>
+          Le rapport du mois de <span className="font-semibold">{reportMonth}</span> a été modifié.
+        </>
+      )
+      setEditOpen(false)
+      setShowEditValidation(false)
+    } catch (error) {
+      toast.error("Impossible de modifier le rapport financier.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -106,7 +137,7 @@ export default function ReportEditDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" disabled={isSubmitting}>
           <FilePenLine className="h-4 w-4" />
           Modifier le rapport
         </Button>
@@ -391,13 +422,13 @@ export default function ReportEditDialog({
           <Button variant="ghost" onClick={() => setEditOpen(false)}>
             Annuler
           </Button>
-          <Button
-            onClick={handleEditAttempt}
-            aria-disabled={!isEditReady}
-            className={!isEditReady ? "cursor-not-allowed opacity-50" : ""}
-          >
-            Modifier le rapport
-          </Button>
+                <Button
+                  onClick={handleEditAttempt}
+                  aria-disabled={!isEditReady || isSubmitting}
+                  className={!isEditReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}
+                >
+                  Modifier le rapport
+                </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

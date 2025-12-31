@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
+import { useParams } from "react-router-dom"
 import {
   BookMarked,
   BanknoteArrowDown,
@@ -11,6 +12,13 @@ import { type ChartConfig } from "@/components/ui/chart"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { type TooltipProps } from "recharts"
 import ConsultantAvatar from "@/assets/avatar.png"
+import { useEstablishment } from "@/context/EstablishmentContext"
+import {
+  getReportMonthDate,
+  normalizePercent,
+  submitFinancialReport,
+  usePerformanceReportDetailData,
+} from "./api"
 import ReportDetailHeader from "./components/ReportDetailHeader"
 import ReportEditDialog from "./components/ReportEditDialog"
 import ReportPerformanceMetrics from "./components/ReportPerformanceMetrics"
@@ -21,78 +29,90 @@ import MarginsSection from "./components/MarginsSection"
 import LaborSection from "./components/LaborSection"
 import MenuSection from "./components/MenuSection"
 
+const formatMonthLabel = (date: Date) => {
+  const formatted = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date)
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
 export default function PerformancesReportsDetailsPage() {
+  const { id: reportId } = useParams()
+  const { estId } = useEstablishment()
+  const {
+    report,
+    reports,
+    financialIngredients,
+    financialRecipes,
+    masterArticles,
+    suppliers,
+    recipes,
+    recipeCategories,
+    recipeSubcategories,
+    reportableRecipes,
+    isLoading,
+    error,
+    reload,
+  } = usePerformanceReportDetailData(reportId)
+
+  const reportMonthDate = report ? getReportMonthDate(report) : null
+  const reportMonth = reportMonthDate ? formatMonthLabel(reportMonthDate) : "Période"
+  const reportUpdatedDate = report?.updated_at ? new Date(report.updated_at) : reportMonthDate
+  const reportUpdatedLabel = reportUpdatedDate
+    ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "long", year: "numeric" }).format(
+        reportUpdatedDate
+      )
+    : "--"
+
+  const safeNumber = (value?: number | null) =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0
+  const safeRatio = (value?: number | null) => normalizePercent(safeNumber(value))
+
   const reportData = {
-    monthLabel: "Mars 2025",
-    ca_total_ht: 79381,
-    ca_tracked_recipes_ratio: 18,
-    ca_untracked_recipes_ratio: 82,
-    material_cost_total: 28095.11,
-    material_cost_ratio_solid: 68,
-    material_cost_ratio_liquid: 32,
-    material_cost_ratio: 63.7,
-    labor_cost_total: 22500,
-    labor_cost_ratio: 28.3,
-    production_cost_total: 50595.11,
-    production_cost_ratio: 63.7,
-    fixed_charges_total: 8168.57,
-    fixed_charges_ratio: 10.3,
-    other_charges_total: 5981.34,
-    other_charges_ratio: 7.5,
-    variable_charges_total: 64745.02,
-    variable_charges_ratio: 81.6,
-    revenue_per_employee: 9922.58,
-    result_per_employee: 1829.45,
-    salary_per_employee: 2812.5,
-    avg_revenue_per_dish: 10.42,
-    avg_cost_per_dish: 2.18,
-    avg_margin_per_dish: 8.24,
-    avg_margin_delta: -0.9,
-    theoretical_sales_solid: 7577.91,
-    theoretical_material_cost_solid: 1585.31,
-    commercial_margin_total: 51285.54,
-    commercial_margin_total_ratio: 18.4,
-    commercial_margin_solid_ratio: 62,
-    commercial_margin_liquid_ratio: 38,
-    multiplier_solid: 4.3,
-    multiplier_liquid: 2.0,
-    multiplier_global: 2.8,
-    ebitda: 14635.63,
-    ebitda_ratio: 18.4,
-    break_even_point: 33167.76,
-    safety_margin: 46212.89,
-    safety_margin_ratio: 58.2,
+    ca_total_ht: safeNumber(report?.ca_total_ht),
+    ca_tracked_recipes_ratio: safeRatio(report?.ca_tracked_recipes_ratio),
+    ca_untracked_recipes_ratio: safeRatio(report?.ca_untracked_recipes_ratio),
+    ca_tracked_recipes_total: safeNumber(report?.ca_tracked_recipes_total),
+    ca_untracked_recipes_total: safeNumber(report?.ca_untracked_recipes_total),
+    material_cost_total: safeNumber(report?.material_cost_total),
+    material_cost_ratio: safeRatio(report?.material_cost_ratio),
+    material_cost_ratio_solid: safeRatio(report?.material_cost_ratio_solid),
+    material_cost_ratio_liquid: safeRatio(report?.material_cost_ratio_liquid),
+    material_cost_solid: safeNumber(report?.material_cost_solid),
+    material_cost_liquid: safeNumber(report?.material_cost_liquid),
+    labor_cost_total: safeNumber(report?.labor_cost_total),
+    labor_cost_ratio: safeRatio(report?.labor_cost_ratio),
+    production_cost_total: safeNumber(report?.production_cost_total),
+    production_cost_ratio: safeRatio(report?.production_cost_ratio),
+    fixed_charges_total: safeNumber(report?.fixed_charges_total),
+    fixed_charges_ratio: safeRatio(report?.fixed_charges_ratio),
+    other_charges_total: safeNumber(report?.other_charges_total),
+    other_charges_ratio: safeRatio(report?.other_charges_ratio),
+    variable_charges_total: safeNumber(report?.variable_charges_total),
+    variable_charges_ratio: safeRatio(report?.variable_charges_ratio),
+    revenue_per_employee: safeNumber(report?.revenue_per_employee),
+    result_per_employee: safeNumber(report?.result_per_employee),
+    salary_per_employee: safeNumber(report?.salary_per_employee),
+    avg_revenue_per_dish: safeNumber(report?.avg_revenue_per_dish),
+    avg_cost_per_dish: safeNumber(report?.avg_cost_per_dish),
+    avg_margin_per_dish: safeNumber(report?.avg_margin_per_dish),
+    avg_margin_delta: safeNumber(report?.avg_margin_delta),
+    theoretical_sales_solid: safeNumber(report?.theoretical_sales_solid),
+    theoretical_material_cost_solid: safeNumber(report?.theoretical_material_cost_solid),
+    commercial_margin_total: safeNumber(report?.commercial_margin_total),
+    commercial_margin_total_ratio: safeRatio(report?.commercial_margin_total_ratio),
+    commercial_margin_solid_ratio: safeRatio(report?.commercial_margin_solid_ratio),
+    commercial_margin_liquid_ratio: safeRatio(report?.commercial_margin_liquid_ratio),
+    commercial_margin_solid: safeNumber(report?.commercial_margin_solid),
+    commercial_margin_liquid: safeNumber(report?.commercial_margin_liquid),
+    multiplier_solid: safeNumber(report?.multiplier_solid),
+    multiplier_liquid: safeNumber(report?.multiplier_liquid),
+    multiplier_global: safeNumber(report?.multiplier_global),
+    ebitda: safeNumber(report?.ebitda),
+    ebitda_ratio: safeRatio(report?.ebitda_ratio),
+    break_even_point: safeNumber(report?.break_even_point),
+    safety_margin: safeNumber(report?.safety_margin),
+    safety_margin_ratio: safeRatio(report?.safety_margin_ratio),
   }
 
-  const reportDeltas = {
-    revenue: -6.6,
-    labor: null,
-    purchases: 67.9,
-    result: -68.5,
-    material_cost_total: 98.1,
-    labor_cost_total: null,
-    production_cost_total: 37.9,
-    fixed_charges_total: 399.9,
-    other_charges_total: 2292.5,
-    variable_charges_total: 67.9,
-    revenue_per_employee: -6.6,
-    result_per_employee: -68.5,
-    avg_revenue_per_dish: -9.5,
-    avg_cost_per_dish: -9.5,
-    avg_margin_per_dish: -9.5,
-    theoretical_sales_solid: -82.0,
-    theoretical_material_cost_solid: -83.6,
-    commercial_margin_total: -27.6,
-    multiplier_solid: 25.6,
-    multiplier_liquid: -91.2,
-    multiplier_global: -52.9,
-    ebitda: -68.5,
-    break_even_point: 37.0,
-    safety_margin: -24.0,
-    safety_margin_ratio: -18.6,
-  }
-
-  const reportMonth = reportData.monthLabel
   const otherChargesTotal = Math.max(
     reportData.production_cost_total - reportData.material_cost_total - reportData.labor_cost_total,
     0
@@ -100,9 +120,147 @@ export default function PerformancesReportsDetailsPage() {
   const otherChargesRatio = reportData.ca_total_ht
     ? (otherChargesTotal / reportData.ca_total_ht) * 100
     : 0
+
+  const normalizeRatio = (ratio: number) => (ratio > 1 ? ratio / 100 : ratio)
+
+  const materialSolidAmount =
+    reportData.material_cost_solid ||
+    reportData.material_cost_total * normalizeRatio(reportData.material_cost_ratio_solid)
+  const materialLiquidAmount =
+    reportData.material_cost_liquid ||
+    reportData.material_cost_total * normalizeRatio(reportData.material_cost_ratio_liquid)
+
+  const marginSolidAmount =
+    reportData.commercial_margin_solid ||
+    reportData.commercial_margin_total * normalizeRatio(reportData.commercial_margin_solid_ratio)
+  const marginLiquidAmount =
+    reportData.commercial_margin_liquid ||
+    reportData.commercial_margin_total * normalizeRatio(reportData.commercial_margin_liquid_ratio)
+
+  const menuFixedAmount =
+    reportData.ca_tracked_recipes_total ||
+    reportData.ca_total_ht * normalizeRatio(reportData.ca_tracked_recipes_ratio)
+  const menuVariableAmount =
+    reportData.ca_untracked_recipes_total ||
+    reportData.ca_total_ht * normalizeRatio(reportData.ca_untracked_recipes_ratio)
+
+  const sortedReports = useMemo(() => {
+    return reports
+      .map((item) => ({ report: item, monthDate: getReportMonthDate(item) }))
+      .filter((item): item is { report: typeof reports[number]; monthDate: Date } => Boolean(item.monthDate))
+      .sort((a, b) => b.monthDate.getTime() - a.monthDate.getTime())
+  }, [reports])
+
+  const previousReport = useMemo(() => {
+    if (!report) return null
+    const currentIndex = sortedReports.findIndex((item) => item.report.id === report.id)
+    if (currentIndex === -1) return null
+    return sortedReports[currentIndex + 1]?.report ?? null
+  }, [report, sortedReports])
+
+  const previousData = previousReport
+    ? {
+        ca_total_ht: safeNumber(previousReport.ca_total_ht),
+        labor_cost_total: safeNumber(previousReport.labor_cost_total),
+        variable_charges_total: safeNumber(previousReport.variable_charges_total),
+        material_cost_total: safeNumber(previousReport.material_cost_total),
+        production_cost_total: safeNumber(previousReport.production_cost_total),
+        fixed_charges_total: safeNumber(previousReport.fixed_charges_total),
+        other_charges_total: safeNumber(previousReport.other_charges_total),
+        revenue_per_employee: safeNumber(previousReport.revenue_per_employee),
+        result_per_employee: safeNumber(previousReport.result_per_employee),
+        avg_revenue_per_dish: safeNumber(previousReport.avg_revenue_per_dish),
+        avg_cost_per_dish: safeNumber(previousReport.avg_cost_per_dish),
+        avg_margin_per_dish: safeNumber(previousReport.avg_margin_per_dish),
+        theoretical_sales_solid: safeNumber(previousReport.theoretical_sales_solid),
+        theoretical_material_cost_solid: safeNumber(previousReport.theoretical_material_cost_solid),
+        commercial_margin_total: safeNumber(previousReport.commercial_margin_total),
+        multiplier_solid: safeNumber(previousReport.multiplier_solid),
+        multiplier_liquid: safeNumber(previousReport.multiplier_liquid),
+        multiplier_global: safeNumber(previousReport.multiplier_global),
+        ebitda: safeNumber(previousReport.ebitda),
+        break_even_point: safeNumber(previousReport.break_even_point),
+        safety_margin: safeNumber(previousReport.safety_margin),
+      }
+    : null
+
+  const buildDelta = (current: number, previous: number) => {
+    if (!Number.isFinite(previous) || previous === 0) return null
+    return ((current - previous) / Math.abs(previous)) * 100
+  }
+
+  const reportDeltas = {
+    revenue: previousData ? buildDelta(reportData.ca_total_ht, previousData.ca_total_ht) : null,
+    labor: previousData ? buildDelta(reportData.labor_cost_total, previousData.labor_cost_total) : null,
+    purchases: previousData
+      ? buildDelta(reportData.variable_charges_total, previousData.variable_charges_total)
+      : null,
+    result: previousData ? buildDelta(reportData.ebitda, previousData.ebitda) : null,
+    material_cost_total: previousData
+      ? buildDelta(reportData.material_cost_total, previousData.material_cost_total)
+      : null,
+    labor_cost_total: previousData
+      ? buildDelta(reportData.labor_cost_total, previousData.labor_cost_total)
+      : null,
+    production_cost_total: previousData
+      ? buildDelta(reportData.production_cost_total, previousData.production_cost_total)
+      : null,
+    fixed_charges_total: previousData
+      ? buildDelta(reportData.fixed_charges_total, previousData.fixed_charges_total)
+      : null,
+    other_charges_total: previousData
+      ? buildDelta(reportData.other_charges_total, previousData.other_charges_total)
+      : null,
+    variable_charges_total: previousData
+      ? buildDelta(reportData.variable_charges_total, previousData.variable_charges_total)
+      : null,
+    revenue_per_employee: previousData
+      ? buildDelta(reportData.revenue_per_employee, previousData.revenue_per_employee)
+      : null,
+    result_per_employee: previousData
+      ? buildDelta(reportData.result_per_employee, previousData.result_per_employee)
+      : null,
+    avg_revenue_per_dish: previousData
+      ? buildDelta(reportData.avg_revenue_per_dish, previousData.avg_revenue_per_dish)
+      : null,
+    avg_cost_per_dish: previousData
+      ? buildDelta(reportData.avg_cost_per_dish, previousData.avg_cost_per_dish)
+      : null,
+    avg_margin_per_dish: previousData
+      ? buildDelta(reportData.avg_margin_per_dish, previousData.avg_margin_per_dish)
+      : null,
+    theoretical_sales_solid: previousData
+      ? buildDelta(reportData.theoretical_sales_solid, previousData.theoretical_sales_solid)
+      : null,
+    theoretical_material_cost_solid: previousData
+      ? buildDelta(reportData.theoretical_material_cost_solid, previousData.theoretical_material_cost_solid)
+      : null,
+    commercial_margin_total: previousData
+      ? buildDelta(reportData.commercial_margin_total, previousData.commercial_margin_total)
+      : null,
+    multiplier_solid: previousData
+      ? buildDelta(reportData.multiplier_solid, previousData.multiplier_solid)
+      : null,
+    multiplier_liquid: previousData
+      ? buildDelta(reportData.multiplier_liquid, previousData.multiplier_liquid)
+      : null,
+    multiplier_global: previousData
+      ? buildDelta(reportData.multiplier_global, previousData.multiplier_global)
+      : null,
+    ebitda: previousData ? buildDelta(reportData.ebitda, previousData.ebitda) : null,
+    break_even_point: previousData
+      ? buildDelta(reportData.break_even_point, previousData.break_even_point)
+      : null,
+    safety_margin: previousData ? buildDelta(reportData.safety_margin, previousData.safety_margin) : null,
+    safety_margin_ratio: previousData
+      ? buildDelta(reportData.safety_margin_ratio, safeRatio(previousReport?.safety_margin_ratio))
+      : null,
+  }
+
   const [activeSection, setActiveSection] = useState<"costs" | "margins" | "labor" | "menu">(
     "costs"
   )
+
   const performanceMetrics = [
     {
       id: "revenue",
@@ -177,52 +335,6 @@ export default function PerformancesReportsDetailsPage() {
     </div>
   )
 
-  const normalizeRatio = (ratio: number) => (ratio > 1 ? ratio / 100 : ratio)
-  const materialSolidAmount =
-    reportData.material_cost_total * normalizeRatio(reportData.material_cost_ratio_solid)
-  const materialLiquidAmount =
-    reportData.material_cost_total * normalizeRatio(reportData.material_cost_ratio_liquid)
-
-  const marginSolidAmount =
-    reportData.commercial_margin_total *
-    normalizeRatio(reportData.commercial_margin_solid_ratio)
-  const marginLiquidAmount =
-    reportData.commercial_margin_total *
-    normalizeRatio(reportData.commercial_margin_liquid_ratio)
-  const menuFixedAmount =
-    reportData.ca_total_ht * normalizeRatio(reportData.ca_tracked_recipes_ratio)
-  const menuVariableAmount =
-    reportData.ca_total_ht * normalizeRatio(reportData.ca_untracked_recipes_ratio)
-  const reportableRecipes = [
-    { id: "aiguillettes", name: "Aiguillettes de poulet", price: 9.0 },
-    { id: "andouillette", name: "Andouillette", price: 20.9 },
-    { id: "bavette", name: "Bavette de boeuf, frites", price: 21.9 },
-    { id: "camembert", name: "Camembert roti", price: 10.0 },
-    { id: "bruschetta", name: "Bruschetta", price: 9.0 },
-    { id: "burger", name: "Burger Tradition", price: 17.9 },
-    { id: "creme", name: "Creme caramel", price: 8.0 },
-    { id: "salade", name: "Salade Lyonnaise XL", price: 14.5 },
-  ]
-  const initialFinancialInputs = {
-    laborCost: formatInputValue(reportData.labor_cost_total),
-    headcount: "8",
-    fixedCosts: formatInputValue(reportData.fixed_charges_total),
-    variableCosts: formatInputValue(reportData.variable_charges_total),
-    otherCosts: formatInputValue(reportData.other_charges_total),
-    revenueFood: formatInputValue(menuFixedAmount),
-    revenueTotal: formatInputValue(reportData.ca_total_ht),
-  }
-  const initialSalesByRecipe: Record<string, string> = {
-    aiguillettes: "120",
-    andouillette: "48",
-    bavette: "62",
-    camembert: "30",
-    bruschetta: "42",
-    burger: "55",
-    creme: "80",
-    salade: "25",
-  }
-
   const PieTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (!active || !payload?.length) return null
 
@@ -253,9 +365,7 @@ export default function PerformancesReportsDetailsPage() {
                   <span className="text-muted-foreground whitespace-nowrap">{label}</span>
                   <span className="font-medium text-foreground">{formatEuro(amount)}</span>
                 </div>
-                {ratioText ? (
-                  <span className="text-xs text-muted-foreground">{ratioText}</span>
-                ) : null}
+                {ratioText ? <span className="text-xs text-muted-foreground">{ratioText}</span> : null}
               </div>
             </div>
           )
@@ -419,8 +529,6 @@ export default function PerformancesReportsDetailsPage() {
     breakEvenNote: "En dessous de ce montant de CA, votre établissement subira des pertes.",
     safetyTitle: "Marge de sécurité",
     safetyTooltip: "Baisse d'activité supportable avant de passer en pertes.",
-    safetyAmountLabel: "Montant",
-    safetyPercentLabel: "Pourcentage",
     safetyNotePrefix: "Une diminution de",
     safetyNoteSuffix: "de votre activité n'entraînera pas de conséquences financières graves.",
   }
@@ -541,138 +649,169 @@ export default function PerformancesReportsDetailsPage() {
     { id: "menu" as const, label: "Efficacité du menu", icon: BookMarked },
   ]
 
-  const supplierOptions = [
-    { id: "sysco", label: "Sysco France" },
-    { id: "distriporc", label: "Distriporc" },
-    { id: "dc-plateforme", label: "DC PLATEFORME" },
-    { id: "brake", label: "Brake" },
-  ]
+  const masterArticleById = useMemo(() => {
+    return new Map(masterArticles.map((article) => [article.id, article]))
+  }, [masterArticles])
 
-  const theoreticalProducts = [
-    {
-      id: "bavette",
-      name: "BAVETTE PAD FR SOUS VIDE",
-      supplierId: "sysco",
-      avgPrice: 17.955,
-      consumptionHt: 197.51,
-      quantity: "11 kg",
-    },
-    {
-      id: "batavia",
-      name: "BATAVIA BRUNE CAT 1 FRANCE",
-      supplierId: "sysco",
-      avgPrice: 1.15,
-      consumptionHt: 66.58,
-      quantity: "58 p",
-    },
-    {
-      id: "chene",
-      name: "CHENE BL CAT 1 FRANCE",
-      supplierId: "dc-plateforme",
-      avgPrice: 1.15,
-      consumptionHt: 66.07,
-      quantity: "57 p",
-    },
-    {
-      id: "pesto",
-      name: "PESTO VERDE 470G BKE X6",
-      supplierId: "distriporc",
-      avgPrice: 6.9,
-      consumptionHt: 15.25,
-      quantity: "2 pc",
-    },
-    {
-      id: "tomate",
-      name: "TOMATE CONFITE NAT. CBR BQ1KG X4",
-      supplierId: "brake",
-      avgPrice: 0,
-      consumptionHt: 0,
-      quantity: "1 kg",
-    },
-    {
-      id: "mozzarella",
-      name: "MOZZARELLA 18%MG MIN. ST125G X20",
-      supplierId: "sysco",
-      avgPrice: 1.1,
-      consumptionHt: 9.35,
-      quantity: "9 st",
-    },
-    {
-      id: "camembert",
-      name: "CAMEMBERT AU FOUR 45%MG 120G",
-      supplierId: "brake",
-      avgPrice: 12.31,
-      consumptionHt: 43.95,
-      quantity: "4 ct",
-    },
-  ]
+  const ingredientsForReport = useMemo(() => {
+    if (!report?.id) return []
+    return financialIngredients.filter((item) => item.financial_report_id === report.id)
+  }, [financialIngredients, report?.id])
 
-  const recipesEfficiency = [
-    {
-      id: "steak",
-      name: "Steak haché, frites",
-      category: "plats",
-      subcategory: "grillades",
-      avgCost: 3.197,
-      revenue: 1571.27,
-      revenueShare: 2.0,
-    },
-    {
-      id: "bavette",
-      name: "Bavette de bœuf, frites",
-      category: "plats",
-      subcategory: "boucherie",
-      avgCost: 4.903,
-      revenue: 995.45,
-      revenueShare: 1.3,
-    },
-    {
-      id: "salade",
-      name: "Salade Lyonnaise XL",
-      category: "entrees",
-      subcategory: "salades",
-      avgCost: 2.537,
-      revenue: 695.0,
-      revenueShare: 0.9,
-    },
-    {
-      id: "tartare",
-      name: "Tartare bœuf 200g",
-      category: "plats",
-      subcategory: "tartares",
-      avgCost: 3.497,
-      revenue: 656.36,
-      revenueShare: 0.8,
-    },
-    {
-      id: "moelleux",
-      name: "Moelleux chocolat",
-      category: "desserts",
-      subcategory: "tartes",
-      avgCost: 1.957,
-      revenue: 581.82,
-      revenueShare: 0.7,
-    },
-    {
-      id: "tartare-300",
-      name: "Tartare bœuf 300g",
-      category: "plats",
-      subcategory: "boucherie",
-      avgCost: 4.771,
-      revenue: 397.27,
-      revenueShare: 0.5,
-    },
-    {
-      id: "tarte-citron",
-      name: "Tarte citron",
-      category: "desserts",
-      subcategory: "tartes",
-      avgCost: 0.995,
-      revenue: 269.09,
-      revenueShare: 0.3,
-    },
-  ]
+  const theoreticalProducts = useMemo(() => {
+    const formatter = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 })
+    return ingredientsForReport.map((item) => {
+      const masterArticle = item.master_article_id
+        ? masterArticleById.get(item.master_article_id)
+        : undefined
+      const quantityValue = safeNumber(item.quantity)
+      const consumedValue = safeNumber(item.consumed_value)
+      const avgPrice = quantityValue ? consumedValue / quantityValue : 0
+      const unit = masterArticle?.unit ?? ""
+      const quantityLabel = quantityValue
+        ? `${formatter.format(quantityValue)}${unit ? ` ${unit}` : ""}`
+        : "--"
 
+      return {
+        id: item.id,
+        name: masterArticle?.unformatted_name || masterArticle?.name || "Produit",
+        supplierId: masterArticle?.supplier_id ?? "",
+        avgPrice,
+        consumptionHt: consumedValue,
+        quantity: quantityLabel,
+      }
+    })
+  }, [ingredientsForReport, masterArticleById])
+
+  const supplierOptions = useMemo(() => {
+    return suppliers
+      .map((supplier) => ({ id: supplier.id, label: supplier.name ?? "Fournisseur" }))
+      .filter((item) => item.id)
+  }, [suppliers])
+
+  const recipeById = useMemo(() => {
+    return new Map(recipes.map((recipe) => [recipe.id, recipe]))
+  }, [recipes])
+
+  const recipesForReport = useMemo(() => {
+    if (!report?.id) return []
+    return financialRecipes.filter((item) => item.financial_report_id === report.id)
+  }, [financialRecipes, report?.id])
+
+  const recipesEfficiency = useMemo(() => {
+    return recipesForReport.map((item) => {
+      const recipe = item.recipe_id ? recipeById.get(item.recipe_id) : undefined
+      const salesNumber = safeNumber(item.sales_number)
+      const totalRevenue = safeNumber(item.total_revenue)
+      const totalCost = safeNumber(item.total_cost)
+      const avgCost = salesNumber ? totalCost / salesNumber : 0
+      const revenueShare = reportData.ca_total_ht ? (totalRevenue / reportData.ca_total_ht) * 100 : 0
+
+      return {
+        id: item.id,
+        name: recipe?.name ?? "Recette",
+        category: recipe?.category_id ?? "__uncategorized__",
+        subcategory: recipe?.subcategory_id ?? "__uncategorized__",
+        avgCost,
+        revenue: totalRevenue,
+        revenueShare,
+      }
+    })
+  }, [recipeById, recipesForReport, reportData.ca_total_ht])
+
+  const categoryOptions = useMemo(() => {
+    return recipeCategories
+      .map((category) => ({ value: category.id, label: category.name ?? "Catégorie" }))
+      .filter((item) => item.value)
+  }, [recipeCategories])
+
+  const subCategoryOptionsMap = useMemo(() => {
+    const map: Record<string, { value: string; label: string }[]> = {}
+    recipeSubcategories.forEach((subcategory) => {
+      if (!subcategory.category_id) return
+      if (!map[subcategory.category_id]) {
+        map[subcategory.category_id] = []
+      }
+      map[subcategory.category_id].push({
+        value: subcategory.id,
+        label: subcategory.name ?? "Sous-catégorie",
+      })
+    })
+
+    Object.values(map).forEach((entries) => {
+      entries.sort((a, b) => a.label.localeCompare(b.label, "fr", { sensitivity: "base" }))
+    })
+
+    return map
+  }, [recipeSubcategories])
+
+  const initialSalesByRecipe = useMemo(() => {
+    const values: Record<string, string> = {}
+    recipesForReport.forEach((item) => {
+      if (!item.recipe_id) return
+      const salesNumber = safeNumber(item.sales_number)
+      values[item.recipe_id] = salesNumber ? `${Math.round(salesNumber)}` : ""
+    })
+    return values
+  }, [recipesForReport])
+
+  const initialFinancialInputs = useMemo(
+    () => ({
+      laborCost: formatInputValue(reportData.labor_cost_total),
+      headcount: report?.fte_count ? `${Math.round(report.fte_count)}` : "",
+      fixedCosts: formatInputValue(reportData.fixed_charges_total),
+      variableCosts: formatInputValue(reportData.variable_charges_total),
+      otherCosts: formatInputValue(reportData.other_charges_total),
+      revenueFood: formatInputValue(menuFixedAmount),
+      revenueTotal: formatInputValue(reportData.ca_total_ht),
+    }),
+    [
+      menuFixedAmount,
+      report?.fte_count,
+      reportData.ca_total_ht,
+      reportData.fixed_charges_total,
+      reportData.labor_cost_total,
+      reportData.other_charges_total,
+      reportData.variable_charges_total,
+    ]
+  )
+
+  const handleUpdateReport = async ({
+    targetMonth,
+    financialInputs,
+    salesByRecipe,
+  }: {
+    targetMonth: Date
+    financialInputs: {
+      laborCost: string
+      headcount: string
+      fixedCosts: string
+      variableCosts: string
+      otherCosts: string
+      revenueFood: string
+      revenueTotal: string
+    }
+    salesByRecipe: Record<string, string>
+  }) => {
+    if (!estId) {
+      throw new Error("Aucun etablissement selectionne.")
+    }
+    await submitFinancialReport({
+      establishmentId: estId,
+      targetMonth,
+      financialInputs,
+      salesByRecipe,
+    })
+    await reload()
+  }
+
+  if (isLoading && !report) {
+    return <p className="text-sm text-muted-foreground">Chargement du rapport...</p>
+  }
+
+  if (!report) {
+    return <p className="text-sm text-muted-foreground">Rapport introuvable.</p>
+  }
 
   const sectionContent = {
     costs: (
@@ -734,17 +873,21 @@ export default function PerformancesReportsDetailsPage() {
 
   return (
     <div className="space-y-4">
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
       <ReportDetailHeader
-        title="Rapport Mars 2025"
-        subtitle="Dernière modification : Samedi 20 Décembre 2025"
+        title={`Rapport ${reportMonth}`}
+        subtitle={`Dernière modification : ${reportUpdatedLabel}`}
         backHref="/dashboard/performance/reports"
         editDialog={
           <ReportEditDialog
             reportMonth={reportMonth}
+            reportMonthDate={reportMonthDate}
             initialFinancialInputs={initialFinancialInputs}
             initialSalesByRecipe={initialSalesByRecipe}
             reportableRecipes={reportableRecipes}
             formatEuro={formatEuro}
+            onSubmit={handleUpdateReport}
           />
         }
       />
@@ -769,6 +912,8 @@ export default function PerformancesReportsDetailsPage() {
         supplierOptions={supplierOptions}
         theoreticalProducts={theoreticalProducts}
         recipesEfficiency={recipesEfficiency}
+        categoryOptions={categoryOptions}
+        subCategoryOptionsMap={subCategoryOptionsMap}
         formatEuro={formatEuro}
       />
     </div>

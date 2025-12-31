@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import RewardTop1 from "@/assets/rewards/top-1.png"
 import RewardTop2 from "@/assets/rewards/top-2.png"
 import RewardTop3 from "@/assets/rewards/top-3.png"
@@ -12,17 +12,7 @@ import ScoreGlobalCard from "./components/ScoreGlobalCard"
 import ScoreTrendCard from "./components/ScoreTrendCard"
 import ScoreSummaryGrid from "./components/ScoreSummaryGrid"
 import ScoreConsultantCard from "./components/ScoreConsultantCard"
-
-type ScoreKey = "buy" | "recipes" | "finance"
-
-type ScoreCard = {
-  id: ScoreKey
-  title: string
-  subtitle: string
-  detail: string
-  value: number
-  delta: number
-}
+import { getReportMonthDate, usePerformanceScoresData } from "./api"
 
 const getScoreColor = (value: number) => {
   if (value <= 50) return "var(--chart-2)"
@@ -40,88 +30,150 @@ const getRankingReward = (rank: number) => {
   return RewardTop100
 }
 
+const safeScoreValue = (value?: number | null) =>
+  typeof value === "number" && Number.isFinite(value) ? Math.round(value) : null
+
+const buildScoreDelta = (current?: number | null, previous?: number | null) => {
+  if (!Number.isFinite(current) || !Number.isFinite(previous)) return 0
+  return Math.round(Number(current) - Number(previous))
+}
+
+const formatScoreMonth = (date: Date) => {
+  const formatted = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date)
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+}
+
 export default function PerformanceScoresPage() {
-  const globalScore = 83
-  const globalDelta = 12
+  const { reports, liveScores, globalRanking, isLoading, error } = usePerformanceScoresData()
+
+  const sortedReports = useMemo(() => {
+    return reports
+      .map((report) => ({
+        report,
+        monthDate: getReportMonthDate(report),
+      }))
+      .filter((item): item is { report: typeof reports[number]; monthDate: Date } => Boolean(item.monthDate))
+      .sort((a, b) => b.monthDate.getTime() - a.monthDate.getTime())
+  }, [reports])
+
+  const latestReport = sortedReports[0]?.report
+  const previousReport = sortedReports[1]?.report
+  const latestMonth = sortedReports[0]?.monthDate ?? null
+
+  const getLiveScoreValue = (type: "global" | "purchase" | "recipe" | "financial") => {
+    const match = liveScores.find((score) => score.type === type)
+    return safeScoreValue(match?.value)
+  }
+
+  const globalScore =
+    getLiveScoreValue("global") ?? safeScoreValue(latestReport?.score_global) ?? 0
+  const buyScore =
+    getLiveScoreValue("purchase") ?? safeScoreValue(latestReport?.score_purchase) ?? 0
+  const recipeScore =
+    getLiveScoreValue("recipe") ?? safeScoreValue(latestReport?.score_recipe) ?? 0
+  const financeScore =
+    getLiveScoreValue("financial") ?? safeScoreValue(latestReport?.score_financial) ?? 0
+
+  const globalDelta = buildScoreDelta(latestReport?.score_global, previousReport?.score_global)
+  const buyDelta = buildScoreDelta(latestReport?.score_purchase, previousReport?.score_purchase)
+  const recipeDelta = buildScoreDelta(latestReport?.score_recipe, previousReport?.score_recipe)
+  const financeDelta = buildScoreDelta(latestReport?.score_financial, previousReport?.score_financial)
+
   const globalDeltaIsPositive = globalDelta >= 0
-  const globalRanking = { position: 1, total: 14 }
-  const globalRankingReward = getRankingReward(globalRanking.position)
-  const rankingSuffix = globalRanking.position === 1 ? "er" : "ème"
+  const resolvedRanking = globalRanking ?? { position: 1, total: 1 }
+  const rankingSuffix = resolvedRanking.position === 1 ? "er" : "ème"
+  const globalRankingReward = getRankingReward(resolvedRanking.position)
+
   const currentYear = new Date().getFullYear()
-  const startYear = 2023
-  const yearOptions = Array.from(
-    { length: currentYear - startYear + 1 },
-    (_, index) => `${startYear + index}`
-  )
+  const yearOptions = useMemo(() => {
+    const years = new Set<number>()
+    sortedReports.forEach((item) => years.add(item.monthDate.getFullYear()))
+    if (!years.size) {
+      years.add(currentYear)
+    }
+    return Array.from(years)
+      .sort((a, b) => b - a)
+      .map((value) => `${value}`)
+  }, [sortedReports, currentYear])
+
   const [scoreYear, setScoreYear] = useState(`${currentYear}`)
   const [scoreMetric, setScoreMetric] = useState<"global" | "buy" | "recipes" | "finance">("global")
 
-  const monthLabels = [
-    "Janv.",
-    "Fév.",
-    "Mars",
-    "Avr.",
-    "Mai",
-    "Juin",
-    "Juil.",
-    "Août",
-    "Sept.",
-    "Oct.",
-    "Nov.",
-    "Déc.",
-  ]
+  useEffect(() => {
+    if (!yearOptions.includes(scoreYear)) {
+      setScoreYear(yearOptions[0] ?? `${currentYear}`)
+    }
+  }, [currentYear, scoreYear, yearOptions])
+
+  const monthShortFormatter = useMemo(
+    () => new Intl.DateTimeFormat("fr-FR", { month: "short" }),
+    []
+  )
+
   const scoreMetricLabels = {
     global: "Score global",
     buy: "Score achat",
     recipes: "Score recettes",
     finance: "Score financier",
   } as const
-  const scoreTrendValues = {
-    global: [72, 74, 75, 76, 78, 80, 82, 83, 84, 85, 84, 83],
-    buy: [18, 20, 22, 19, 21, 24, 26, 23, 25, 22, 20, 19],
-    recipes: [48, 50, 52, 54, 55, 57, 58, 60, 59, 58, 57, 57],
-    finance: [64, 66, 67, 69, 70, 72, 73, 74, 75, 76, 76, 75],
-  }
-  const scoreTrendSeries = useMemo(
-    () =>
-      scoreTrendValues[scoreMetric].map((value, index) => ({
-        label: monthLabels[index],
-        value,
-        date: `${scoreYear}-${String(index + 1).padStart(2, "0")}-01`,
-      })),
-    [scoreMetric, scoreYear]
-  )
-  const formatScoreMonth = (date: Date) => {
-    const formatted = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(date)
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }
-  const scoreCards: ScoreCard[] = [
+
+  const scoreTrendSeries = useMemo(() => {
+    const year = Number(scoreYear)
+    const data = sortedReports
+      .filter((item) => item.monthDate.getFullYear() === year)
+      .sort((a, b) => a.monthDate.getTime() - b.monthDate.getTime())
+      .map((item) => {
+        const metricValue =
+          scoreMetric === "global"
+            ? safeScoreValue(item.report.score_global)
+            : scoreMetric === "buy"
+              ? safeScoreValue(item.report.score_purchase)
+              : scoreMetric === "recipes"
+                ? safeScoreValue(item.report.score_recipe)
+                : safeScoreValue(item.report.score_financial)
+
+        if (metricValue === null) return null
+
+        const monthLabel = monthShortFormatter.format(item.monthDate)
+        return {
+          label: `${monthLabel.charAt(0).toUpperCase()}${monthLabel.slice(1)}`,
+          value: metricValue,
+          date: item.monthDate.toISOString().slice(0, 10),
+        }
+      })
+      .filter((item): item is { label: string; value: number; date: string } => Boolean(item))
+
+    return data
+  }, [monthShortFormatter, scoreMetric, scoreYear, sortedReports])
+
+  const scoreCards = [
     {
       id: "buy",
       title: "Score achat",
       subtitle: "Qualité de vos achats clés",
       detail: "Évalue la qualité de vos achats : négociation des prix et contrôle des produits clés.",
-      value: 12,
-      delta: -6,
+      value: buyScore,
+      delta: buyDelta,
     },
     {
       id: "recipes",
       title: "Score recettes",
       subtitle: "Optimisation de vos recettes",
       detail: "Mesure la rentabilité de vos plats : coûts matière maîtrisés et marges réalisées.",
-      value: 57,
-      delta: 3,
+      value: recipeScore,
+      delta: recipeDelta,
     },
     {
       id: "finance",
       title: "Score financier",
       subtitle: "Performance de vos finances",
       detail: "Suit l'équilibre financier global : rentabilité et cohérence entre ventes et dépenses.",
-      value: 75,
-      delta: 1,
+      value: financeScore,
+      delta: financeDelta,
     },
   ]
-  const consultantMessages: Record<ScoreKey, { lead: string; tail: string }> = {
+
+  const consultantMessages: Record<"buy" | "recipes" | "finance", { lead: string; tail: string }> = {
     buy: {
       lead: "Vos achats freinent votre marge !",
       tail:
@@ -138,8 +190,9 @@ export default function PerformanceScoresPage() {
         "Agissez sur les frais fixes et variables, et adaptez vos plannings aux pics d'affluence : un pilotage progressif améliore rapidement la trésorerie.",
     },
   }
+
   const weakestScore = scoreCards.reduce((lowest, item) => (item.value < lowest.value ? item : lowest))
-  const consultantCopy = consultantMessages[weakestScore.id]
+  const consultantCopy = consultantMessages[weakestScore.id as keyof typeof consultantMessages]
 
   return (
     <div className="space-y-4">
@@ -149,16 +202,18 @@ export default function PerformanceScoresPage() {
         ctaLabel="Comprendre mes score"
       />
 
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(240px,1fr)_minmax(0,3.4fr)]">
         <ScoreGlobalCard
           score={globalScore}
           delta={globalDelta}
           deltaIsPositive={globalDeltaIsPositive}
-          rankingPosition={globalRanking.position}
-          rankingTotal={globalRanking.total}
+          rankingPosition={resolvedRanking.position}
+          rankingTotal={resolvedRanking.total}
           rankingSuffix={rankingSuffix}
           rankingRewardSrc={globalRankingReward}
-          monthLabel="Décembre 2025"
+          monthLabel={latestMonth ? formatScoreMonth(latestMonth) : "Dernier mois"}
           tooltip="Basé sur les autres scores : 0,4 × score achat + 0,4 × score recette + 0,2 × score financier."
           scoreColor={getScoreColor(globalScore)}
         />
@@ -173,6 +228,10 @@ export default function PerformanceScoresPage() {
           formatMonthLabel={formatScoreMonth}
         />
       </div>
+
+      {isLoading && !scoreTrendSeries.length ? (
+        <p className="text-sm text-muted-foreground">Chargement des scores...</p>
+      ) : null}
 
       <ScoreSummaryGrid scores={scoreCards} getScoreColor={getScoreColor} />
 

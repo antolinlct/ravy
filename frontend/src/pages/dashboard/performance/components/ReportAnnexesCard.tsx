@@ -20,7 +20,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -45,11 +44,16 @@ type RecipeEfficiency = {
   revenueShare: number
 }
 
+type CategoryOption = { value: string; label: string }
+type SubCategoryOption = { value: string; label: string }
+
 type ReportAnnexesCardProps = {
   reportMonth: string
   supplierOptions: SupplierOption[]
   theoreticalProducts: TheoreticalProduct[]
   recipesEfficiency: RecipeEfficiency[]
+  categoryOptions: CategoryOption[]
+  subCategoryOptionsMap: Record<string, SubCategoryOption[]>
   formatEuro: (value: number) => string
 }
 
@@ -58,6 +62,8 @@ export default function ReportAnnexesCard({
   supplierOptions,
   theoreticalProducts,
   recipesEfficiency,
+  categoryOptions,
+  subCategoryOptionsMap,
   formatEuro,
 }: ReportAnnexesCardProps) {
   const [annexesOpen, setAnnexesOpen] = useState(false)
@@ -74,32 +80,10 @@ export default function ReportAnnexesCard({
     ? theoreticalProducts.filter((product) => product.supplierId === selectedSupplierId)
     : theoreticalProducts
 
-  const categoryOptions = [
-    { value: "__all__", label: "Toutes les catégories" },
-    { value: "plats", label: "Plats" },
-    { value: "entrees", label: "Entrées" },
-    { value: "desserts", label: "Desserts" },
-    { value: "snacking", label: "Snacking" },
-  ]
-  const subCategoryOptionsMap: Record<string, { value: string; label: string }[]> = {
-    plats: [
-      { value: "grillades", label: "Grillades" },
-      { value: "boucherie", label: "Boucherie" },
-      { value: "poisson", label: "Poisson" },
-    ],
-    entrees: [
-      { value: "salades", label: "Salades" },
-      { value: "tartares", label: "Tartares" },
-    ],
-    desserts: [
-      { value: "tartes", label: "Tartes" },
-      { value: "glaces", label: "Glaces" },
-    ],
-    snacking: [
-      { value: "burgers", label: "Burgers" },
-      { value: "sandwiches", label: "Sandwiches" },
-    ],
-  }
+  const resolvedCategoryOptions = useMemo(
+    () => [{ value: "__all__", label: "Toutes les catégories" }, ...categoryOptions],
+    [categoryOptions]
+  )
   const filteredSubCategoryOptions =
     selectedCategory === "__all__" ? [] : subCategoryOptionsMap[selectedCategory] ?? []
 
@@ -336,7 +320,7 @@ export default function ReportAnnexesCard({
                       <SelectValue placeholder="Toutes les catégories" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoryOptions.map((opt) => (
+                      {resolvedCategoryOptions.map((opt) => (
                         <SelectItem
                           key={opt.value}
                           value={opt.value}

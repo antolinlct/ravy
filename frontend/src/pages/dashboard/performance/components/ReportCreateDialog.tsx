@@ -40,6 +40,19 @@ type ReportCreateDialogProps = {
   existingReportMonths: Set<string>
   reportableRecipes: ReportableRecipe[]
   formatEuro: (value: number) => string
+  onSubmit: (payload: {
+    targetMonth: Date
+    financialInputs: {
+      laborCost: string
+      headcount: string
+      fixedCosts: string
+      variableCosts: string
+      otherCosts: string
+      revenueFood: string
+      revenueTotal: string
+    }
+    salesByRecipe: Record<string, string>
+  }) => Promise<void>
 }
 
 export default function ReportCreateDialog({
@@ -47,6 +60,7 @@ export default function ReportCreateDialog({
   existingReportMonths,
   reportableRecipes,
   formatEuro,
+  onSubmit,
 }: ReportCreateDialogProps) {
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedMonthKey, setSelectedMonthKey] = useState("")
@@ -61,6 +75,7 @@ export default function ReportCreateDialog({
     revenueFood: "",
     revenueTotal: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
   const [salesByRecipe, setSalesByRecipe] = useState<Record<string, string>>({})
 
@@ -102,25 +117,51 @@ export default function ReportCreateDialog({
   }
   const requiredInputClass = (value: string) =>
     showFinancialErrors && !value.trim() ? "border-destructive focus-visible:ring-destructive" : ""
-  const handleCreateAttempt = () => {
+  const handleCreateAttempt = async () => {
     if (!isFormReady) {
       setShowValidation(true)
       toast.error("Création du rapport impossible.")
       return
     }
-    toast.success(
-      <>
-        Le rapport du mois de <span className="font-semibold">{selectedMonthLabel}</span> a été créé.
-      </>
-    )
-    setCreateOpen(false)
-    setShowValidation(false)
+    if (!selectedMonth) {
+      toast.error("Selection de mois invalide.")
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await onSubmit({
+        targetMonth: new Date(selectedMonth.year, selectedMonth.monthIndex, 1),
+        financialInputs,
+        salesByRecipe,
+      })
+      toast.success(
+        <>
+          Le rapport du mois de <span className="font-semibold">{selectedMonthLabel}</span> a été créé.
+        </>
+      )
+      setCreateOpen(false)
+      setShowValidation(false)
+      setSalesByRecipe({})
+      setFinancialInputs({
+        laborCost: "",
+        headcount: "",
+        fixedCosts: "",
+        variableCosts: "",
+        otherCosts: "",
+        revenueFood: "",
+        revenueTotal: "",
+      })
+    } catch (error) {
+      toast.error("Impossible de creer le rapport financier.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <Dialog open={createOpen} onOpenChange={setCreateOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2" disabled={isSubmitting}>
           <FilePlus className="h-4 w-4" />
           Creer un rapport
         </Button>
@@ -417,8 +458,8 @@ export default function ReportCreateDialog({
           </Button>
           <Button
             onClick={handleCreateAttempt}
-            aria-disabled={!isFormReady}
-            className={!isFormReady ? "cursor-not-allowed opacity-50" : ""}
+            aria-disabled={!isFormReady || isSubmitting}
+            className={!isFormReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}
           >
             Créer un rapport
           </Button>
