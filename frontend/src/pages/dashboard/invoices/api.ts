@@ -169,6 +169,13 @@ export const formatShortDateLabel = (value: Date) => {
   return labelDateFormatter.format(value)
 }
 
+const formatDateParam = (value: Date) => {
+  const year = value.getFullYear()
+  const month = `${value.getMonth() + 1}`.padStart(2, "0")
+  const day = `${value.getDate()}`.padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 export const formatCurrencyValue = (value?: number | null) => {
   if (value === null || value === undefined) return "--"
   if (!Number.isFinite(value)) return "--"
@@ -307,7 +314,11 @@ const formatDeltaPercent = (value?: number | null) => {
   return `${percent >= 0 ? "+" : "-"}${formatted}%`
 }
 
-export const useInvoicesListData = (estId?: string | null) => {
+export const useInvoicesListData = (
+  estId?: string | null,
+  from?: Date,
+  to?: Date
+) => {
   const [invoices, setInvoices] = useState<InvoiceListItem[]>([])
   const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -318,7 +329,14 @@ export const useInvoicesListData = (estId?: string | null) => {
     setIsLoading(true)
     setError(null)
     try {
-      const [suppliersRes, invoicesRes] = await Promise.all([
+      const invoiceParams: Record<string, string | number> = {
+        establishment_id: estId,
+        limit: 200,
+      }
+      if (from) invoiceParams.date_gte = formatDateParam(from)
+      if (to) invoiceParams.date_lte = formatDateParam(to)
+
+      const [suppliersRes, invoicesRes] = await Promise.allSettled([
         api.get<ApiSupplier[]>("/suppliers", {
           params: {
             establishment_id: estId,
@@ -327,18 +345,15 @@ export const useInvoicesListData = (estId?: string | null) => {
             limit: 1000,
           },
         }),
-        api.get<ApiInvoice[]>("/invoices", {
-          params: {
-            establishment_id: estId,
-            order_by: "date",
-            direction: "desc",
-            limit: 200,
-          },
+        api.get<ApiInvoice[]>("/invoices/", {
+          params: invoiceParams,
         }),
       ])
 
-      const suppliers = suppliersRes.data ?? []
-      const invoicesRaw = invoicesRes.data ?? []
+      const suppliers =
+        suppliersRes.status === "fulfilled" ? suppliersRes.value.data ?? [] : []
+      const invoicesRaw =
+        invoicesRes.status === "fulfilled" ? invoicesRes.value.data ?? [] : []
 
       const supplierMap = new Map<string, ApiSupplier>()
       suppliers.forEach((supplier) => {
@@ -380,13 +395,16 @@ export const useInvoicesListData = (estId?: string | null) => {
         }
       })
 
-      setInvoices(mappedInvoices)
       setSupplierOptions(
         suppliers.map((supplier) => ({
           value: supplier.id,
           label: supplier.name || "Fournisseur",
         }))
       )
+      setInvoices(mappedInvoices)
+      if (invoicesRes.status === "rejected") {
+        setError("Impossible de charger les factures.")
+      }
     } catch (err) {
       setError("Impossible de charger les factures.")
       setInvoices([])
@@ -394,7 +412,7 @@ export const useInvoicesListData = (estId?: string | null) => {
     } finally {
       setIsLoading(false)
     }
-  }, [estId])
+  }, [estId, from, to])
 
   useEffect(() => {
     load()
@@ -650,11 +668,9 @@ export const useSuppliersData = (estId?: string | null) => {
             limit: 1000,
           },
         }),
-        api.get<ApiInvoice[]>("/invoices", {
+        api.get<ApiInvoice[]>("/invoices/", {
           params: {
             establishment_id: estId,
-            order_by: "date",
-            direction: "desc",
             limit: 2000,
           },
         }),

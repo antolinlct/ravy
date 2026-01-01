@@ -1,8 +1,12 @@
 import axios from "axios";
 import { supabase } from "./supabaseClient";
 
+const apiBaseUrl = import.meta.env.DEV
+  ? "/api"
+  : import.meta.env.VITE_API_URL || ""
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000", // URL du backend FastAPI
+  baseURL: apiBaseUrl, // URL du backend FastAPI
   headers: {
     "Content-Type": "application/json",
   },

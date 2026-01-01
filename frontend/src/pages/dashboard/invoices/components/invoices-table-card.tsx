@@ -40,16 +40,20 @@ type InvoicesTableCardProps = {
   invoices: InvoiceListItem[]
   supplierOptions: SupplierOption[]
   isLoading?: boolean
+  startDate?: Date
+  endDate?: Date
+  onDateRangeChange?: (value: DoubleDatePickerValue) => void
 }
 
-export default function InvoicesTableCard({ invoices, supplierOptions, isLoading }: InvoicesTableCardProps) {
+export default function InvoicesTableCard({
+  invoices,
+  supplierOptions,
+  isLoading,
+  startDate,
+  endDate,
+  onDateRangeChange,
+}: InvoicesTableCardProps) {
   const navigate = useNavigate()
-  const today = new Date()
-  const threeMonthsAgo = new Date(today)
-  threeMonthsAgo.setMonth(today.getMonth() - 3)
-
-  const [startDate, setStartDate] = useState<Date | undefined>(threeMonthsAgo)
-  const [endDate, setEndDate] = useState<Date | undefined>(today)
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [exportStartDate, setExportStartDate] = useState<Date | undefined>(startDate)
@@ -60,8 +64,7 @@ export default function InvoicesTableCard({ invoices, supplierOptions, isLoading
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
   const handleFilterDatesChange = ({ startDate: nextStart, endDate: nextEnd }: DoubleDatePickerValue) => {
-    setStartDate(nextStart)
-    setEndDate(nextEnd)
+    onDateRangeChange?.({ startDate: nextStart, endDate: nextEnd })
   }
 
   const handleExportDatesChange = ({ startDate: nextStart, endDate: nextEnd }: DoubleDatePickerValue) => {

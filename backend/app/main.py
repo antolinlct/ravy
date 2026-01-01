@@ -4,9 +4,9 @@ import os
 
 app = FastAPI()
 
-ENV = os.getenv("ENV", "dev")
+ENV = os.getenv("ENV", "dev").lower()
 
-if ENV == "dev":
+if ENV in {"dev", "development", "local"}:
     allowed_ports = list(range(5173, 5190))  # marge confortable
     origins = (
         [f"http://localhost:{p}" for p in allowed_ports] +
