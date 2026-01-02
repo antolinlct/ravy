@@ -24,7 +24,10 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     # --- 1. Récupération de la facture ---
     invoice_response = (
         supabase.table("invoices")
-        .select("id, date, supplier_id, total_ht, total_ttc, establishment_id, invoice_number")
+        .select(
+            "id, date, supplier_id, total_excl_tax, total_tax, total_incl_tax, "
+            "establishment_id, invoice_number"
+        )
         .eq("id", invoice_id)
         .execute()
     )
@@ -46,7 +49,8 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     articles_response = (
         supabase.table("articles")
         .select(
-            "id, name, quantity, unit, unit_price, invoice_id, master_article_id, establishment_id"
+            "id, quantity, unit, unit_price, total, discounts, duties_and_taxes, "
+            "gross_unit_price, invoice_id, master_article_id, establishment_id"
         )
         .eq("invoice_id", invoice_id)
         .eq("establishment_id", establishment_id)
@@ -54,27 +58,35 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     )
     articles = articles_response.data or []
 
-    # --- 3. Calcul des variations de prix ---
+    # --- 3. Préchargement des derniers prix par master_article_id ---
+    previous_by_master: Dict[str, Any] = {}
+    if invoice_date and establishment_id:
+        master_ids = {
+            article.get("master_article_id")
+            for article in articles
+            if article.get("master_article_id")
+        }
+        if master_ids:
+            previous_response = (
+                supabase.table("articles")
+                .select("master_article_id, unit_price, date")
+                .eq("establishment_id", establishment_id)
+                .in_("master_article_id", list(master_ids))
+                .lt("date", str(invoice_date))
+                .order("date", desc=True)
+                .execute()
+            )
+            for row in previous_response.data or []:
+                master_id = row.get("master_article_id")
+                if master_id and master_id not in previous_by_master:
+                    previous_by_master[master_id] = row
+
+    # --- 4. Calcul des variations de prix ---
     for article in articles:
         master_article_id = article.get("master_article_id")
         current_price = _to_decimal(article.get("unit_price"))
         current_price = current_price.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
-        previous_article = None
-
-        if master_article_id and invoice_date:
-            previous_response = (
-                supabase.table("articles")
-                .select("unit_price, date")
-                .eq("master_article_id", master_article_id)
-                .eq("establishment_id", establishment_id)
-                .lt("date", str(invoice_date))
-                .order("date", desc=True)
-                .limit(1)
-                .execute()
-            )
-            previous_data = previous_response.data
-            if previous_data:
-                previous_article = previous_data[0]
+        previous_article = previous_by_master.get(master_article_id) if master_article_id else None
 
         if previous_article:
             previous_price = _to_decimal(previous_article.get("unit_price", 0))
@@ -99,7 +111,7 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
         article["variation_euro"] = float(variation_euro)
         article["variation_percent"] = float(variation_percent)
 
-    # --- 4. Résultat final ---
+    # --- 5. Résultat final ---
     result = {
         "invoice": invoice,
         "articles_count": len(articles),

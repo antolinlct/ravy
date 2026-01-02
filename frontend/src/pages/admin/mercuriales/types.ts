@@ -12,6 +12,19 @@ export type MercurialeRequest = {
   message: string
 }
 
+export type MercurialeCategory = {
+  id: string
+  name: string
+  createdAt?: string | null
+}
+
+export type MercurialeSubcategory = {
+  id: string
+  name: string
+  categoryId?: string | null
+  createdAt?: string | null
+}
+
 export type MercurialeSupplier = {
   id: string
   name: string

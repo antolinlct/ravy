@@ -1,4 +1,40 @@
 import type { SerializedEditorState } from "lexical"
+import type { ApiRecipe } from "./api"
+import type { RecipeDetail } from "./types"
+
+const toNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+export const toRecipeDetail = (recipe: ApiRecipe): RecipeDetail => {
+  const portions = toNumber(recipe.portion) ?? 1
+  const updatedAt = recipe.updated_at
+    ? new Date(recipe.updated_at)
+    : recipe.created_at
+      ? new Date(recipe.created_at)
+      : new Date()
+
+  return {
+    id: recipe.id,
+    name: recipe.name ?? "Recette sans nom",
+    active: Boolean(recipe.active),
+    saleable: Boolean(recipe.saleable),
+    vatId: recipe.vat_id ?? "",
+    recommendedRetailPrice: toNumber(recipe.recommanded_retail_price) ?? 0,
+    portions: Number.isFinite(portions) && portions > 0 ? portions : 1,
+    portionWeightGrams: toNumber(recipe.portion_weight),
+    priceInclTax: toNumber(recipe.price_incl_tax),
+    categoryId: recipe.category_id ?? "",
+    subcategoryId: recipe.subcategory_id ?? "",
+    updatedAt,
+    containsSubRecipe: Boolean(recipe.contains_sub_recipe),
+    purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
+    technicalDataSheetInstructions: recipe.technical_data_sheet_instructions ?? "",
+    technicalDataSheetImagePath: recipe.technical_data_sheet_image_path ?? null,
+  }
+}
 
 export const formatCurrency = (value: number) =>
   value.toLocaleString("fr-FR", {

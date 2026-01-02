@@ -25,7 +25,6 @@
 ## Data flow (wired)
 - Invoices list (`index.tsx`)
   - `GET /invoices?establishment_id=...` (sorted by date desc).
-  - Items count via `GET /invoices/{id}/details` → `articles_count`.
   - Supplier names via `GET /suppliers` (establishment scoped).
 - Invoice detail (`detail.tsx`)
   - `GET /invoices/{id}` for totals + `file_storage_path`.

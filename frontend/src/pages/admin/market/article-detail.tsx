@@ -392,7 +392,10 @@ export function MarketArticleDetailView({
           <div className="space-y-2 md:col-span-2">
             <Label>Prix unitaire actuel</Label>
             <p className="text-sm text-muted-foreground">
-              {currencyFormatter.format(masterArticle.currentUnitPrice)}
+              {masterArticle.currentUnitPrice !== null &&
+              masterArticle.currentUnitPrice !== undefined
+                ? currencyFormatter.format(masterArticle.currentUnitPrice)
+                : "--"}
             </p>
           </div>
         </CardContent>

@@ -14,13 +14,14 @@ def list_history_ingredients(
     direction: Optional[str] = None,
     limit: Optional[int] = 200,
     page: Optional[int] = 1,
-    establishment_id: Optional[str] = None
+    establishment_id: Optional[str] = None,
+    recipe_id: Optional[str] = None
 ):
     filters = {
         "order_by": order_by,
         "direction": direction,
         "limit": limit,
-        "page": page, "establishment_id": establishment_id
+        "page": page, "establishment_id": establishment_id, "recipe_id": recipe_id
     }
     filters = {k: v for k, v in filters.items() if v is not None}
     return history_ingredients_service.get_all_history_ingredients(filters, limit=limit, page=page)

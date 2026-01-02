@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { supabase } from "@/lib/supabaseClient"
+import { toast } from "sonner"
+
+import {
+  fetchEstablishments,
+  fetchSupportTickets,
+  fetchUserProfiles,
+  updateSupportTicket,
+} from "./api"
 
 type TicketStatus = "open" | "in progress" | "resolved" | "error" | "canceled"
 
@@ -97,120 +106,92 @@ const formatDateTime = (value?: string | null) => {
   })
 }
 
-const ticketsSeed: TicketRow[] = [
-  {
-    id: "ticket-1",
-    ticketId: "TK-2025-00031",
-    establishmentId: "est-001",
-    userProfileId: "usr-001",
-    invoicePath: "/mock/invoices/2025-02-01-00031.pdf",
-    status: "open",
-    object: "Erreur sur facture Metro",
-    description:
-      "La facture contient un prix unitaire incoherent sur la ligne tomates grappes.",
-    internNotes: "Verifier la mercuriale en vigueur.",
-    resolutionNotes: null,
-    createdAt: "2025-02-01T08:35",
-    updatedAt: "2025-02-01T08:35",
-    resolvedAt: null,
-    client: {
-      name: "Clara Mendes",
-      email: "clara.mendes@lacantine.fr",
-      establishmentName: "La Cantine Lumiere",
-      establishmentCity: "Lyon",
-    },
-  },
-  {
-    id: "ticket-2",
-    ticketId: "TK-2025-00029",
-    establishmentId: "est-002",
-    userProfileId: "usr-014",
-    invoicePath: null,
-    status: "in progress",
-    object: "Export comptable incomplet",
-    description: "Le CSV exporte des lignes dupliquees.",
-    internNotes: "Demander un exemple de fichier.",
-    resolutionNotes: null,
-    createdAt: "2025-01-30T14:20",
-    updatedAt: "2025-01-31T09:40",
-    resolvedAt: null,
-    client: {
-      name: "Hugo Perrin",
-      email: "hugo@brasserieduport.fr",
-      establishmentName: "Brasserie du Port",
-      establishmentCity: "Marseille",
-    },
-  },
-  {
-    id: "ticket-3",
-    ticketId: "TK-2025-00026",
-    establishmentId: "est-003",
-    userProfileId: "usr-009",
-    invoicePath: "/mock/invoices/2025-01-29-00026.pdf",
-    status: "resolved",
-    object: "Probleme de connexion",
-    description: "Impossible de se connecter depuis Safari.",
-    internNotes: null,
-    resolutionNotes: "Mot de passe reinitialise et cache navigateur nettoye.",
-    createdAt: "2025-01-29T07:10",
-    updatedAt: "2025-01-29T10:22",
-    resolvedAt: "2025-01-29T10:22",
-    client: {
-      name: "Maya Lopez",
-      email: "maya@cafeperle.fr",
-      establishmentName: "Cafe Perle",
-      establishmentCity: "Paris",
-    },
-  },
-  {
-    id: "ticket-4",
-    ticketId: "TK-2025-00024",
-    establishmentId: "est-004",
-    userProfileId: "usr-022",
-    invoicePath: null,
-    status: "error",
-    object: "Import facture bloque",
-    description: "Le fichier reste en statut en attente.",
-    internNotes: "Verifier logs job import.",
-    resolutionNotes: null,
-    createdAt: "2025-01-27T18:42",
-    updatedAt: "2025-01-27T19:05",
-    resolvedAt: null,
-    client: {
-      name: "Nicolas Dubois",
-      email: "nicolas@chezantonio.fr",
-      establishmentName: "Chez Antonio",
-      establishmentCity: "Nice",
-    },
-  },
-  {
-    id: "ticket-5",
-    ticketId: "TK-2025-00019",
-    establishmentId: "est-002",
-    userProfileId: "usr-014",
-    invoicePath: "/mock/invoices/2025-01-22-00019.pdf",
-    status: "canceled",
-    object: "Question sur la mercuriale",
-    description: "Ticket annule apres clarification par telephone.",
-    internNotes: null,
-    resolutionNotes: "Ticket clos suite appel.",
-    createdAt: "2025-01-22T11:05",
-    updatedAt: "2025-01-22T12:10",
-    resolvedAt: "2025-01-22T12:10",
-    client: {
-      name: "Louise Armand",
-      email: "louise@ateliervert.fr",
-      establishmentName: "Atelier Vert",
-      establishmentCity: "Bordeaux",
-    },
-  },
-]
+const extractCity = (address?: string | null) => {
+  if (!address) return "--"
+  const parts = address.split(",").map((part) => part.trim()).filter(Boolean)
+  return parts.length ? parts[parts.length - 1] : address
+}
 
 export default function AdminTicketsPage() {
-  const [tickets, setTickets] = useState<TicketRow[]>(ticketsSeed)
+  const [tickets, setTickets] = useState<TicketRow[]>([])
+  const [ticketsLoading, setTicketsLoading] = useState(false)
+  const [statusSavingId, setStatusSavingId] = useState<string | null>(null)
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<TicketSortKey>("createdAt")
   const [sortOrder, setSortOrder] = useState<TicketSortOrder>("desc")
+
+  useEffect(() => {
+    let active = true
+    setTicketsLoading(true)
+
+    const loadTickets = async () => {
+      try {
+        const [ticketsData, profiles, establishments] = await Promise.all([
+          fetchSupportTickets(),
+          fetchUserProfiles(),
+          fetchEstablishments(),
+        ])
+
+        if (!active) return
+
+        const profileMap = new Map(
+          profiles.map((profile) => [profile.id, profile])
+        )
+        const establishmentMap = new Map(
+          establishments.map((establishment) => [establishment.id, establishment])
+        )
+
+        const mappedTickets = ticketsData.map<TicketRow>((ticket) => {
+          const profile = ticket.user_profile_id
+            ? profileMap.get(ticket.user_profile_id)
+            : undefined
+          const establishment = ticket.establishment_id
+            ? establishmentMap.get(ticket.establishment_id)
+            : undefined
+          const nameParts = [profile?.first_name, profile?.last_name].filter(Boolean)
+          const clientName = nameParts.length ? nameParts.join(" ") : "Client inconnu"
+          const clientEmail = profile?.email ?? "--"
+
+          return {
+            id: ticket.id,
+            ticketId: ticket.ticket_id ?? ticket.id,
+            establishmentId: ticket.establishment_id ?? null,
+            userProfileId: ticket.user_profile_id ?? null,
+            invoicePath: ticket.invoice_path ?? null,
+            status: (ticket.status ?? "open") as TicketStatus,
+            object: ticket.object ?? null,
+            description: ticket.description ?? null,
+            internNotes: ticket.intern_notes ?? null,
+            resolutionNotes: ticket.resolution_notes ?? null,
+            createdAt: ticket.created_at ?? "",
+            updatedAt: ticket.updated_at ?? null,
+            resolvedAt: ticket.resolved_at ?? null,
+            client: {
+              name: clientName,
+              email: clientEmail,
+              establishmentName: establishment?.name ?? "--",
+              establishmentCity: extractCity(establishment?.full_adresse),
+            },
+          }
+        })
+
+        setTickets(mappedTickets)
+      } catch (error) {
+        if (!active) return
+        console.error(error)
+        toast.error("Impossible de charger les tickets.")
+      } finally {
+        if (!active) return
+        setTicketsLoading(false)
+      }
+    }
+
+    loadTickets()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const sortedTickets = useMemo(() => {
     const copy = [...tickets]
@@ -232,20 +213,66 @@ export default function AdminTicketsPage() {
     return tickets.find((ticket) => ticket.id === selectedTicketId) ?? null
   }, [selectedTicketId, tickets])
 
-  const handleStatusChange = (ticketId: string, nextStatus: TicketStatus) => {
+  const handleStatusChange = async (ticketId: string, nextStatus: TicketStatus) => {
+    if (statusSavingId) return
     const now = new Date().toISOString()
-    setTickets((prev) =>
-      prev.map((ticket) =>
-        ticket.id === ticketId
-          ? {
-              ...ticket,
-              status: nextStatus,
-              updatedAt: now,
-              resolvedAt: nextStatus === "resolved" ? now : null,
-            }
-          : ticket
+    setStatusSavingId(ticketId)
+    try {
+      const updated = await updateSupportTicket(ticketId, {
+        status: nextStatus,
+        updated_at: now,
+        resolved_at: nextStatus === "resolved" ? now : null,
+      })
+
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId
+            ? {
+                ...ticket,
+                status: (updated.status ?? nextStatus) as TicketStatus,
+                updatedAt: updated.updated_at ?? now,
+                resolvedAt:
+                  updated.resolved_at ?? (nextStatus === "resolved" ? now : null),
+                description: updated.description ?? ticket.description,
+                internNotes: updated.intern_notes ?? ticket.internNotes,
+                resolutionNotes: updated.resolution_notes ?? ticket.resolutionNotes,
+                invoicePath: updated.invoice_path ?? ticket.invoicePath,
+              }
+            : ticket
+        )
       )
-    )
+      toast.success("Statut mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour le ticket.")
+    } finally {
+      setStatusSavingId(null)
+    }
+  }
+
+  const handleDownload = async (ticket: TicketRow) => {
+    if (!ticket.invoicePath) return
+    try {
+      const storagePath = ticket.invoicePath.replace(/^tickets\//, "")
+      const { data, error } = await supabase.storage
+        .from("tickets")
+        .createSignedUrl(storagePath, 120)
+      if (error || !data?.signedUrl) {
+        toast.error("Telechargement impossible.")
+        return
+      }
+      const link = document.createElement("a")
+      link.href = data.signedUrl
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.download = ticket.ticketId || ticket.id
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (error) {
+      console.error(error)
+      toast.error("Telechargement impossible.")
+    }
   }
 
   return (
@@ -312,37 +339,50 @@ export default function AdminTicketsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedTickets.map((ticket) => (
-                <TableRow
-                  key={ticket.id}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedTicketId(ticket.id)}
-                >
-                  <TableCell className="font-medium">
-                    {ticket.ticketId || ticket.id}
-                  </TableCell>
-                  <TableCell>{ticket.object ?? "--"}</TableCell>
-                  <TableCell>{ticket.client.establishmentName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={statusBadgeClass[ticket.status]}>
-                      {statusLabels[ticket.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTime(ticket.createdAt)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {sortedTickets.length === 0 ? (
+              {ticketsLoading ? (
                 <TableRow>
                   <TableCell
                     colSpan={5}
                     className="h-24 text-center text-sm text-muted-foreground"
                   >
-                    Aucun ticket pour le moment.
+                    Chargement des tickets...
                   </TableCell>
                 </TableRow>
-              ) : null}
+              ) : (
+                <>
+                  {sortedTickets.map((ticket) => (
+                    <TableRow
+                      key={ticket.id}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedTicketId(ticket.id)}
+                    >
+                      <TableCell className="font-medium">
+                        {ticket.ticketId || ticket.id}
+                      </TableCell>
+                      <TableCell>{ticket.object ?? "--"}</TableCell>
+                      <TableCell>{ticket.client.establishmentName}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusBadgeClass[ticket.status]}>
+                          {statusLabels[ticket.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDateTime(ticket.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {sortedTickets.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="h-24 text-center text-sm text-muted-foreground"
+                      >
+                        Aucun ticket pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -409,6 +449,7 @@ export default function AdminTicketsPage() {
                     onValueChange={(value) =>
                       handleStatusChange(selectedTicket.id, value as TicketStatus)
                     }
+                    disabled={statusSavingId === selectedTicket.id}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -425,10 +466,12 @@ export default function AdminTicketsPage() {
                 <div className="space-y-2">
                   <Label>Piece jointe</Label>
                   {selectedTicket.invoicePath ? (
-                    <Button asChild variant="secondary">
-                      <a href={selectedTicket.invoicePath} download>
-                        Telecharger la facture
-                      </a>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => handleDownload(selectedTicket)}
+                    >
+                      Telecharger la facture
                     </Button>
                   ) : (
                     <Button type="button" variant="secondary" disabled>

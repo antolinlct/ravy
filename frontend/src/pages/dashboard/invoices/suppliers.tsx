@@ -62,6 +62,7 @@ export default function SuppliersPage() {
   const [mergeTarget, setMergeTarget] = useState<string>("")
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
   const [mergeDetail, setMergeDetail] = useState<MergeRequest | null>(null)
+  const canRequestMerge = suppliers.length >= 2
   useEffect(() => {
     setSuppliers(fetchedSuppliers)
   }, [fetchedSuppliers])
@@ -255,7 +256,9 @@ export default function SuppliersPage() {
                 <SheetHeader>
                   <SheetTitle>Regrouper des fournisseurs</SheetTitle>
                   <SheetDescription>
-                    Consultez vos demandes et lancez un nouveau regroupement sans quitter la page.
+                    {canRequestMerge
+                      ? "Consultez vos demandes et lancez un nouveau regroupement sans quitter la page."
+                      : "Il faut avoir au moins 2 fournisseurs différents pour demander un regroupement."}
                   </SheetDescription>
                 </SheetHeader>
 
@@ -275,32 +278,40 @@ export default function SuppliersPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mergeRequests.map((req) => {
-                          const statusClass =
-                            req.status === "Validée"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                              : req.status === "En attente"
-                                ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                : "bg-destructive/10 text-destructive border-destructive/30"
-                          return (
-                            <TableRow
-                              key={req.id}
-                              className="cursor-pointer h-12"
-                              onClick={() => setMergeDetail(req)}
-                            >
-                              <TableCell className="px-3 text-sm">{req.date}</TableCell>
-                              <TableCell className="px-3 text-sm font-medium">{req.target}</TableCell>
-                              <TableCell className="px-3 text-sm text-muted-foreground">
-                                {req.sources.length} fournisseur{req.sources.length > 1 ? "s" : ""}
-                              </TableCell>
-                              <TableCell className="px-3">
-                                <Badge variant="outline" className={statusClass}>
-                                  {req.status}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
+                        {mergeRequests.length ? (
+                          mergeRequests.map((req) => {
+                            const statusClass =
+                              req.status === "Validée"
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                                : req.status === "En attente"
+                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                                  : "bg-destructive/10 text-destructive border-destructive/30"
+                            return (
+                              <TableRow
+                                key={req.id}
+                                className="cursor-pointer h-12"
+                                onClick={() => setMergeDetail(req)}
+                              >
+                                <TableCell className="px-3 text-sm">{req.date}</TableCell>
+                                <TableCell className="px-3 text-sm font-medium">{req.target}</TableCell>
+                                <TableCell className="px-3 text-sm text-muted-foreground">
+                                  {req.sources.length} fournisseur{req.sources.length > 1 ? "s" : ""}
+                                </TableCell>
+                                <TableCell className="px-3">
+                                  <Badge variant="outline" className={statusClass}>
+                                    {req.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                              Aucune demande de regroupement pour le moment.
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </div>
@@ -313,12 +324,14 @@ export default function SuppliersPage() {
                     if (!open) resetMerge()
                   }}
                 >
-                  <DialogTrigger asChild>
-                    <Button className="gap-2 self-start">
-                      Faire une demande de regroupement
-                      <Merge className="h-4 w-4" />
-                    </Button>
-                  </DialogTrigger>
+                  {canRequestMerge ? (
+                    <DialogTrigger asChild>
+                      <Button className="gap-2 self-start">
+                        Faire une demande de regroupement
+                        <Merge className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                  ) : null}
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Regrouper des fournisseurs</DialogTitle>

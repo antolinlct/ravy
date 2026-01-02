@@ -119,14 +119,24 @@ export function RecipeCreationCard({
                         : undefined
                     }
                   >
-                    <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+                    <SelectValue
+                      placeholder={
+                        recipeCategory ? "Sélectionnez une sous-catégorie" : "Sélectionnez une catégorie"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {subCategoryOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {!recipeCategory ? (
+                      <SelectItem value="__missing_category__" disabled>
+                        Sélectionnez une catégorie
                       </SelectItem>
-                    ))}
+                    ) : (
+                      subCategoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

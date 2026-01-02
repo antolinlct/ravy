@@ -3,6 +3,13 @@
     "table_name": "alert_logs",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_alert_logs",
         "args": [
           "filters",
@@ -45,6 +52,13 @@
   "variations_service": {
     "table_name": "variations",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_variations",
         "args": [
@@ -89,6 +103,13 @@
     "table_name": "billing_item",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_billing_item",
         "args": [
           "filters",
@@ -131,6 +152,13 @@
   "market_supplier_alias_service": {
     "table_name": "market_supplier_alias",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_market_supplier_alias",
         "args": [
@@ -175,6 +203,13 @@
     "table_name": "mercuriale_subcategories",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_mercuriale_subcategories",
         "args": [
           "filters",
@@ -217,6 +252,13 @@
   "mercuriales_service": {
     "table_name": "mercuriales",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_mercuriales",
         "args": [
@@ -261,6 +303,13 @@
     "table_name": "recommendations_ai",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_recommendations_ai",
         "args": [
           "filters",
@@ -303,6 +352,13 @@
   "maintenance_service": {
     "table_name": "maintenance",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_maintenance",
         "args": [
@@ -347,6 +403,13 @@
     "table_name": "history_recipes",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_history_recipes",
         "args": [
           "filters",
@@ -389,6 +452,13 @@
   "market_master_articles_service": {
     "table_name": "market_master_articles",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_market_master_articles",
         "args": [
@@ -433,6 +503,13 @@
     "table_name": "supplier_merge_request",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_supplier_merge_request",
         "args": [
           "filters",
@@ -475,6 +552,13 @@
   "mercuriale_master_article_service": {
     "table_name": "mercuriale_master_article",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_mercuriale_master_article",
         "args": [
@@ -519,6 +603,13 @@
     "table_name": "recipe_categories",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_recipe_categories",
         "args": [
           "filters",
@@ -561,6 +652,13 @@
   "impersonations_padrino_service": {
     "table_name": "impersonations_padrino",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_impersonations_padrino",
         "args": [
@@ -605,6 +703,13 @@
     "table_name": "countries",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_countries",
         "args": [
           "filters",
@@ -647,6 +752,13 @@
   "regex_patterns_service": {
     "table_name": "regex_patterns",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_regex_patterns",
         "args": [
@@ -691,6 +803,13 @@
     "table_name": "live_score",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_live_score",
         "args": [
           "filters",
@@ -733,6 +852,13 @@
   "history_ingredients_service": {
     "table_name": "history_ingredients",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_history_ingredients",
         "args": [
@@ -820,6 +946,13 @@
     "table_name": "market_articles",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_market_articles",
         "args": [
           "filters",
@@ -862,6 +995,13 @@
   "messages_ia_service": {
     "table_name": "messages_ia",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_messages_ia",
         "args": [
@@ -906,6 +1046,13 @@
     "table_name": "recipes",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_recipes",
         "args": [
           "filters",
@@ -948,6 +1095,13 @@
   "suppliers_service": {
     "table_name": "suppliers",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_suppliers",
         "args": [
@@ -992,6 +1146,13 @@
     "table_name": "establishment_email_alias",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_establishment_email_alias",
         "args": [
           "filters",
@@ -1034,6 +1195,13 @@
   "mercuriale_supplier_service": {
     "table_name": "mercuriale_supplier",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_mercuriale_supplier",
         "args": [
@@ -1078,6 +1246,13 @@
     "table_name": "recipe_margin",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_recipe_margin",
         "args": [
           "filters",
@@ -1120,6 +1295,13 @@
   "master_articles_service": {
     "table_name": "master_articles",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_master_articles",
         "args": [
@@ -1164,6 +1346,13 @@
     "table_name": "user_establishment",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_user_establishment",
         "args": [
           "filters",
@@ -1206,6 +1395,13 @@
   "recipes_subcategories_service": {
     "table_name": "recipes_subcategories",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_recipes_subcategories",
         "args": [
@@ -1250,6 +1446,13 @@
     "table_name": "support_ticket",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_support_ticket",
         "args": [
           "filters",
@@ -1292,6 +1495,13 @@
   "logs_ia_service": {
     "table_name": "logs_ia",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_logs_ia",
         "args": [
@@ -1336,6 +1546,13 @@
     "table_name": "price_stripe",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_price_stripe",
         "args": [
           "filters",
@@ -1379,6 +1596,13 @@
     "table_name": "user_profiles",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_user_profiles",
         "args": [
           "filters",
@@ -1421,6 +1645,13 @@
   "billing_account_service": {
     "table_name": "billing_account",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_billing_account",
         "args": [
@@ -1508,6 +1739,13 @@
     "table_name": "recipe_margin_subcategory",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_recipe_margin_subcategory",
         "args": [
           "filters",
@@ -1550,6 +1788,13 @@
   "product_stripe_service": {
     "table_name": "product_stripe",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_product_stripe",
         "args": [
@@ -1594,6 +1839,13 @@
     "table_name": "logs",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_logs",
         "args": [
           "filters",
@@ -1636,6 +1888,13 @@
   "score_matrix_service": {
     "table_name": "score_matrix",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_score_matrix",
         "args": [
@@ -1680,6 +1939,13 @@
     "table_name": "mercuriale_articles",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_mercuriale_articles",
         "args": [
           "filters",
@@ -1722,6 +1988,13 @@
   "mercuriale_categories_service": {
     "table_name": "mercuriale_categories",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_mercuriale_categories",
         "args": [
@@ -1766,6 +2039,13 @@
     "table_name": "vat_rates",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_vat_rates",
         "args": [
           "filters",
@@ -1808,6 +2088,13 @@
   "financial_recipes_service": {
     "table_name": "financial_recipes",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_financial_recipes",
         "args": [
@@ -1852,6 +2139,13 @@
     "table_name": "supplier_merge_suggestions",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_supplier_merge_suggestions",
         "args": [
           "filters",
@@ -1894,6 +2188,13 @@
   "supplier_alias_service": {
     "table_name": "supplier_alias",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_supplier_alias",
         "args": [
@@ -1938,6 +2239,13 @@
     "table_name": "usage_counters",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_usage_counters",
         "args": [
           "filters",
@@ -1981,6 +2289,13 @@
     "table_name": "sessions_ia",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_sessions_ia",
         "args": [
           "filters",
@@ -2023,6 +2338,13 @@
   "ingredients_service": {
     "table_name": "ingredients",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_ingredients",
         "args": [
@@ -2110,6 +2432,13 @@
     "table_name": "financial_ingredients",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_financial_ingredients",
         "args": [
           "filters",
@@ -2152,6 +2481,13 @@
   "recipe_margin_category_service": {
     "table_name": "recipe_margin_category",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_recipe_margin_category",
         "args": [
@@ -2196,6 +2532,13 @@
     "table_name": "market_suppliers",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_market_suppliers",
         "args": [
           "filters",
@@ -2238,6 +2581,13 @@
   "articles_service": {
     "table_name": "articles",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_articles",
         "args": [
@@ -2282,6 +2632,13 @@
     "table_name": "establishments",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_establishments",
         "args": [
           "filters",
@@ -2324,6 +2681,13 @@
   "user_mercuriale_access_service": {
     "table_name": "user_mercuriale_access",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_user_mercuriale_access",
         "args": [
@@ -2368,6 +2732,13 @@
     "table_name": "invoices_rejected",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_invoices_rejected",
         "args": [
           "filters",
@@ -2410,6 +2781,13 @@
   "import_job_service": {
     "table_name": "import_job",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_import_job",
         "args": [
@@ -2454,6 +2832,13 @@
     "table_name": "mercurial_request",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_mercurial_request",
         "args": [
           "filters",
@@ -2497,6 +2882,13 @@
     "table_name": "invoices",
     "functions": [
       {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
         "name": "get_all_invoices",
         "args": [
           "filters",
@@ -2539,6 +2931,13 @@
   "financial_reports_service": {
     "table_name": "financial_reports",
     "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
       {
         "name": "get_all_financial_reports",
         "args": [

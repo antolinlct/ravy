@@ -20,7 +20,7 @@ export type MarketMasterArticle = {
   name: string
   unit: string | null
   unformattedName: string | null
-  currentUnitPrice: number
+  currentUnitPrice: number | null
   isActive: boolean
   createdAt: string
   updatedAt: string | null

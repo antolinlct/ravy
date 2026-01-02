@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -20,12 +20,12 @@ class ProductStripe(BaseModel):
     included_recipes: Optional[float] = None
     addon_category: Optional[Addon_category] = None
     addon_value: Optional[float] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
+    updated_at: Optional[dt.datetime] = None
 
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

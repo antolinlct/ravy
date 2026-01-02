@@ -15,6 +15,7 @@ from app.services import (
     ingredients_service,
     recipes_service,
 )
+from app.core.supabase_client import supabase
 
 
 class LogicError(Exception):
@@ -98,58 +99,94 @@ def delete_recipe(
 
     target_date_norm = _as_date(target_date) or date.today()
 
-    recipe = recipes_service.get_recipes_by_id(recipe_id)
-    if not recipe or _safe_get(recipe, "establishment_id") != establishment_id:
-        raise LogicError("Recette introuvable pour l'établissement fourni")
-
-    # Ingrédients qui utilisent cette recette en sous-recette
-    dependent_ingredients = _paginate_ingredients_with_subrecipe(
-        establishment_id=establishment_id,
-        subrecipe_id=recipe_id,
-    )
-
     deleted_ingredient_ids: Set[UUID] = set()
-    parent_recipe_ids: Set[UUID] = set()
+    deleted_recipe_ids: Set[UUID] = set()
+    impacted_recipes: Set[UUID] = set()
 
-    # On identifie précisément quels ingrédients supprimer et quelles recettes parent sont impactées
-    for ing in dependent_ingredients:
-        ing_id = _safe_get(ing, "id")
-        parent_id = _safe_get(ing, "recipe_id")
-        if ing_id:
+    pending_recipes: List[UUID] = [recipe_id]
+
+    while pending_recipes:
+        current_recipe_id = pending_recipes.pop()
+        if current_recipe_id in deleted_recipe_ids:
+            continue
+
+        recipe = recipes_service.get_recipes_by_id(current_recipe_id)
+        if not recipe or _safe_get(recipe, "establishment_id") != establishment_id:
+            continue
+
+        # Ingrédients qui utilisent cette recette en sous-recette
+        dependent_ingredients = _paginate_ingredients_with_subrecipe(
+            establishment_id=establishment_id,
+            subrecipe_id=current_recipe_id,
+        )
+
+        local_deleted_ingredient_ids: Set[UUID] = set()
+        parent_recipe_ids: Set[UUID] = set()
+
+        # On identifie précisément quels ingrédients supprimer et quelles recettes parent sont impactées
+        for ing in dependent_ingredients:
+            ing_id = _safe_get(ing, "id")
+            parent_id = _safe_get(ing, "recipe_id")
+            if ing_id:
+                local_deleted_ingredient_ids.add(ing_id)
+            if parent_id:
+                parent_recipe_ids.add(parent_id)
+
+        # Suppression des ingrédients qui utilisaient cette recette en sous-recette.
+        # Les history_ingredients liés sont supprimés automatiquement via ON DELETE CASCADE.
+        for ing_id in local_deleted_ingredient_ids:
+            if ing_id in deleted_ingredient_ids:
+                continue
+            ingredients_service.delete_ingredients(ing_id)
             deleted_ingredient_ids.add(ing_id)
-        if parent_id:
-            parent_recipe_ids.add(parent_id)
 
-    # Suppression de la recette.
-    # Les history_recipes liés sont supprimés automatiquement via ON DELETE CASCADE.
-    recipes_service.delete_recipes(recipe_id)
+        # Nettoyage des history_ingredients qui référencent cette recette en subrecipe.
+        supabase.table("history_ingredients") \
+            .delete() \
+            .eq("subrecipe_id", str(current_recipe_id)) \
+            .eq("establishment_id", str(establishment_id)) \
+            .execute()
+        # Nettoyage des history_ingredients qui référencent cette recette comme parent.
+        supabase.table("history_ingredients") \
+            .delete() \
+            .eq("recipe_id", str(current_recipe_id)) \
+            .eq("establishment_id", str(establishment_id)) \
+            .execute()
 
-    # Suppression des ingrédients qui utilisaient cette recette en sous-recette.
-    # Les history_ingredients liés sont supprimés automatiquement via ON DELETE CASCADE.
-    for ing_id in deleted_ingredient_ids:
-        ingredients_service.delete_ingredients(ing_id)
+        # Vérifie les recettes parentes impactées : si plus d'ingrédients, on les supprime aussi.
+        for parent_id in parent_recipe_ids:
+            if parent_id in deleted_recipe_ids:
+                continue
+            remaining = ingredients_service.get_all_ingredients(
+                filters={"recipe_id": parent_id, "establishment_id": establishment_id},
+                limit=1,
+            )
+            if not remaining:
+                impacted_recipes.discard(parent_id)
+                pending_recipes.append(parent_id)
+            else:
+                impacted_recipes.add(parent_id)
 
-    # Recalcul des recettes parentes qui contenaient ces ingrédients de type SUBRECIPES
-    if parent_recipe_ids:
+        # Suppression de la recette (après nettoyage des dépendances)
+        recipes_service.delete_recipes(current_recipe_id)
+        deleted_recipe_ids.add(current_recipe_id)
+
+    # Recalcul des recettes parentes restantes
+    if impacted_recipes:
         update_recipes_and_history_recipes(
             establishment_id=establishment_id,
-            recipe_ids=list(parent_recipe_ids),
+            recipe_ids=list(impacted_recipes),
             target_date=target_date_norm,
             trigger="manual",
         )
-
-    # Recettes impactées = recettes parentes (la recette supprimée n'existe plus)
-    impacted_recipes: Set[UUID] = set(parent_recipe_ids)
-
-    # Filtre des recettes pour le recalcul des marges
-    if impacted_recipes:
-            recompute_recipe_margins(
-                establishment_id=establishment_id,
-                recipe_ids=list(impacted_recipes),
-                target_date=target_date_norm,
+        recompute_recipe_margins(
+            establishment_id=establishment_id,
+            recipe_ids=list(impacted_recipes),
+            target_date=target_date_norm,
         )
 
     return {
         "impacted_recipes": impacted_recipes,
         "deleted_ingredient_ids": deleted_ingredient_ids,
+        "deleted_recipes": deleted_recipe_ids,
     }

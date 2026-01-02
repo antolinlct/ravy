@@ -1,9 +1,17 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.ingredients import Ingredients
+
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
 
 def get_all_ingredients(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("ingredients").select("*")
@@ -13,11 +21,13 @@ def get_all_ingredients(filters: dict | None = None, limit: int = 200, page: int
     # --- Filtres dynamiques (structurels ou contextuels) ---
     if "establishment_id" in filters:
         query = query.eq("establishment_id", filters["establishment_id"])
+    if "recipe_id" in filters:
+        query = query.eq("recipe_id", filters["recipe_id"])
 
 
     # --- Filtres additionnels (_gte, _lte, etc.) ---
     for key, value in filters.items():
-        if key in ("order_by", "direction", "limit", "page", "establishment_id"):
+        if key in ("order_by", "direction", "limit", "page", "establishment_id", "recipe_id"):
             continue
         if key.endswith("_gte"):
             query = query.gte(key[:-4], value)
@@ -43,12 +53,17 @@ def get_all_ingredients(filters: dict | None = None, limit: int = 200, page: int
 
 
 def get_ingredients_by_id(id: UUID):
-    response = supabase.table("ingredients").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.table("ingredients").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return Ingredients(**response.data) if response.data else None
 
 
 def create_ingredients(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
     response = supabase.table("ingredients").insert(prepared).execute()
     return response.data[0] if response.data else None
 

@@ -1,12 +1,20 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.sessions_ia import SessionsIa
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_sessions_ia(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("sessions_ia").select("*")
+    query = supabase.schema("ia").table("sessions_ia").select("*")
     if not filters:
         filters = {}
 
@@ -43,22 +51,27 @@ def get_all_sessions_ia(filters: dict | None = None, limit: int = 200, page: int
 
 
 def get_sessions_ia_by_id(id: UUID):
-    response = supabase.table("sessions_ia").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.schema("ia").table("sessions_ia").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return SessionsIa(**response.data) if response.data else None
 
 
 def create_sessions_ia(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
-    response = supabase.table("sessions_ia").insert(prepared).execute()
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
+    response = supabase.schema("ia").table("sessions_ia").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_sessions_ia(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("sessions_ia").update(prepared).eq("id", str(id)).execute()
+    response = supabase.schema("ia").table("sessions_ia").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_sessions_ia(id: UUID):
-    supabase.table("sessions_ia").delete().eq("id", str(id)).execute()
+    supabase.schema("ia").table("sessions_ia").delete().eq("id", str(id)).execute()
     return {"deleted": True}

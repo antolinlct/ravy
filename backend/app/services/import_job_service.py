@@ -1,12 +1,20 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.import_job import ImportJob
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_import_job(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("import_job").select("*")
+    query = supabase.schema("internal").table("import_job").select("*")
     if not filters:
         filters = {}
 
@@ -43,22 +51,27 @@ def get_all_import_job(filters: dict | None = None, limit: int = 200, page: int 
 
 
 def get_import_job_by_id(id: UUID):
-    response = supabase.table("import_job").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.schema("internal").table("import_job").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return ImportJob(**response.data) if response.data else None
 
 
 def create_import_job(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
-    response = supabase.table("import_job").insert(prepared).execute()
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
+    response = supabase.schema("internal").table("import_job").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_import_job(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("import_job").update(prepared).eq("id", str(id)).execute()
+    response = supabase.schema("internal").table("import_job").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_import_job(id: UUID):
-    supabase.table("import_job").delete().eq("id", str(id)).execute()
+    supabase.schema("internal").table("import_job").delete().eq("id", str(id)).execute()
     return {"deleted": True}

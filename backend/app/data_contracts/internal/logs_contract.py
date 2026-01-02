@@ -84,7 +84,7 @@ CONTRACT = {
         'id': {
         "type": "uuid",
         "required": true,
-        "default": null,
+        "default": "gen_random_uuid()",
         "relation": null
 },
     }

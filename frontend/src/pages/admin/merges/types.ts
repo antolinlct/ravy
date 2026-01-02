@@ -7,9 +7,10 @@ export type SupplierLabel =
 
 export type MergeRequestStatus =
   | "pending"
+  | "to_confirm"
   | "accepted"
-  | "ignored"
-  | "dismissed"
+  | "resolved"
+  | "refused"
 
 export type SupplierMergeRequest = {
   id: string
@@ -17,6 +18,7 @@ export type SupplierMergeRequest = {
   status: MergeRequestStatus
   sourceSupplierIds: string[]
   targetSupplierId: string
+  requestingEstablishmentId?: string | null
   establishment?: string | null
 }
 

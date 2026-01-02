@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AgGridReact } from "ag-grid-react"
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community"
 import type { ColDef, ICellRendererParams } from "ag-grid-community"
@@ -19,8 +19,8 @@ import {
 import { Expand, Shrink } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+
+import {
+  createMaintenance,
+  fetchEstablishments,
+  fetchLatestMaintenance,
+  fetchLogs,
+  updateMaintenance,
+} from "./api"
 
 ModuleRegistry.registerModules([AllCommunityModule])
 
@@ -103,81 +111,6 @@ const formatDateTime = (value: string) => {
   })
 }
 
-const logSeed: LogEntry[] = [
-  {
-    id: "log-1",
-    createdAt: "2025-02-02T09:12",
-    userId: "9c08b3e2-8af8-4d43-9e0f-7d7e0a1b9d7a",
-    establishmentId: "1a3a6f5a-3c0e-4b16-93c4-1eaf19f7c6fa",
-    type: "context",
-    action: "login",
-    text: "Connexion réussie depuis Chrome.",
-    json: "{\"ip\":\"89.83.12.44\",\"device\":\"desktop\"}",
-    elementId: null,
-    elementType: "user",
-  },
-  {
-    id: "log-2",
-    createdAt: "2025-02-02T10:45",
-    userId: "4e4f1d89-20a6-4c55-8b7d-3cbd8f511f6f",
-    establishmentId: "1a3a6f5a-3c0e-4b16-93c4-1eaf19f7c6fa",
-    type: "context",
-    action: "update",
-    text: "Mise a jour du fournisseur Metro.",
-    json: "{\"field\":\"contact_email\"}",
-    elementId: "sup-1",
-    elementType: "supplier",
-  },
-  {
-    id: "log-3",
-    createdAt: "2025-02-02T12:08",
-    userId: null,
-    establishmentId: null,
-    type: "job",
-    action: "import",
-    text: "Import facture nocturne termine.",
-    json: "{\"file\":\"invoices_2025-02-02.csv\"}",
-    elementId: "inv-772",
-    elementType: "invoice",
-  },
-  {
-    id: "log-4",
-    createdAt: "2025-02-02T14:22",
-    userId: "6c7a52c4-7706-4b1e-9557-7fb1f35c9b2a",
-    establishmentId: "6d7a0bb4-2c8d-42d2-a865-06b8d1e2fa9f",
-    type: "context",
-    action: "create",
-    text: "Ajout d une nouvelle variation.",
-    json: "{\"variationId\":\"var-2025\"}",
-    elementId: "var-2025",
-    elementType: "variation",
-  },
-  {
-    id: "log-5",
-    createdAt: "2025-02-02T16:51",
-    userId: "9c08b3e2-8af8-4d43-9e0f-7d7e0a1b9d7a",
-    establishmentId: "1a3a6f5a-3c0e-4b16-93c4-1eaf19f7c6fa",
-    type: "context",
-    action: "delete",
-    text: "Suppression d une recette interne.",
-    json: "{\"recipeId\":\"rec-418\"}",
-    elementId: "rec-418",
-    elementType: "recipe",
-  },
-  {
-    id: "log-6",
-    createdAt: "2025-02-02T18:05",
-    userId: null,
-    establishmentId: null,
-    type: "job",
-    action: "update",
-    text: "Synchronisation nocturne des etablissements.",
-    json: "{\"updated\":24}",
-    elementId: null,
-    elementType: "establishment",
-  },
-]
-
 const typeBadgeMap: Record<LogEntry["type"], "default" | "secondary"> = {
   context: "secondary",
   job: "default",
@@ -193,7 +126,35 @@ const actionBadgeMap: Partial<Record<LogEntry["action"], "default" | "secondary"
   import: "default",
 }
 
+const toInputDateTime = (value?: string | null) => {
+  if (!value) return ""
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ""
+  const pad = (chunk: number) => String(chunk).padStart(2, "0")
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(
+    parsed.getDate()
+  )}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`
+}
+
+const toIsoString = (value?: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
+}
+
+const stringifyPayload = (payload: unknown) => {
+  if (!payload) return null
+  if (typeof payload === "string") return payload
+  try {
+    return JSON.stringify(payload)
+  } catch {
+    return null
+  }
+}
+
 export default function AdminLogsPage() {
+  const [maintenanceId, setMaintenanceId] = useState<string | null>(null)
   const [maintenance, setMaintenance] = useState<MaintenanceState>({
     isActive: false,
     startDate: "",
@@ -203,6 +164,10 @@ export default function AdminLogsPage() {
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceState>(maintenance)
   const [maintenanceDialogOpen, setMaintenanceDialogOpen] = useState(false)
   const [maintenanceConfirmOpen, setMaintenanceConfirmOpen] = useState(false)
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [establishmentsById, setEstablishmentsById] = useState<Record<string, string>>({})
   const [isLogsFullscreen, setIsLogsFullscreen] = useState(false)
   const [startFilter, setStartFilter] = useState("")
   const [endFilter, setEndFilter] = useState("")
@@ -212,17 +177,112 @@ export default function AdminLogsPage() {
     maintenanceDraft.countdownHours.trim() !== "" &&
     maintenanceDraft.message.trim() !== ""
 
-  const filteredLogs = useMemo(() => {
-    const startMs = startFilter ? new Date(startFilter).getTime() : null
-    const endMs = endFilter ? new Date(endFilter).getTime() : null
+  useEffect(() => {
+    let active = true
 
-    return logSeed.filter((entry) => {
-      const entryMs = new Date(entry.createdAt).getTime()
-      if (Number.isNaN(entryMs)) return false
-      if (startMs !== null && entryMs < startMs) return false
-      if (endMs !== null && entryMs > endMs) return false
-      return true
-    })
+    const loadMaintenance = async () => {
+      try {
+        const latest = await fetchLatestMaintenance()
+        if (!active) return
+        if (!latest) return
+        setMaintenanceId(latest.id)
+        const nextState: MaintenanceState = {
+          isActive: Boolean(latest.is_active),
+          startDate: toInputDateTime(latest.start_date),
+          countdownHours:
+            latest.coutdown_hour === null || latest.coutdown_hour === undefined
+              ? ""
+              : String(latest.coutdown_hour),
+          message: latest.message ?? "",
+        }
+        setMaintenance(nextState)
+        setMaintenanceDraft(nextState)
+      } catch (error) {
+        if (!active) return
+        console.error(error)
+        toast.error("Impossible de charger la maintenance.")
+      }
+    }
+
+    loadMaintenance()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const loadEstablishments = async () => {
+      try {
+        const data = await fetchEstablishments()
+        if (!active) return
+        const nextMap = data.reduce<Record<string, string>>((acc, item) => {
+          if (item.id && item.name) {
+            acc[item.id] = item.name
+          }
+          return acc
+        }, {})
+        setEstablishmentsById(nextMap)
+      } catch (error) {
+        if (!active) return
+        console.error(error)
+        toast.error("Impossible de charger les etablissements.")
+      }
+    }
+
+    loadEstablishments()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    setLogsLoading(true)
+
+    const loadLogs = async () => {
+      try {
+        const data = await fetchLogs({
+          start: startFilter || undefined,
+          end: endFilter || undefined,
+          limit: 800,
+        })
+        if (!active) return
+        const normalized = data.map<LogEntry>((entry) => {
+          const action = (entry.action ?? "view") as LogEntry["action"]
+          return {
+            id: entry.id,
+            createdAt: entry.created_at ?? "",
+            userId: entry.user_id ?? null,
+            establishmentId: entry.establishment_id ?? null,
+            type: entry.type === "job" ? "job" : "context",
+            action,
+            text: entry.text ?? null,
+            json: stringifyPayload(entry.json),
+            elementId: entry.element_id ?? null,
+            elementType: entry.element_type ?? null,
+          }
+        })
+        setLogs(normalized)
+      } catch (error) {
+        if (!active) return
+        console.error(error)
+        toast.error("Impossible de charger les logs.")
+        setLogs([])
+      } finally {
+        if (!active) return
+        setLogsLoading(false)
+      }
+    }
+
+    loadLogs()
+
+    return () => {
+      active = false
+    }
   }, [startFilter, endFilter])
 
   const columnDefs = useMemo<ColDef<LogEntry>[]>(() => {
@@ -233,6 +293,14 @@ export default function AdminLogsPage() {
         minWidth: 180,
         sort: "desc",
         valueFormatter: ({ value }) => (value ? formatDateTime(value) : "--"),
+      },
+      {
+        headerName: "Etablissement",
+        field: "establishmentId",
+        minWidth: 220,
+        flex: 1,
+        valueFormatter: ({ value }) =>
+          value ? establishmentsById[value] ?? "--" : "--",
       },
       {
         headerName: "Type",
@@ -275,13 +343,6 @@ export default function AdminLogsPage() {
         valueFormatter: ({ value }) => value ?? "--",
       },
       {
-        headerName: "Etablissement",
-        field: "establishmentId",
-        minWidth: 200,
-        cellClass: "text-muted-foreground font-mono",
-        valueFormatter: ({ value }) => value ?? "--",
-      },
-      {
         headerName: "Element ID",
         field: "elementId",
         minWidth: 200,
@@ -302,8 +363,15 @@ export default function AdminLogsPage() {
         minWidth: 220,
         cellClass: "text-muted-foreground font-mono",
       },
+      {
+        headerName: "Etablissement ID",
+        field: "establishmentId",
+        minWidth: 220,
+        cellClass: "text-muted-foreground font-mono",
+        valueFormatter: ({ value }) => value ?? "--",
+      },
     ]
-  }, [])
+  }, [establishmentsById])
 
   const defaultColDef = useMemo<ColDef>(() => {
     return {
@@ -433,13 +501,42 @@ export default function AdminLogsPage() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => {
-                            setMaintenance({
-                              ...maintenanceDraft,
-                              isActive: true,
-                            })
-                            setMaintenanceConfirmOpen(false)
-                            setMaintenanceDialogOpen(false)
+                          onClick={async () => {
+                            if (maintenanceSaving) return
+                            setMaintenanceSaving(true)
+                            const countdownValue = Number(maintenanceDraft.countdownHours)
+                            const payload = {
+                              is_active: true,
+                              start_date: toIsoString(maintenanceDraft.startDate),
+                              coutdown_hour: Number.isNaN(countdownValue)
+                                ? null
+                                : countdownValue,
+                              message: maintenanceDraft.message || null,
+                            }
+                            try {
+                              const result = maintenanceId
+                                ? await updateMaintenance(maintenanceId, payload)
+                                : await createMaintenance(payload)
+                              setMaintenanceId(result.id)
+                              setMaintenance({
+                                isActive: Boolean(result.is_active),
+                                startDate: toInputDateTime(result.start_date),
+                                countdownHours:
+                                  result.coutdown_hour === null ||
+                                  result.coutdown_hour === undefined
+                                    ? ""
+                                    : String(result.coutdown_hour),
+                                message: result.message ?? "",
+                              })
+                              toast.success("Maintenance activée.")
+                              setMaintenanceConfirmOpen(false)
+                              setMaintenanceDialogOpen(false)
+                            } catch (error) {
+                              console.error(error)
+                              toast.error("Impossible d activer la maintenance.")
+                            } finally {
+                              setMaintenanceSaving(false)
+                            }
                           }}
                         >
                           Confirmer
@@ -453,12 +550,35 @@ export default function AdminLogsPage() {
                 type="button"
                 variant="secondary"
                 disabled={!maintenance.isActive}
-                onClick={() =>
-                  setMaintenance((prev) => ({
-                    ...prev,
-                    isActive: false,
-                  }))
-                }
+                onClick={async () => {
+                  if (maintenanceSaving || !maintenanceId) {
+                    setMaintenance((prev) => ({
+                      ...prev,
+                      isActive: false,
+                    }))
+                    return
+                  }
+                  setMaintenanceSaving(true)
+                  try {
+                    const result = await updateMaintenance(maintenanceId, { is_active: false })
+                    setMaintenance((prev) => ({
+                      ...prev,
+                      isActive: Boolean(result.is_active),
+                      startDate: toInputDateTime(result.start_date) || prev.startDate,
+                      countdownHours:
+                        result.coutdown_hour === null || result.coutdown_hour === undefined
+                          ? prev.countdownHours
+                          : String(result.coutdown_hour),
+                      message: result.message ?? prev.message,
+                    }))
+                    toast.success("Maintenance désactivée.")
+                  } catch (error) {
+                    console.error(error)
+                    toast.error("Impossible de désactiver la maintenance.")
+                  } finally {
+                    setMaintenanceSaving(false)
+                  }
+                }}
               >
                 Desactiver
               </Button>
@@ -536,7 +656,7 @@ export default function AdminLogsPage() {
         <CardContent>
           <div style={{ height: 520, width: "100%" }} data-ag-theme-mode="dark">
             <AgGridReact<LogEntry>
-              rowData={filteredLogs}
+              rowData={logsLoading ? [] : logs}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               theme={logsTheme}
@@ -600,7 +720,7 @@ export default function AdminLogsPage() {
             </div>
             <div className="flex-1" data-ag-theme-mode="dark">
               <AgGridReact<LogEntry>
-                rowData={filteredLogs}
+                rowData={logsLoading ? [] : logs}
                 columnDefs={columnDefs}
                 defaultColDef={defaultColDef}
                 theme={logsTheme}

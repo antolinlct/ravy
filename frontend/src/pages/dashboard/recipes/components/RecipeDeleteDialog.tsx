@@ -9,15 +9,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { buttonVariants } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 
 type RecipeDeleteDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   recipeName: string
   onConfirm: () => void
+  isDeleting?: boolean
 }
 
-export function RecipeDeleteDialog({ open, onOpenChange, recipeName, onConfirm }: RecipeDeleteDialogProps) {
+export function RecipeDeleteDialog({
+  open,
+  onOpenChange,
+  recipeName,
+  onConfirm,
+  isDeleting = false,
+}: RecipeDeleteDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -30,8 +38,19 @@ export function RecipeDeleteDialog({ open, onOpenChange, recipeName, onConfirm }
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={onConfirm}>
-            Supprimer
+          <AlertDialogAction
+            className={buttonVariants({ variant: "destructive" })}
+            onClick={onConfirm}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Suppression...
+              </>
+            ) : (
+              "Supprimer"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -116,8 +116,12 @@ export default function InvoicesTableCard({
     setSheetOpen(open)
   }
 
-  const handleRowNavigate = (invoiceId: string) => {
-    navigate("/dashboard/invoices/detail", { state: { invoiceId } })
+  const handleRowNavigate = (invoice: InvoiceListItem) => {
+    const baseReference = invoice.reference.startsWith("Facture")
+      ? invoice.reference
+      : `Facture ${invoice.reference}`
+    const breadcrumb = `${baseReference} - ${invoice.supplier}`
+    navigate(`/dashboard/invoices/${invoice.id}`, { state: { invoiceBreadcrumb: breadcrumb } })
   }
 
   const toggleExportSelection = (id: string) => {
@@ -346,11 +350,11 @@ export default function InvoicesTableCard({
                   className="pl-3 cursor-pointer"
                   role="button"
                   tabIndex={0}
-                  onClick={() => handleRowNavigate(invoice.id)}
+                  onClick={() => handleRowNavigate(invoice)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault()
-                      handleRowNavigate(invoice.id)
+                      handleRowNavigate(invoice)
                     }
                   }}
                 >
@@ -361,10 +365,7 @@ export default function InvoicesTableCard({
                     </div>
                   </TableCell>
                   <TableCell className="pl-3 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <p>{invoice.date}</p>
-                      <p className="text-xs text-muted-foreground">{invoice.items}</p>
-                    </div>
+                    <p>{invoice.date}</p>
                   </TableCell>
                   <TableCell className="text-left whitespace-nowrap pr-3">
                     <Badge variant="secondary" className="inline-flex min-w-[72px] justify-center text-sm">

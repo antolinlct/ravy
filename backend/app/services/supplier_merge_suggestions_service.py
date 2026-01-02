@@ -1,9 +1,17 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.supplier_merge_suggestions import SupplierMergeSuggestions
+
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
 
 def get_all_supplier_merge_suggestions(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("supplier_merge_suggestions").select("*")
@@ -43,12 +51,17 @@ def get_all_supplier_merge_suggestions(filters: dict | None = None, limit: int =
 
 
 def get_supplier_merge_suggestions_by_id(id: UUID):
-    response = supabase.table("supplier_merge_suggestions").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.table("supplier_merge_suggestions").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return SupplierMergeSuggestions(**response.data) if response.data else None
 
 
 def create_supplier_merge_suggestions(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
     response = supabase.table("supplier_merge_suggestions").insert(prepared).execute()
     return response.data[0] if response.data else None
 

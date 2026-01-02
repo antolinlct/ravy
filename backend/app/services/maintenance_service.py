@@ -1,12 +1,20 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.maintenance import Maintenance
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_maintenance(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("maintenance").select("*")
+    query = supabase.schema("internal").table("maintenance").select("*")
     if not filters:
         filters = {}
 
@@ -42,22 +50,27 @@ def get_all_maintenance(filters: dict | None = None, limit: int = 200, page: int
 
 
 def get_maintenance_by_id(id: UUID):
-    response = supabase.table("maintenance").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.schema("internal").table("maintenance").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return Maintenance(**response.data) if response.data else None
 
 
 def create_maintenance(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
-    response = supabase.table("maintenance").insert(prepared).execute()
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
+    response = supabase.schema("internal").table("maintenance").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_maintenance(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("maintenance").update(prepared).eq("id", str(id)).execute()
+    response = supabase.schema("internal").table("maintenance").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_maintenance(id: UUID):
-    supabase.table("maintenance").delete().eq("id", str(id)).execute()
+    supabase.schema("internal").table("maintenance").delete().eq("id", str(id)).execute()
     return {"deleted": True}

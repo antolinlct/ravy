@@ -76,9 +76,9 @@ type RecipesListCardProps = {
   sortedRecipes: RecipeListItem[]
   filteredRecipesCount: number
   activeById: Record<string, boolean>
-  sortKey: "name" | "margin" | "portionCost" | "salePrice"
+  sortKey: "updatedAt" | "name" | "margin" | "portionCost" | "salePrice"
   sortDir: "asc" | "desc"
-  onToggleSort: (key: "name" | "margin" | "portionCost" | "salePrice") => void
+  onToggleSort: (key: "updatedAt" | "name" | "margin" | "portionCost" | "salePrice") => void
   onToggleActive: (recipeId: string, active: boolean) => void
   onRowNavigate: (recipeId: string) => void
   onDuplicate: (recipe: RecipeListItem) => void
@@ -169,7 +169,7 @@ export function RecipesListCard({
                   </SelectItem>
                   {listCategory === "__all__" ? (
                     <SelectItem value="__none__" disabled>
-                      Aucune sous-catégorie disponible
+                      Sélectionnez une catégorie
                     </SelectItem>
                   ) : (
                     filterSubCategoryOptions.map((opt) => (
@@ -372,7 +372,7 @@ export function RecipesListCard({
                           </div>
                         </TableCell>
                         <TableCell className="text-left whitespace-nowrap pr-3">
-                          <span className="inline-flex min-w-[72px] justify-center text-sm text-destructive">
+                          <span className="inline-flex min-w-[72px] justify-center text-sm text-red-500">
                             {recipe.portionCost}
                           </span>
                         </TableCell>

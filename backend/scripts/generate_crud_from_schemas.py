@@ -29,6 +29,14 @@ if not schemas_summary_path.exists():
 with open(schemas_summary_path, "r") as f:
     schema_summary = json.load(f)
 
+# === Charger contracts_summary.json pour les schémas (public/internal/etc.) ===
+contracts_summary_path = Path("/app/contracts_summary.json")
+if not contracts_summary_path.exists():
+    raise SystemExit("❌ contracts_summary.json introuvable. Exécute d'abord export_schemas_to_json.py")
+
+with open(contracts_summary_path, "r") as f:
+    contracts_summary = json.load(f)
+
 # === Nettoyage des anciennes routes (hors /read et /write) ===
 print("\n🧹 Nettoyage du dossier routes...")
 for route_file in routes_dir.glob("*.py"):
@@ -41,12 +49,20 @@ print("  ✅ Dossiers 'read/' et 'write/' conservés.\n")
 service_template = """from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.{name} import {class_name}
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_{name}(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("{name}").select("*")
+    query = {table_ref}.select("*")
     if not filters:
         filters = {{}}
 
@@ -81,24 +97,29 @@ def get_all_{name}(filters: dict | None = None, limit: int = 200, page: int = 1)
 
 
 def get_{name}_by_id(id: UUID):
-    response = supabase.table("{name}").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = {table_ref}.select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return {class_name}(**response.data) if response.data else None
 
 
 def create_{name}(payload: dict):
-    prepared = {{k: v for k, v in payload.items() if v is not None and k != "id"}}
-    response = supabase.table("{name}").insert(prepared).execute()
+    prepared = jsonable_encoder({{k: v for k, v in payload.items() if v is not None and k != "id"}})
+    response = {table_ref}.insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_{name}(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("{name}").update(prepared).eq("id", str(id)).execute()
+    response = {table_ref}.update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_{name}(id: UUID):
-    supabase.table("{name}").delete().eq("id", str(id)).execute()
+    {table_ref}.delete().eq("id", str(id)).execute()
     return {{"deleted": True}}
 """
 
@@ -163,6 +184,19 @@ created_routes = []
 schema_files = [p for p in schemas_dir.glob("*.py") if p.stem not in {"__init__", "_last_schema"}]
 print(f"📂 Schémas trouvés ({len(schema_files)}) :", [p.name for p in schema_files])
 
+# === Map table -> schema from contracts_summary.json ===
+table_schema_candidates = {}
+for schema_name, tables in contracts_summary.items():
+    if not isinstance(tables, dict):
+        continue
+    for table_name, table_def in tables.items():
+        fields = {}
+        if isinstance(table_def, dict):
+            fields = table_def.get("fields", {}) if isinstance(table_def.get("fields"), dict) else {}
+        table_schema_candidates.setdefault(table_name, []).append(
+            {"schema": schema_name, "fields": set(fields.keys()), "field_meta": fields}
+        )
+
 for schema_file in schema_files:
     name = schema_file.stem
     class_name = "".join(word.capitalize() for word in name.split("_"))
@@ -176,13 +210,34 @@ for schema_file in schema_files:
                 available_fields = list(model["fields"].keys())
                 break
 
+    # --- Résolution du schéma (public/internal/etc.) ---
+    schema_name = "public"
+    candidates = table_schema_candidates.get(name, [])
+    selected_fields_meta = {}
+    if len(candidates) == 1:
+        schema_name = candidates[0]["schema"]
+        selected_fields_meta = candidates[0]["field_meta"]
+    elif candidates and available_fields:
+        best = max(
+            candidates,
+            key=lambda c: len(set(available_fields) & c["fields"]),
+        )
+        schema_name = best["schema"]
+        selected_fields_meta = best["field_meta"]
+
+    table_ref = (
+        f'supabase.schema("{schema_name}").table("{name}")'
+        if schema_name != "public"
+        else f'supabase.table("{name}")'
+    )
+
     # --- Filtres structurels (service) + filtres dynamiques (routes) ---
     filter_lines = []
     ignored_fields = []
     dynamic_filter_cols = []
     filters_mapping = ""
 
-    for col in ["establishment_id", "supplier_id"]:
+    for col in ["establishment_id", "supplier_id", "recipe_id"]:
         if col in available_fields:
             # service : filtre eq
             filter_lines.append(
@@ -211,7 +266,8 @@ for schema_file in schema_files:
         name=name,
         class_name=class_name,
         filter_block=filter_block,
-        ignored_fields=ignored_fields_str
+        ignored_fields=ignored_fields_str,
+        table_ref=table_ref,
     )
     service_path.write_text(service_code)
     print(f"✅ Service régénéré : {service_path.name}")

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Copy, Check } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -73,6 +73,7 @@ export function UserDetailView({
 }: UserDetailViewProps) {
   const fallbackLevel: MercurialeLevel = accessLevel ?? "STANDARD"
   const [draftLevel, setDraftLevel] = useState<MercurialeLevel>(fallbackLevel)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     setDraftLevel(fallbackLevel)
@@ -88,6 +89,16 @@ export function UserDetailView({
   }, [user.email, user.firstName, user.lastName])
 
   const hasChanges = draftLevel !== fallbackLevel
+
+  const handleCopyId = async () => {
+    try {
+      await navigator.clipboard.writeText(user.id)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Ignore clipboard errors to avoid noisy UI.
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -116,6 +127,22 @@ export function UserDetailView({
             <CardDescription>Informations issues de user_profiles et users.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Identifiant</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-muted-foreground">{user.id}</p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCopyId}
+                  className="h-7 px-2"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copié" : "Copier"}
+                </Button>
+              </div>
+            </div>
             <div className="space-y-1">
               <Label>Prenom</Label>
               <p className="text-sm text-muted-foreground">{user.firstName ?? "--"}</p>

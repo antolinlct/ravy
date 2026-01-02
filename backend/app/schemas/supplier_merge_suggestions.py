@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -8,8 +8,8 @@ Supplier_merge_suggestions_status = Literal["pending", "accepted", "ignored", "d
 
 class SupplierMergeSuggestions(BaseModel):
     id: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    reviewed_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
+    reviewed_at: Optional[dt.datetime] = None
     establishment_id: Optional[UUID] = None
     target_market_supplier_id: Optional[UUID] = None
     similarity_score: Optional[float] = None
@@ -19,6 +19,6 @@ class SupplierMergeSuggestions(BaseModel):
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

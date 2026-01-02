@@ -71,9 +71,9 @@ type_mapping = {
     "uuid": "UUID",
     "bytea": "bytes",
     "json": "dict", "jsonb": "dict",
-    "timestamp without time zone": "datetime", "timestamp with time zone": "datetime",
-    "timestamptz": "datetime", "time without time zone": "datetime",
-    "date": "date",
+    "timestamp without time zone": "dt.datetime", "timestamp with time zone": "dt.datetime",
+    "timestamptz": "dt.datetime", "time without time zone": "dt.datetime",
+    "date": "dt.date",
 }
 
 # --- Charger le dernier snapshot ---
@@ -92,7 +92,7 @@ for table, columns in tables.items():
 
     with open(file_path, "w") as f:
         f.write("from pydantic import BaseModel\n")
-        f.write("from datetime import datetime, date\n")
+        f.write("import datetime as dt\n")
         f.write("from typing import List, Optional, Any, Literal\n")
         f.write("from uuid import UUID\n\n\n")
 
@@ -131,8 +131,8 @@ for table, columns in tables.items():
         f.write("    class Config:\n")
         f.write("        json_encoders = {\n")
         f.write("            UUID: lambda v: str(v),\n")
-        f.write("            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,\n")
-        f.write("            date: lambda v: v.isoformat() if isinstance(v, date) else v,\n")
+        f.write("            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,\n")
+        f.write("            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,\n")
         f.write("        }\n")
 
     print(f"✅ Modèle généré : {file_path.name}")

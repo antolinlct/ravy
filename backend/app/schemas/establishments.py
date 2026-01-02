@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -13,8 +13,8 @@ class Establishments(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
     country_id: Optional[UUID] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
+    updated_at: Optional[dt.datetime] = None
     recommended_retail_price_method: Optional[Recommended_retail_price] = None
     recommended_retail_price_value: Optional[float] = None
     logo_path: Optional[str] = None
@@ -35,6 +35,6 @@ class Establishments(BaseModel):
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

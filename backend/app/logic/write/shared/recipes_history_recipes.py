@@ -82,6 +82,24 @@ def _as_date(value: Any) -> Optional[date]:
     return None
 
 
+def _as_datetime(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, time())
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
+
+
 def _ensure_portion(portion: Optional[Decimal]) -> Decimal:
     if portion is None or portion == 0:
         return Decimal("1")
@@ -101,7 +119,7 @@ def _split_histories(
         history_date = _as_date(_safe_get(history, "date"))
         if history_date is None:
             continue
-        if history_date > target_date:
+        if history_date >= target_date:
             future.append(history)
         else:
             past_or_same.append(history)
@@ -188,8 +206,32 @@ def update_recipes_and_history_recipes(
         )
         past_or_same, future_histories = _split_histories(histories, target_date_norm)
 
+        same_day_histories = [
+            h for h in histories if _as_date(_safe_get(h, "date")) == target_date_norm
+        ]
+        same_day_history = (
+            max(
+                same_day_histories,
+                key=lambda h: _as_datetime(_safe_get(h, "date")) or datetime.min,
+            )
+            if same_day_histories
+            else None
+        )
+        if same_day_history and len(same_day_histories) > 1:
+            same_day_id = _safe_get(same_day_history, "id")
+            for history in same_day_histories:
+                history_id = _safe_get(history, "id")
+                if history_id and history_id != same_day_id:
+                    history_recipes_service.delete_history_recipes(history_id)
+            histories = [
+                h
+                for h in histories
+                if _safe_get(h, "id") == same_day_id
+                or _as_date(_safe_get(h, "date")) != target_date_norm
+            ]
+
         #GESTION DE LA CREATION D'UN NOUVEL HISTORY_RECIPE
-        if not histories or not future_histories:
+        if not same_day_history and (not histories or not future_histories):
             last_history = past_or_same[-1] if past_or_same else None
             if trigger == "manual":
                 version_number = _compute_manual_version(histories)
@@ -213,22 +255,20 @@ def update_recipes_and_history_recipes(
                 "price_tax": _as_decimal(_safe_get(recipe, "price_tax")),
                 "margin": margin,
                 "version_number": version_number,
-                "contains_sub_recipe": contains_sub_value if trigger != "manual" else contains_sub_recipe,
             }
             new_history = history_recipes_service.create_history_recipes(payload)
             if new_history:
                 histories.append(new_history)
-        
+
         #GESTION DE LA MODIFICATION D'UN NOUVEL HISTORY_RECIPE
         else:
-            history_to_update = max( # On récupère l'historique le plus récent qui existe.
+            history_to_update = same_day_history or max(
+                # On récupère l'historique le plus récent qui existe.
                 future_histories,
-                key=lambda h: _as_date(_safe_get(h, "date")) or date.min
+                key=lambda h: _as_date(_safe_get(h, "date")) or date.min,
             )
 
-            portion_hist = _ensure_portion(
-                _as_decimal(_safe_get(history_to_update, "portion")) or portion_recipe
-            )
+            portion_hist = _ensure_portion(portion_recipe)
             margin_update = None
             if _safe_get(recipe, "saleable"):
                 if price_excl_tax and price_excl_tax != 0:
@@ -237,12 +277,24 @@ def update_recipes_and_history_recipes(
             update_payload = {
                 "purchase_cost_total": purchase_cost_total,
                 "purchase_cost_per_portion": purchase_cost_total / portion_hist,
+                "portion": portion_hist,
                 "invoice_affected": trigger != "manual",
+                "vat_id": _safe_get(recipe, "vat_id"),
+                "price_excl_tax": price_excl_tax,
+                "price_incl_tax": _as_decimal(_safe_get(recipe, "price_incl_tax")),
+                "price_tax": _as_decimal(_safe_get(recipe, "price_tax")),
                 "margin": margin_update,
             }
-            history_recipes_service.update_history_recipes(
+            updated_history = history_recipes_service.update_history_recipes(
                 _safe_get(history_to_update, "id"), update_payload
             )
+            if updated_history:
+                histories = [
+                    h
+                    for h in histories
+                    if _safe_get(h, "id") != _safe_get(updated_history, "id")
+                ]
+                histories.append(updated_history)
 
         if histories:
             latest_history = max(

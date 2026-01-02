@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
 
+from app.logic.write.shared.recipes_history_recipes import update_recipes_and_history_recipes
 from app.services import (
     articles_service,
     history_ingredients_service,
@@ -545,13 +546,26 @@ def update_ingredients_and_history_ingredients(
                 limit=1000,
             )
             last_history_subrecipe = subrecipe_histories[-1] if subrecipe_histories else None # Recherche d'historique recette dans la sous-recette
-            if last_history_subrecipe is None:
+            gross_unit_price = _as_decimal(_safe_get(last_history_subrecipe, "purchase_cost_per_portion"))
+            if last_history_subrecipe is None or gross_unit_price is None:
+                update_recipes_and_history_recipes(
+                    establishment_id=establishment_id,
+                    recipe_ids=[subrecipe_id],
+                    target_date=target_date_norm,
+                    trigger="manual",
+                )
+                subrecipe_histories = history_recipes_service.get_all_history_recipes(
+                    filters=history_recipe_filters,
+                    limit=1000,
+                )
+                last_history_subrecipe = subrecipe_histories[-1] if subrecipe_histories else None
+                gross_unit_price = _as_decimal(
+                    _safe_get(last_history_subrecipe, "purchase_cost_per_portion")
+                )
+            if last_history_subrecipe is None or gross_unit_price is None:
                 continue
 
             histories = _get_histories(ingredient_id)
-            gross_unit_price = _as_decimal(_safe_get(last_history_subrecipe, "purchase_cost_per_portion"))
-            if gross_unit_price is None:
-                continue
             quantity = _as_decimal(_safe_get(ingredient, "quantity")) or Decimal("1")
             unit_cost = gross_unit_price * quantity
             portion_recipe = _portion_for_recipe(recipe_id)
@@ -587,6 +601,14 @@ def update_ingredients_and_history_ingredients(
                     history_payload["version_number"] = _compute_manual_version(histories)
                 
                 history_ingredients_service.update_history_ingredients(_safe_get(latest_history, "id"), history_payload)
+
+            ingredient_payload = {
+                "gross_unit_price": gross_unit_price,
+                "unit_cost": unit_cost,
+                "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
+                "quantity": quantity,
+            }
+            ingredients_service.update_ingredients(ingredient_id, ingredient_payload)
 
             if recipe_id:
                 recipes_indirectly_impacted.add(recipe_id)

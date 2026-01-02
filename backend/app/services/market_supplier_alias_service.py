@@ -1,12 +1,20 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.market_supplier_alias import MarketSupplierAlias
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_market_supplier_alias(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("market_supplier_alias").select("*")
+    query = supabase.schema("market").table("market_supplier_alias").select("*")
     if not filters:
         filters = {}
 
@@ -42,22 +50,27 @@ def get_all_market_supplier_alias(filters: dict | None = None, limit: int = 200,
 
 
 def get_market_supplier_alias_by_id(id: UUID):
-    response = supabase.table("market_supplier_alias").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.schema("market").table("market_supplier_alias").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return MarketSupplierAlias(**response.data) if response.data else None
 
 
 def create_market_supplier_alias(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
-    response = supabase.table("market_supplier_alias").insert(prepared).execute()
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
+    response = supabase.schema("market").table("market_supplier_alias").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_market_supplier_alias(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("market_supplier_alias").update(prepared).eq("id", str(id)).execute()
+    response = supabase.schema("market").table("market_supplier_alias").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_market_supplier_alias(id: UUID):
-    supabase.table("market_supplier_alias").delete().eq("id", str(id)).execute()
+    supabase.schema("market").table("market_supplier_alias").delete().eq("id", str(id)).execute()
     return {"deleted": True}

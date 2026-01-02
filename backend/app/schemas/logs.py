@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -9,7 +9,7 @@ Logs_action = Literal["login", "logout", "create", "update", "delete", "view", "
 Logs_element_type = Literal["invoice", "recipe", "supplier", "financial_reports", "user", "establishment", "variation"]
 
 class Logs(BaseModel):
-    created_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
     user_id: Optional[UUID] = None
     establishment_id: Optional[UUID] = None
     type: Optional[Logs_type] = None
@@ -23,6 +23,6 @@ class Logs(BaseModel):
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

@@ -84,6 +84,55 @@ export type ApiMasterArticle = {
   establishment_id?: string | null
 }
 
+type RecipesCache = {
+  establishmentId: string
+  data: ApiRecipe[]
+  fetchedAt: number
+}
+
+let recipesCache: RecipesCache | null = null
+const ingredientsCache: Record<string, ApiIngredient[]> = {}
+
+export const getCachedRecipes = (estId: string) => {
+  if (!recipesCache || recipesCache.establishmentId !== estId) return null
+  return recipesCache.data
+}
+
+export const setCachedRecipes = (estId: string, data: ApiRecipe[]) => {
+  recipesCache = {
+    establishmentId: estId,
+    data,
+    fetchedAt: Date.now(),
+  }
+}
+
+export const upsertCachedRecipe = (estId: string, recipe: ApiRecipe) => {
+  if (!recipesCache || recipesCache.establishmentId !== estId) {
+    setCachedRecipes(estId, [recipe])
+    return
+  }
+  const next = recipesCache.data.filter((item) => item.id !== recipe.id)
+  next.push(recipe)
+  recipesCache = { ...recipesCache, data: next }
+}
+
+export const removeCachedRecipe = (estId: string, recipeId: string) => {
+  if (!recipesCache || recipesCache.establishmentId !== estId) return
+  recipesCache = {
+    ...recipesCache,
+    data: recipesCache.data.filter((item) => item.id !== recipeId),
+  }
+}
+
+export const clearIngredientsCache = (estId: string, recipeId?: string) => {
+  const keys = Object.keys(ingredientsCache)
+  keys.forEach((key) => {
+    if (!key.startsWith(`${estId}:`)) return
+    if (recipeId && key !== `${estId}:${recipeId}` && key !== `${estId}:all`) return
+    delete ingredientsCache[key]
+  })
+}
+
 const DEFAULT_PREFS: RecipePricePrefs = {
   method: "MULTIPLIER",
   value: 3,
@@ -105,7 +154,15 @@ export const fetchRecipePricePrefs = async (estId: string): Promise<RecipePriceP
   }
 }
 
-export const fetchRecipes = async (estId: string): Promise<ApiRecipe[]> => {
+export const fetchRecipes = async (
+  estId: string,
+  options?: { useCache?: boolean }
+): Promise<ApiRecipe[]> => {
+  const useCache = options?.useCache ?? true
+  if (useCache) {
+    const cached = getCachedRecipes(estId)
+    if (cached) return cached
+  }
   const res = await api.get<ApiRecipe[]>("/recipes", {
     params: {
       establishment_id: estId,
@@ -114,7 +171,9 @@ export const fetchRecipes = async (estId: string): Promise<ApiRecipe[]> => {
       limit: 2000,
     },
   })
-  return res.data ?? []
+  const data = res.data ?? []
+  setCachedRecipes(estId, data)
+  return data
 }
 
 export const fetchRecipeById = async (recipeId: string): Promise<ApiRecipe | null> => {
@@ -128,8 +187,14 @@ export const fetchRecipeById = async (recipeId: string): Promise<ApiRecipe | nul
 
 export const fetchIngredients = async (
   estId: string,
-  recipeId?: string
+  recipeId?: string,
+  options?: { useCache?: boolean }
 ): Promise<ApiIngredient[]> => {
+  const useCache = options?.useCache ?? true
+  const cacheKey = `${estId}:${recipeId ?? "all"}`
+  if (useCache && ingredientsCache[cacheKey]) {
+    return ingredientsCache[cacheKey]
+  }
   const res = await api.get<ApiIngredient[]>("/ingredients", {
     params: {
       establishment_id: estId,
@@ -139,14 +204,15 @@ export const fetchIngredients = async (
       limit: 2000,
     },
   })
-  return res.data ?? []
+  const data = res.data ?? []
+  ingredientsCache[cacheKey] = data
+  return data
 }
 
-export const fetchRecipeCategories = async (estId: string): Promise<ApiRecipeCategory[]> => {
+export const fetchRecipeCategories = async (): Promise<ApiRecipeCategory[]> => {
   const res = await api.get<ApiRecipeCategory[]>("/recipe_categories", {
     params: {
-      establishment_id: estId,
-      order_by: "name",
+      order_by: "created_at",
       direction: "asc",
       limit: 2000,
     },
@@ -154,11 +220,10 @@ export const fetchRecipeCategories = async (estId: string): Promise<ApiRecipeCat
   return res.data ?? []
 }
 
-export const fetchRecipeSubcategories = async (estId: string): Promise<ApiRecipeSubcategory[]> => {
+export const fetchRecipeSubcategories = async (): Promise<ApiRecipeSubcategory[]> => {
   const res = await api.get<ApiRecipeSubcategory[]>("/recipes_subcategories", {
     params: {
-      establishment_id: estId,
-      order_by: "name",
+      order_by: "created_at",
       direction: "asc",
       limit: 2000,
     },
@@ -203,7 +268,11 @@ export const fetchMasterArticles = async (estId: string): Promise<ApiMasterArtic
 
 export const createRecipe = async (payload: Partial<ApiRecipe>): Promise<ApiRecipe> => {
   const res = await api.post<ApiRecipe>("/recipes", payload)
-  return res.data
+  const data = res.data
+  if (data?.establishment_id) {
+    upsertCachedRecipe(String(data.establishment_id), data)
+  }
+  return data
 }
 
 export const updateRecipe = async (
@@ -211,7 +280,11 @@ export const updateRecipe = async (
   payload: Partial<ApiRecipe>
 ): Promise<ApiRecipe> => {
   const res = await api.patch<ApiRecipe>(`/recipes/${recipeId}`, payload)
-  return res.data
+  const data = res.data
+  if (data?.establishment_id) {
+    upsertCachedRecipe(String(data.establishment_id), data)
+  }
+  return data
 }
 
 export const deleteRecipe = async (payload: {
@@ -219,7 +292,12 @@ export const deleteRecipe = async (payload: {
   establishment_id: string
   target_date?: string | null
 }) => {
-  return api.post("/logic/write/delete-recipe", payload)
+  const res = await api.post<{
+    deleted_recipes?: string[]
+    impacted_recipes?: string[]
+    deleted_ingredient_ids?: string[]
+  }>("/logic/write/delete-recipe", payload)
+  return res.data
 }
 
 export const duplicateRecipe = async (payload: {

@@ -6,7 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Info } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { RecipesPageHeader } from "./components/RecipesPageHeader"
 import { RecipeCreationCard } from "./components/RecipeCreationCard"
@@ -19,10 +19,16 @@ import {
   fetchRecipeCategories,
   fetchRecipeSubcategories,
   fetchRecipes,
+  fetchVatRates,
+  clearIngredientsCache,
+  removeCachedRecipe,
   recomputeRecipe,
   updateRecipe,
+  type ApiRecipe,
+  type ApiVatRate,
 } from "./api"
 import type { RecipeListCategoryOption, RecipeListItem } from "./types"
+import { toRecipeDetail } from "./utils"
 
 const parseCurrency = (value: string | null | undefined) => {
   if (!value) return null
@@ -45,11 +51,19 @@ const formatPercentValue = (value: number | string | null | undefined) => {
   return `${numeric.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`
 }
 
+const parseDateValue = (value?: string | null) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
 export default function RecipesPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const [defaultVatId, setDefaultVatId] = useState<string | null>(null)
 
   const [recipes, setRecipes] = useState<RecipeListItem[]>([])
+  const [recipesById, setRecipesById] = useState<Record<string, ApiRecipe>>({})
   const visibleRecipes = recipes
 
   const [recipeName, setRecipeName] = useState("")
@@ -65,12 +79,16 @@ export default function RecipesPage() {
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false)
   const [recipeToDuplicate, setRecipeToDuplicate] = useState<RecipeListItem | null>(null)
   const [duplicateName, setDuplicateName] = useState("")
+  const [duplicateSaving, setDuplicateSaving] = useState(false)
+  const [deleteSaving, setDeleteSaving] = useState(false)
   const [listCategory, setListCategory] = useState<string>("__all__")
   const [listSubCategory, setListSubCategory] = useState<string>("__all__")
   const [recipeSearchOpen, setRecipeSearchOpen] = useState(false)
   const [recipeSearchValue, setRecipeSearchValue] = useState("")
-  const [sortKey, setSortKey] = useState<"name" | "margin" | "portionCost" | "salePrice">("name")
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+  const [sortKey, setSortKey] = useState<
+    "updatedAt" | "name" | "margin" | "portionCost" | "salePrice"
+  >("updatedAt")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [categoryOptions, setCategoryOptions] = useState<RecipeListCategoryOption[]>([])
   const [subCategoryOptions, setSubCategoryOptions] = useState<RecipeListCategoryOption[]>([])
 
@@ -115,6 +133,7 @@ export default function RecipesPage() {
 
   const sortedRecipes = useMemo(() => {
     const toValue = (recipe: RecipeListItem) => {
+      if (sortKey === "updatedAt") return recipe.updatedAt?.getTime() ?? null
       if (sortKey === "name") return recipe.name?.toLowerCase() ?? ""
       if (sortKey === "margin") return recipe.marginValue ?? null
       if (sortKey === "portionCost") return parseCurrency(recipe.portionCost)
@@ -182,12 +201,14 @@ export default function RecipesPage() {
 
   const handleDuplicateConfirm = () => {
     if (!recipeToDuplicate || !estId) return
+    if (duplicateSaving) return
     const nextName = duplicateName.trim()
     if (!nextName) {
       toast.error("Le nom de la recette est requis.")
       return
     }
 
+    setDuplicateSaving(true)
     duplicateRecipe({
       recipe_id: recipeToDuplicate.id,
       establishment_id: estId,
@@ -200,10 +221,13 @@ export default function RecipesPage() {
             Recette <span className="font-semibold">{nextName}</span> dupliquée
           </>
         )
-        loadRecipes()
+        loadRecipes(false)
       })
       .catch(() => {
         toast.error("Impossible de dupliquer la recette.")
+      })
+      .finally(() => {
+        setDuplicateSaving(false)
       })
   }
 
@@ -214,30 +238,58 @@ export default function RecipesPage() {
 
   const handleDeleteConfirm = () => {
     if (!recipeToDelete || !estId) return
+    if (deleteSaving) return
     const deletedId = recipeToDelete.id
     const deletedName = recipeToDelete.name
 
+    setDeleteSaving(true)
     deleteRecipe({
       recipe_id: deletedId,
       establishment_id: estId,
     })
-      .then(() => {
+      .then((result) => {
         setDeleteDialogOpen(false)
-        if (recipeSearchValue === deletedId) setRecipeSearchValue("")
+        const deletedIds = new Set<string>(result?.deleted_recipes ?? [deletedId])
+        if (recipeSearchValue && deletedIds.has(recipeSearchValue)) setRecipeSearchValue("")
+        deletedIds.forEach((id) => removeCachedRecipe(estId, id))
+        clearIngredientsCache(estId)
+        setRecipes((prev) => prev.filter((recipe) => !deletedIds.has(recipe.id)))
+        setRecipesById((prev) => {
+          const next = { ...prev }
+          deletedIds.forEach((id) => {
+            delete next[id]
+          })
+          return next
+        })
+        setActiveById((prev) => {
+          const next = { ...prev }
+          deletedIds.forEach((id) => {
+            delete next[id]
+          })
+          return next
+        })
         toast.success(
           <>
             Recette <span className="font-semibold">{deletedName}</span> supprimée
           </>
         )
-        loadRecipes()
       })
       .catch(() => {
         toast.error("Impossible de supprimer la recette.")
       })
+      .finally(() => {
+        setDeleteSaving(false)
+      })
   }
 
   const handleRowNavigate = (recipeId: string) => {
-    navigate(`/dashboard/recipes/${recipeId}`, { state: { recipeId } })
+    const cached = recipesById[recipeId]
+    navigate(`/dashboard/recipes/${recipeId}`, {
+      state: {
+        recipeId,
+        recipe: cached ? toRecipeDetail(cached) : undefined,
+      },
+    })
   }
 
   const toggleSort = (key: typeof sortKey) => {
@@ -246,29 +298,35 @@ export default function RecipesPage() {
     setSortDir(nextDir)
   }
 
-  const loadRecipes = useCallback(async () => {
+  const loadRecipes = useCallback(async (useCache = true) => {
     if (!estId) return
     try {
-      const [recipesData, ingredientsData, categoriesData, subcategoriesData] = await Promise.all([
-        fetchRecipes(estId),
-        fetchIngredients(estId),
-        fetchRecipeCategories(estId),
-        fetchRecipeSubcategories(estId),
+      const [recipesData, ingredientsData, categoriesData, subcategoriesData, vatRatesData] = await Promise.all([
+        fetchRecipes(estId, { useCache }),
+        fetchIngredients(estId, undefined, { useCache }),
+        fetchRecipeCategories(),
+        fetchRecipeSubcategories(),
+        fetchVatRates(),
       ])
+
+      const vatTarget = vatRatesData.find((rate: ApiVatRate) => {
+        const value = Number(rate.percentage_rate)
+        if (!Number.isFinite(value)) return false
+        return Math.abs(value - 0.1) < 0.0001 || Math.abs(value - 10) < 0.0001
+      })
+      setDefaultVatId(vatTarget?.id ?? vatRatesData[0]?.id ?? null)
 
       const nextCategoryOptions = categoriesData
         .map((cat) => ({
           value: cat.id,
           label: cat.name ?? "Sans nom",
         }))
-        .sort((a, b) => a.label.localeCompare(b.label, "fr"))
       const nextSubCategoryOptions = subcategoriesData
         .map((sub) => ({
           value: sub.id,
           label: sub.name ?? "Sans nom",
           categoryId: sub.category_id ?? "",
         }))
-        .sort((a, b) => a.label.localeCompare(b.label, "fr"))
 
       const ingredientsCountMap = ingredientsData.reduce<Record<string, number>>((acc, item) => {
         if (!item.recipe_id) return acc
@@ -282,6 +340,7 @@ export default function RecipesPage() {
           : null
         const margin = formatPercentValue(marginValue)
         const price = recipe.saleable ? formatCurrencyValue(recipe.price_incl_tax ?? null) : null
+        const updatedAt = parseDateValue(recipe.updated_at) ?? parseDateValue(recipe.created_at)
 
         const ingredientsCount = ingredientsCountMap[recipe.id] ?? 0
         return {
@@ -295,12 +354,14 @@ export default function RecipesPage() {
           salePrice: price,
           margin,
           marginValue,
+          updatedAt,
         }
       })
 
       setCategoryOptions(nextCategoryOptions)
       setSubCategoryOptions(nextSubCategoryOptions)
       setRecipes(nextRecipes)
+      setRecipesById(Object.fromEntries(recipesData.map((recipe) => [recipe.id, recipe])))
       setActiveById(
         Object.fromEntries(nextRecipes.map((recipe) => [recipe.id, recipe.status === "Active"]))
       )
@@ -338,7 +399,9 @@ export default function RecipesPage() {
       category_id: recipeCategory,
       subcategory_id: recipeSubCategory,
       active: false,
-      saleable: false,
+      saleable: true,
+      contains_sub_recipe: false,
+      vat_id: defaultVatId ?? undefined,
       portion: 1,
     })
       .then((created) => {
@@ -350,10 +413,10 @@ export default function RecipesPage() {
         navigate(`/dashboard/recipes/${created.id}`, {
           state: {
             recipeId: created.id,
+            recipe: toRecipeDetail(created),
             forceSaveOnEntry: true,
           },
         })
-        loadRecipes()
       })
       .catch(() => {
         toast.error("Impossible de créer la recette.")
@@ -366,7 +429,10 @@ export default function RecipesPage() {
         open={deleteDialogOpen}
         onOpenChange={(open) => {
           setDeleteDialogOpen(open)
-          if (!open) setRecipeToDelete(null)
+          if (!open) {
+            setRecipeToDelete(null)
+            setDeleteSaving(false)
+          }
         }}
       >
         <AlertDialogContent>
@@ -382,8 +448,16 @@ export default function RecipesPage() {
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className={buttonVariants({ variant: "destructive" })}
+              disabled={deleteSaving}
             >
-              Supprimer
+              {deleteSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                "Supprimer"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -396,6 +470,7 @@ export default function RecipesPage() {
           if (!open) {
             setRecipeToDuplicate(null)
             setDuplicateName("")
+            setDuplicateSaving(false)
           }
         }}
       >
@@ -420,8 +495,19 @@ export default function RecipesPage() {
             <Button type="button" variant="ghost" onClick={() => setDuplicateDialogOpen(false)}>
               Annuler
             </Button>
-            <Button type="button" onClick={handleDuplicateConfirm} disabled={!duplicateName.trim()}>
-              Dupliquer
+            <Button
+              type="button"
+              onClick={handleDuplicateConfirm}
+              disabled={!duplicateName.trim() || duplicateSaving}
+            >
+              {duplicateSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Duplication...
+                </>
+              ) : (
+                "Dupliquer"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

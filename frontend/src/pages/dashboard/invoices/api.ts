@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import api from "@/lib/axiosClient"
 import type {
   InvoiceDetail,
@@ -161,7 +162,17 @@ export const formatLongDate = (value?: string | Date | null) => {
   if (!value) return "--"
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return "--"
-  return longDateFormatter.format(date)
+  const capitalize = (input: string) =>
+    input ? `${input[0].toLocaleUpperCase("fr-FR")}${input.slice(1)}` : input
+  const parts = longDateFormatter.formatToParts(date)
+  return parts
+    .map((part) => {
+      if (part.type === "weekday" || part.type === "month") {
+        return capitalize(part.value)
+      }
+      return part.value
+    })
+    .join("")
 }
 
 export const formatShortDateLabel = (value: Date) => {
@@ -319,106 +330,100 @@ export const useInvoicesListData = (
   from?: Date,
   to?: Date
 ) => {
-  const [invoices, setInvoices] = useState<InvoiceListItem[]>([])
-  const [supplierOptions, setSupplierOptions] = useState<SupplierOption[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const fromKey = useMemo(() => (from ? formatDateParam(from) : null), [from])
+  const toKey = useMemo(() => (to ? formatDateParam(to) : null), [to])
 
-  const load = useCallback(async () => {
-    if (!estId) return
-    setIsLoading(true)
-    setError(null)
-    try {
+  const suppliersQuery = useQuery({
+    queryKey: ["suppliers", "invoices", estId],
+    enabled: Boolean(estId),
+    queryFn: async () => {
+      if (!estId) return []
+      const response = await api.get<ApiSupplier[]>("/suppliers", {
+        params: {
+          establishment_id: estId,
+          order_by: "name",
+          direction: "asc",
+          limit: 1000,
+        },
+      })
+      return response.data ?? []
+    },
+  })
+
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices", "list", estId, fromKey, toKey],
+    enabled: Boolean(estId),
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      if (!estId) return []
       const invoiceParams: Record<string, string | number> = {
         establishment_id: estId,
         limit: 200,
       }
-      if (from) invoiceParams.date_gte = formatDateParam(from)
-      if (to) invoiceParams.date_lte = formatDateParam(to)
+      if (fromKey) invoiceParams.date_gte = fromKey
+      if (toKey) invoiceParams.date_lte = toKey
+      const response = await api.get<ApiInvoice[]>("/invoices/", { params: invoiceParams })
+      return response.data ?? []
+    },
+  })
 
-      const [suppliersRes, invoicesRes] = await Promise.allSettled([
-        api.get<ApiSupplier[]>("/suppliers", {
-          params: {
-            establishment_id: estId,
-            order_by: "name",
-            direction: "asc",
-            limit: 1000,
-          },
-        }),
-        api.get<ApiInvoice[]>("/invoices/", {
-          params: invoiceParams,
-        }),
-      ])
+  const supplierMap = useMemo(() => {
+    const map = new Map<string, ApiSupplier>()
+    ;(suppliersQuery.data ?? []).forEach((supplier) => {
+      if (supplier.id) map.set(supplier.id, supplier)
+    })
+    return map
+  }, [suppliersQuery.data])
 
-      const suppliers =
-        suppliersRes.status === "fulfilled" ? suppliersRes.value.data ?? [] : []
-      const invoicesRaw =
-        invoicesRes.status === "fulfilled" ? invoicesRes.value.data ?? [] : []
+  const invoices = useMemo(() => {
+    const invoicesRaw = invoicesQuery.data ?? []
+    return invoicesRaw.map((inv) => {
+      const supplier = inv.supplier_id ? supplierMap.get(inv.supplier_id) : undefined
+      const totals = getInvoiceTotals(inv)
+      const dateValue = inv.date
+        ? new Date(inv.date)
+        : inv.created_at
+          ? new Date(inv.created_at)
+          : new Date()
+      const createdAt = inv.created_at ? new Date(inv.created_at) : dateValue
 
-      const supplierMap = new Map<string, ApiSupplier>()
-      suppliers.forEach((supplier) => {
-        if (supplier.id) supplierMap.set(supplier.id, supplier)
-      })
-
-      const countsByInvoice = new Map<string, number>()
-      await Promise.allSettled(
-        invoicesRaw.map(async (inv) => {
-          if (!inv.id) return
-          const detailRes = await api.get<ApiInvoiceDetailResponse>(`/invoices/${inv.id}/details`)
-          const count = detailRes.data?.articles_count
-          if (typeof count === "number") {
-            countsByInvoice.set(inv.id, count)
-          }
-        })
-      )
-
-      const mappedInvoices: InvoiceListItem[] = invoicesRaw.map((inv) => {
-        const supplier = inv.supplier_id ? supplierMap.get(inv.supplier_id) : undefined
-        const totals = getInvoiceTotals(inv)
-        const dateValue = inv.date ? new Date(inv.date) : inv.created_at ? new Date(inv.created_at) : new Date()
-        const createdAt = inv.created_at ? new Date(inv.created_at) : dateValue
-        const itemsCount = countsByInvoice.get(inv.id) ?? 0
-
-        return {
-          id: inv.id,
-          supplier: supplier?.name || "Fournisseur",
-          supplierValue: inv.supplier_id || "",
-          reference: formatInvoiceReference(inv.invoice_number, inv.id),
-          date: formatShortDate(dateValue),
-          dateValue,
-          createdAt,
-          items: itemsCount ? `${itemsCount} articles` : "--",
-          ht: formatCurrencyValue(totals.ht),
-          tva: formatCurrencyValue(totals.tva),
-          ttc: formatCurrencyValue(totals.ttc),
-          ttcValue: totals.ttc ?? undefined,
-        }
-      })
-
-      setSupplierOptions(
-        suppliers.map((supplier) => ({
-          value: supplier.id,
-          label: supplier.name || "Fournisseur",
-        }))
-      )
-      setInvoices(mappedInvoices)
-      if (invoicesRes.status === "rejected") {
-        setError("Impossible de charger les factures.")
+      return {
+        id: inv.id,
+        supplier: supplier?.name || "Fournisseur",
+        supplierValue: inv.supplier_id || "",
+        reference: formatInvoiceReference(inv.invoice_number, inv.id),
+        date: formatShortDate(dateValue),
+        dateValue,
+        createdAt,
+        ht: formatCurrencyValue(totals.ht),
+        tva: formatCurrencyValue(totals.tva),
+        ttc: formatCurrencyValue(totals.ttc),
+        ttcValue: totals.ttc ?? undefined,
       }
-    } catch (err) {
-      setError("Impossible de charger les factures.")
-      setInvoices([])
-      setSupplierOptions([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [estId, from, to])
+    })
+  }, [invoicesQuery.data, supplierMap])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  const supplierOptions = useMemo(() => {
+    const suppliers = suppliersQuery.data ?? []
+    return suppliers.map((supplier) => ({
+      value: supplier.id,
+      label: supplier.name || "Fournisseur",
+    }))
+  }, [suppliersQuery.data])
 
-  return { invoices, supplierOptions, isLoading, error, refresh: load }
+  const isLoading = suppliersQuery.isLoading || invoicesQuery.isLoading
+  const error = suppliersQuery.error
+    ? "Impossible de charger les fournisseurs."
+    : invoicesQuery.error
+      ? "Impossible de charger les factures."
+      : null
+
+  const refresh = useCallback(() => {
+    suppliersQuery.refetch()
+    invoicesQuery.refetch()
+  }, [suppliersQuery, invoicesQuery])
+
+  return { invoices, supplierOptions, isLoading, error, refresh }
 }
 
 const buildPriceHistory = (
@@ -459,36 +464,139 @@ const buildPriceHistory = (
   return []
 }
 
+type InvoiceItemHistoryOptions = {
+  estId?: string | null
+  masterArticleId?: string | null
+  fallbackDate: Date
+  unitPrice?: string
+  enabled?: boolean
+}
+
+export const useInvoiceItemHistory = ({
+  estId,
+  masterArticleId,
+  fallbackDate,
+  unitPrice,
+  enabled,
+}: InvoiceItemHistoryOptions) => {
+  const shouldFetch = Boolean(enabled && estId && masterArticleId)
+
+  const variationsQuery = useQuery({
+    queryKey: ["variations", estId],
+    enabled: shouldFetch,
+    queryFn: async () => {
+      if (!estId) return []
+      const response = await api.get<ApiVariation[]>("/variations", {
+        params: {
+          establishment_id: estId,
+          order_by: "date",
+          direction: "asc",
+          limit: 2000,
+        },
+      })
+      return response.data ?? []
+    },
+  })
+
+  const history = useMemo(() => {
+    const fallbackValue = unitPrice ? parseNumber(unitPrice) : null
+    if (!masterArticleId) {
+      return buildPriceHistory([], fallbackDate, fallbackValue)
+    }
+    const variations = variationsQuery.data ?? []
+    const filtered = variations.filter(
+      (variation) => variation.master_article_id === masterArticleId
+    )
+    return buildPriceHistory(filtered, fallbackDate, fallbackValue)
+  }, [fallbackDate, masterArticleId, unitPrice, variationsQuery.data])
+
+  return {
+    history,
+    isLoading: shouldFetch ? variationsQuery.isLoading || variationsQuery.isFetching : false,
+    error: variationsQuery.error,
+  }
+}
+
 export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string | null) => {
-  const [invoice, setInvoice] = useState<InvoiceDetail | null>(null)
-  const [priceHistoryById, setPriceHistoryById] = useState<Record<string, InvoicePricePoint[]>>({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const baseInvoiceQuery = useQuery({
+    queryKey: ["invoice", invoiceId, estId],
+    enabled: Boolean(invoiceId),
+    queryFn: async () => {
+      if (!invoiceId) return null
+      const invoiceRes = await api.get<ApiInvoice>(`/invoices/${invoiceId}`)
+      const invoiceData = invoiceRes.data
+      if (!invoiceData) return null
 
-  const load = useCallback(async () => {
-    if (!invoiceId) return
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      const [detailRes, invoiceRes] = await Promise.all([
-        api.get<ApiInvoiceDetailResponse>(`/invoices/${invoiceId}/details`),
-        api.get<ApiInvoice>(`/invoices/${invoiceId}`),
-      ])
-
-      const detail = detailRes.data ?? {}
-      const invoiceData = invoiceRes.data ?? detail.invoice
-
-      if (!invoiceData) {
-        setInvoice(null)
-        setIsLoading(false)
-        return
+      let supplierName = "Fournisseur"
+      let supplierLabel = ""
+      const supplierId = invoiceData.supplier_id
+      if (supplierId) {
+        try {
+          if (estId) {
+            const suppliersRes = await api.get<ApiSupplier[]>("/suppliers", {
+              params: {
+                establishment_id: estId,
+                limit: 1000,
+              },
+            })
+            const supplier = suppliersRes.data?.find((item) => item.id === supplierId)
+            if (supplier) {
+              supplierName = supplier.name || supplierName
+              supplierLabel = supplier.label ?? ""
+            } else {
+              const supplierRes = await api.get<ApiSupplier>(`/suppliers/${supplierId}`)
+              supplierName = supplierRes.data?.name || supplierName
+              supplierLabel = supplierRes.data?.label ?? ""
+            }
+          } else {
+            const supplierRes = await api.get<ApiSupplier>(`/suppliers/${supplierId}`)
+            supplierName = supplierRes.data?.name || supplierName
+            supplierLabel = supplierRes.data?.label ?? ""
+          }
+        } catch {
+          // Keep fallback supplier name.
+        }
       }
 
-      const supplierId = invoiceData.supplier_id
-      const supplierRes = supplierId ? await api.get<ApiSupplier>(`/suppliers/${supplierId}`) : null
-      const supplier = supplierRes?.data
+      const totals = getInvoiceTotals(invoiceData)
+      const invoiceDateValue = invoiceData.date ? new Date(invoiceData.date) : null
+      const fallbackDate =
+        invoiceDateValue && !Number.isNaN(invoiceDateValue.getTime()) ? invoiceDateValue : new Date()
 
+      const supplierType =
+        supplierLabel.toLowerCase().includes("beverage") ||
+        supplierLabel.toLowerCase().includes("boisson")
+          ? "beverage"
+          : "other"
+
+      const invoice: InvoiceDetail = {
+        number: formatInvoiceReference(invoiceData.invoice_number, invoiceData.id),
+        lastModified: formatShortDate(invoiceData.updated_at ?? invoiceData.created_at ?? invoiceData.date),
+        supplier: supplierName,
+        supplierType,
+        date: formatLongDate(invoiceData.date),
+        importedAt: formatShortDate(invoiceData.created_at ?? invoiceData.date),
+        documentUrl: invoiceData.file_storage_path ?? undefined,
+        pageCount: 1,
+        totals: {
+          ht: formatCurrencyValue(totals.ht),
+          tva: formatCurrencyValue(totals.tva),
+          ttc: formatCurrencyValue(totals.ttc),
+        },
+        items: [],
+      }
+
+      return { invoice, fallbackDate }
+    },
+  })
+
+  const articlesQuery = useQuery({
+    queryKey: ["invoice", invoiceId, "details", estId],
+    enabled: Boolean(invoiceId && baseInvoiceQuery.data),
+    queryFn: async () => {
+      if (!invoiceId) return { items: [] }
+      const detailRes = await api.get<ApiInvoiceDetailResponse>(`/invoices/${invoiceId}/details`)
+      const detail = detailRes.data ?? {}
       const articleRows = detail.articles ?? []
       const masterIds = Array.from(
         new Set(articleRows.map((article) => article.master_article_id).filter(Boolean))
@@ -503,12 +611,6 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
           }
         })
       )
-
-      const totals = getInvoiceTotals(invoiceData)
-      const invoiceDateValue = invoiceData.date ? new Date(invoiceData.date) : null
-      const fallbackDate = invoiceDateValue && !Number.isNaN(invoiceDateValue.getTime())
-        ? invoiceDateValue
-        : new Date()
 
       const items: InvoiceItem[] = articleRows.map((article) => {
         const master = article.master_article_id ? masterMap.get(article.master_article_id) : undefined
@@ -548,77 +650,31 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
         }
       })
 
-      const supplierLabel = supplier?.label ?? ""
-      const supplierType = supplierLabel.toLowerCase().includes("beverage") || supplierLabel.toLowerCase().includes("boisson")
-        ? "beverage"
-        : "other"
+      return { items }
+    },
+  })
 
-      const detailInvoice: InvoiceDetail = {
-        number: formatInvoiceReference(invoiceData.invoice_number, invoiceData.id),
-        lastModified: formatShortDate(invoiceData.updated_at ?? invoiceData.created_at ?? invoiceData.date),
-        supplier: supplier?.name || "Fournisseur",
-        supplierType,
-        date: formatLongDate(invoiceData.date),
-        importedAt: formatShortDate(invoiceData.created_at ?? invoiceData.date),
-        documentUrl: invoiceData.file_storage_path ?? undefined,
-        pageCount: 1,
-        totals: {
-          ht: formatCurrencyValue(totals.ht),
-          tva: formatCurrencyValue(totals.tva),
-          ttc: formatCurrencyValue(totals.ttc),
-        },
-        items,
-      }
+  const invoice = useMemo(() => {
+    const base = baseInvoiceQuery.data?.invoice
+    if (!base) return null
+    if (!articlesQuery.data) return base
+    return { ...base, items: articlesQuery.data.items }
+  }, [articlesQuery.data, baseInvoiceQuery.data])
 
-      const variationsRes = estId
-        ? await api.get<ApiVariation[]>("/variations", {
-            params: {
-              establishment_id: estId,
-              order_by: "date",
-              direction: "asc",
-              limit: 2000,
-            },
-          })
-        : { data: [] as ApiVariation[] }
+  const isLoading = baseInvoiceQuery.isLoading
+  const isArticlesLoading = articlesQuery.isLoading || articlesQuery.isFetching
+  const error = baseInvoiceQuery.error
+    ? "Impossible de charger la facture."
+    : articlesQuery.error
+      ? "Impossible de charger le détail des articles."
+      : null
 
-      const variations = variationsRes.data ?? []
-      const variationsByMaster = new Map<string, ApiVariation[]>()
-      variations.forEach((variation) => {
-        if (!variation.master_article_id) return
-        const current = variationsByMaster.get(variation.master_article_id) ?? []
-        current.push(variation)
-        variationsByMaster.set(variation.master_article_id, current)
-      })
+  const refresh = useCallback(() => {
+    baseInvoiceQuery.refetch()
+    articlesQuery.refetch()
+  }, [articlesQuery, baseInvoiceQuery])
 
-      const historyMap: Record<string, InvoicePricePoint[]> = {}
-      items.forEach((item) => {
-        const key = item.masterArticleId ?? item.name
-        const history = key && variationsByMaster.has(key)
-          ? buildPriceHistory(
-              variationsByMaster.get(key) ?? [],
-              fallbackDate,
-              parseNumber(item.unitPrice)
-            )
-          : buildPriceHistory([], fallbackDate, parseNumber(item.unitPrice))
-        historyMap[key] = history
-      })
-
-      setInvoice(detailInvoice)
-      setPriceHistoryById(historyMap)
-    } catch (err) {
-      setError("Impossible de charger la facture.")
-      setInvoice(null)
-      setPriceHistoryById({})
-    } finally {
-      setIsLoading(false)
-    }
-  }, [estId, invoiceId])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  return { invoice, priceHistoryById, isLoading, error, refresh: load }
+  return { invoice, isLoading, isArticlesLoading, error, refresh }
 }
 
 export const updateSupplier = async (supplierId: string, payload: Partial<ApiSupplier>) => {
@@ -659,7 +715,7 @@ export const useSuppliersData = (estId?: string | null) => {
     setError(null)
 
     try {
-      const [suppliersRes, invoicesRes, mergeRes, marketRes] = await Promise.all([
+      const [suppliersRes, invoicesRes, mergeRes, marketRes] = await Promise.allSettled([
         api.get<ApiSupplier[]>("/suppliers", {
           params: {
             establishment_id: estId,
@@ -687,10 +743,13 @@ export const useSuppliersData = (estId?: string | null) => {
         }),
       ])
 
-      const suppliersRaw = suppliersRes.data ?? []
-      const invoicesRaw = invoicesRes.data ?? []
-      const mergeRaw = mergeRes.data ?? []
-      const marketSuppliers = marketRes.data ?? []
+      const suppliersRaw =
+        suppliersRes.status === "fulfilled" ? suppliersRes.value.data ?? [] : []
+      const invoicesRaw =
+        invoicesRes.status === "fulfilled" ? invoicesRes.value.data ?? [] : []
+      const mergeRaw = mergeRes.status === "fulfilled" ? mergeRes.value.data ?? [] : []
+      const marketSuppliers =
+        marketRes.status === "fulfilled" ? marketRes.value.data ?? [] : []
 
       const invoiceCounts = new Map<string, number>()
       invoicesRaw.forEach((invoice) => {
@@ -753,6 +812,9 @@ export const useSuppliersData = (estId?: string | null) => {
       )
       setMergeRequests(mergeMapped)
       setMarketSuppliersById(marketMap)
+      if (suppliersRes.status === "rejected") {
+        setError("Impossible de charger les fournisseurs.")
+      }
     } catch (err) {
       setError("Impossible de charger les fournisseurs.")
       setSuppliers([])

@@ -1,12 +1,44 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { MercurialeDetailView } from "./mercuriale-detail"
 import { MercurialesListView } from "./list"
 import { MercurialeSupplierDetailView } from "./supplier-detail"
+import {
+  createMercuriale,
+  createMercurialeArticle,
+  createMercurialeMasterArticle,
+  createMercurialeSupplier,
+  deleteMercurialeArticle,
+  deleteMercurialeMasterArticle,
+  fetchEstablishments,
+  fetchMercurialeArticles,
+  fetchMercurialeCategories,
+  fetchMercurialeMasterArticles,
+  fetchMercurialeRequests,
+  fetchMercurialeSubcategories,
+  fetchMercurialeSuppliers,
+  fetchMercuriales,
+  updateMercuriale,
+  updateMercurialeArticle,
+  updateMercurialeMasterArticle,
+  updateMercurialeSupplier,
+} from "./api"
+import type {
+  ApiMercuriale,
+  ApiMercurialeArticle,
+  ApiMercurialeCategory,
+  ApiMercurialeMasterArticle,
+  ApiMercurialeRequest,
+  ApiMercurialeSubcategory,
+  ApiMercurialeSupplier,
+} from "./api"
 import type {
   Mercuriale,
   MercurialeArticle,
+  MercurialeCategory,
   MercurialeMasterArticle,
   MercurialeRequest,
+  MercurialeSubcategory,
   MercurialeSupplier,
   SupplierLabel,
 } from "./types"
@@ -71,205 +103,237 @@ type MercurialeArticleCreateInput = {
 type MasterArticleUpdateInput = MasterArticleCreateInput
 type MercurialeArticleUpdateInput = MercurialeArticleCreateInput
 
-const createId = (prefix: string) =>
-  `${prefix}-${Math.random().toString(36).slice(2, 9)}`
+const toNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
 
-const nowStamp = () => new Date().toISOString().slice(0, 10)
+const toDateOnly = (value?: string | null) =>
+  value ? value.split("T")[0] : null
 
-const initialRequests: MercurialeRequest[] = [
-  {
-    id: "req-1",
-    createdAt: "2025-01-12",
-    establishment: "Le Bistrot Marais",
-    message: "Fournisseur: Metro. Produits: saumon frais, citron jaune.",
-  },
-  {
-    id: "req-2",
-    createdAt: "2025-01-18",
-    establishment: "Casa Napoli",
-    message: "Fournisseur: Transgourmet. Produits: mozzarella, farine 00.",
-  },
-  {
-    id: "req-3",
-    createdAt: "2025-01-22",
-    establishment: "Brasserie du Parc",
-    message: "Fournisseur: France Boissons. Produits: biere pression.",
-  },
-]
+const toDateKey = (value?: string | null) => {
+  if (!value) return 0
+  const dateValue = value.split("T")[0]
+  const date = new Date(dateValue)
+  return Number.isFinite(date.getTime()) ? date.getTime() : 0
+}
 
-const initialSuppliers: MercurialeSupplier[] = [
-  {
-    id: "sup-1",
-    name: "Metro",
-    label: "FOOD",
-    active: true,
-    marketSupplierId: "metro-001",
-    mercurialLogoPath: "/assets/mercus/metro.svg",
-  },
-  {
-    id: "sup-2",
-    name: "Transgourmet",
-    label: "FOOD",
-    active: true,
-    marketSupplierId: "transgourmet-002",
-    mercurialLogoPath: "/assets/mercus/transgourmet.svg",
-  },
-  {
-    id: "sup-3",
-    name: "France Boissons",
-    label: "BEVERAGES",
-    active: false,
-    marketSupplierId: "france-boissons-003",
-    mercurialLogoPath: "/assets/mercus/france-boissons.svg",
-  },
-]
+const normalizeSupplierLabel = (value?: SupplierLabel | null): SupplierLabel =>
+  value ?? "OTHER"
 
-const initialMercuriales: Mercuriale[] = [
-  {
-    id: "merc-1",
-    supplierId: "sup-1",
-    name: "Mercuriale hiver",
-    description: "Liste hiver, mise a jour hebdomadaire.",
-    active: true,
-    effectiveFrom: "2025-01-01",
-    effectiveTo: "2025-03-31",
-    updatedAt: "2025-02-03",
-  },
-  {
-    id: "merc-2",
-    supplierId: "sup-1",
-    name: "Mercuriale printemps",
-    description: "Transition printemps.",
-    active: false,
-    effectiveFrom: "2025-04-01",
-    effectiveTo: "2025-06-30",
-    updatedAt: "2025-03-15",
-  },
-  {
-    id: "merc-3",
-    supplierId: "sup-2",
-    name: "Mercuriale Q1",
-    description: "Standard Q1.",
-    active: true,
-    effectiveFrom: "2025-01-05",
-    effectiveTo: "2025-03-29",
-    updatedAt: "2025-02-10",
-  },
-  {
-    id: "merc-4",
-    supplierId: "sup-3",
-    name: "Mercuriale boissons",
-    description: "Tarifs boissons.",
-    active: false,
-    effectiveFrom: "2024-11-01",
-    effectiveTo: "2024-12-31",
-    updatedAt: "2024-12-16",
-  },
-]
+const dedupe = (values: string[]) =>
+  Array.from(new Set(values.filter((value) => value.trim().length > 0)))
 
-const initialMasterArticles: MercurialeMasterArticle[] = [
-  {
-    id: "ma-1",
-    supplierId: "sup-1",
-    name: "Saumon frais",
-    unit: "kg",
-    vatRate: 5.5,
-    category: "Poissons",
-    subcategory: "Frais",
-    active: true,
-  },
-  {
-    id: "ma-2",
-    supplierId: "sup-1",
-    name: "Citron jaune",
-    unit: "kg",
-    vatRate: 5.5,
-    category: "Fruits",
-    subcategory: "Agrumes",
-    active: true,
-  },
-  {
-    id: "ma-3",
-    supplierId: "sup-2",
-    name: "Mozzarella",
-    unit: "kg",
-    vatRate: 5.5,
-    category: "Cremerie",
-    subcategory: "Fromages",
-    active: true,
-  },
-  {
-    id: "ma-4",
-    supplierId: "sup-2",
-    name: "Farine 00",
-    unit: "kg",
-    vatRate: 5.5,
-    category: "Epicerie",
-    subcategory: "Boulangerie",
-    active: true,
-  },
-  {
-    id: "ma-5",
-    supplierId: "sup-3",
-    name: "Biere pression",
-    unit: "L",
-    vatRate: 20,
-    category: "Boissons",
-    subcategory: "Biere",
-    active: true,
-  },
-]
+const computeArticleVariations = (
+  mercuriales: Mercuriale[],
+  articles: MercurialeArticle[]
+) => {
+  const mercurialesBySupplier = new Map<string, Mercuriale[]>()
+  for (const mercuriale of mercuriales) {
+    if (!mercuriale.supplierId) continue
+    const list = mercurialesBySupplier.get(mercuriale.supplierId) ?? []
+    list.push(mercuriale)
+    mercurialesBySupplier.set(mercuriale.supplierId, list)
+  }
 
-const initialArticles: MercurialeArticle[] = [
-  {
-    id: "art-1",
-    mercurialeId: "merc-1",
-    masterArticleId: "ma-1",
-    priceStandard: 19.5,
-    pricePlus: 18.9,
-    pricePremium: 18.3,
-    variation: 0.04,
-    active: true,
-  },
-  {
-    id: "art-2",
-    mercurialeId: "merc-1",
-    masterArticleId: "ma-2",
-    priceStandard: 2.4,
-    pricePlus: 2.3,
-    pricePremium: 2.1,
-    variation: -0.02,
-    active: true,
-  },
-  {
-    id: "art-3",
-    mercurialeId: "merc-3",
-    masterArticleId: "ma-3",
-    priceStandard: 7.9,
-    pricePlus: 7.4,
-    pricePremium: 7.1,
-    variation: 0.01,
-    active: true,
-  },
-  {
-    id: "art-4",
-    mercurialeId: "merc-3",
-    masterArticleId: "ma-4",
-    priceStandard: 1.2,
-    pricePlus: 1.1,
-    pricePremium: 1.05,
-    variation: -0.03,
-    active: true,
-  },
-]
+  const previousByMercuriale = new Map<string, string | null>()
+  mercurialesBySupplier.forEach((list) => {
+    const ordered = [...list].sort(
+      (a, b) =>
+        toDateKey(a.effectiveFrom ?? a.updatedAt) -
+        toDateKey(b.effectiveFrom ?? b.updatedAt)
+    )
+    ordered.forEach((item, index) => {
+      previousByMercuriale.set(item.id, index > 0 ? ordered[index - 1].id : null)
+    })
+  })
+
+  const priceByMercuriale = new Map<string, Map<string, number>>()
+  for (const article of articles) {
+    if (!article.mercurialeId || article.priceStandard == null) continue
+    const map = priceByMercuriale.get(article.mercurialeId) ?? new Map()
+    map.set(article.masterArticleId, article.priceStandard)
+    priceByMercuriale.set(article.mercurialeId, map)
+  }
+
+  return articles.map((article) => {
+    const previousMercurialeId = previousByMercuriale.get(article.mercurialeId)
+    const currentPrice = article.priceStandard
+    if (!previousMercurialeId || currentPrice == null || currentPrice === 0) {
+      return { ...article, variation: null }
+    }
+    const previousPrice =
+      priceByMercuriale
+        .get(previousMercurialeId)
+        ?.get(article.masterArticleId) ?? null
+    if (previousPrice == null || previousPrice === 0) {
+      return { ...article, variation: null }
+    }
+    return {
+      ...article,
+      variation: (currentPrice - previousPrice) / previousPrice,
+    }
+  })
+}
+
+const mapSupplier = (row: ApiMercurialeSupplier): MercurialeSupplier => ({
+  id: row.id,
+  name: row.name ?? "Fournisseur",
+  label: normalizeSupplierLabel(row.label),
+  active: Boolean(row.active),
+  marketSupplierId: row.market_supplier_id ?? null,
+  mercurialLogoPath: row.mercurial_logo_path ?? null,
+})
+
+const mapMercuriale = (row: ApiMercuriale): Mercuriale => ({
+  id: row.id,
+  supplierId: row.mercuriale_supplier_id ?? "",
+  name: row.name ?? "Mercuriale",
+  description: row.description ?? null,
+  active: Boolean(row.active),
+  effectiveFrom: toDateOnly(row.effective_from),
+  effectiveTo: toDateOnly(row.effective_to),
+  updatedAt: toDateOnly(row.updated_at ?? row.created_at),
+})
+
+const mapMasterArticle = (
+  row: ApiMercurialeMasterArticle,
+  categoryById: Map<string, string>,
+  subcategoryById: Map<string, string>
+): MercurialeMasterArticle => ({
+  id: row.id,
+  supplierId: row.mercurial_supplier_id ?? "",
+  name: row.name ?? "Master article",
+  unit: row.unit ?? "u",
+  vatRate: toNumber(row.vat_rate) ?? 0,
+  category: categoryById.get(row.category_id ?? "") ?? "Divers",
+  subcategory: subcategoryById.get(row.subcategory_id ?? "") ?? "Divers",
+  raceName: row.race_name ?? null,
+  description: row.description ?? null,
+  active: Boolean(row.active),
+})
+
+const mapArticle = (
+  row: ApiMercurialeArticle,
+  variation: number | null = null
+): MercurialeArticle => ({
+  id: row.id,
+  mercurialeId: row.mercuriale_id ?? "",
+  masterArticleId: row.mercurial_master_article_id ?? "",
+  priceStandard: toNumber(row.price_standard),
+  pricePlus: toNumber(row.price_plus),
+  pricePremium: toNumber(row.price_premium),
+  variation,
+  active: Boolean(row.active),
+})
+
+const mapCategory = (row: ApiMercurialeCategory): MercurialeCategory => ({
+  id: row.id,
+  name: row.name ?? "Divers",
+  createdAt: row.created_at ?? null,
+})
+
+const mapSubcategory = (
+  row: ApiMercurialeSubcategory
+): MercurialeSubcategory => ({
+  id: row.id,
+  name: row.name ?? "Divers",
+  categoryId: row.category_id ?? null,
+  createdAt: row.created_at ?? null,
+})
+
+const mapRequest = (
+  row: ApiMercurialeRequest,
+  establishmentById: Map<string, string>
+): MercurialeRequest => ({
+  id: row.id,
+  createdAt: toDateOnly(row.created_at) ?? "--",
+  establishment:
+    establishmentById.get(row.establishment_id ?? "") ??
+    row.establishment_id ??
+    "--",
+  message: row.message ?? "--",
+})
 
 export default function AdminMercurialesPage() {
-  const [requests] = useState(initialRequests)
-  const [suppliers, setSuppliers] = useState(initialSuppliers)
-  const [mercuriales, setMercuriales] = useState(initialMercuriales)
-  const [masterArticles, setMasterArticles] = useState(initialMasterArticles)
-  const [articles, setArticles] = useState(initialArticles)
+  const [requests, setRequests] = useState<MercurialeRequest[]>([])
+  const [suppliers, setSuppliers] = useState<MercurialeSupplier[]>([])
+  const [mercuriales, setMercuriales] = useState<Mercuriale[]>([])
+  const [masterArticles, setMasterArticles] = useState<MercurialeMasterArticle[]>([])
+  const [articles, setArticles] = useState<MercurialeArticle[]>([])
+  const [categories, setCategories] = useState<MercurialeCategory[]>([])
+  const [subcategories, setSubcategories] = useState<MercurialeSubcategory[]>([])
   const [view, setView] = useState<ViewState>({ type: "list" })
+
+  useEffect(() => {
+    let active = true
+
+    const loadData = async () => {
+      try {
+        const [
+          requestsData,
+          suppliersData,
+          mercurialesData,
+          masterArticlesData,
+          articlesData,
+          categoriesData,
+          subcategoriesData,
+          establishmentsData,
+        ] = await Promise.all([
+          fetchMercurialeRequests(),
+          fetchMercurialeSuppliers(),
+          fetchMercuriales(),
+          fetchMercurialeMasterArticles(),
+          fetchMercurialeArticles(),
+          fetchMercurialeCategories(),
+          fetchMercurialeSubcategories(),
+          fetchEstablishments(),
+        ])
+
+        if (!active) return
+
+        const establishmentById = new Map(
+          establishmentsData.map((row) => [row.id, row.name ?? row.id])
+        )
+
+        const mappedCategories = categoriesData.map(mapCategory)
+        const mappedSubcategories = subcategoriesData.map(mapSubcategory)
+        const categoryById = new Map(
+          mappedCategories.map((row) => [row.id, row.name])
+        )
+        const subcategoryById = new Map(
+          mappedSubcategories.map((row) => [row.id, row.name])
+        )
+
+        const mappedSuppliers = suppliersData.map(mapSupplier)
+        const mappedMercuriales = mercurialesData.map(mapMercuriale)
+        const mappedMasterArticles = masterArticlesData.map((row) =>
+          mapMasterArticle(row, categoryById, subcategoryById)
+        )
+        const mappedArticles = articlesData.map((row) => mapArticle(row))
+
+        setRequests(
+          requestsData.map((row) => mapRequest(row, establishmentById))
+        )
+        setSuppliers(mappedSuppliers)
+        setMercuriales(mappedMercuriales)
+        setMasterArticles(mappedMasterArticles)
+        setCategories(mappedCategories)
+        setSubcategories(mappedSubcategories)
+        setArticles(computeArticleVariations(mappedMercuriales, mappedArticles))
+      } catch (error) {
+        console.error(error)
+        toast.error("Impossible de charger les mercuriales.")
+      }
+    }
+
+    loadData()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const selectedSupplierId =
     view.type === "supplier" || view.type === "mercuriale"
@@ -304,161 +368,261 @@ export default function AdminMercurialesPage() {
     )
   }, [articles, selectedMercuriale])
 
-  const handleCreateSupplier = (input: SupplierCreateInput) => {
-    setSuppliers((prev) => [
-      ...prev,
-      {
-        id: createId("sup"),
+  const categoryOptions = useMemo(
+    () => dedupe(categories.map((row) => row.name)),
+    [categories]
+  )
+
+  const subcategoryOptions = useMemo(
+    () => dedupe(subcategories.map((row) => row.name)),
+    [subcategories]
+  )
+
+  const categoryByName = useMemo(
+    () => new Map(categories.map((row) => [row.name, row.id])),
+    [categories]
+  )
+
+  const subcategoryByName = useMemo(
+    () => new Map(subcategories.map((row) => [row.name, row.id])),
+    [subcategories]
+  )
+
+  const refreshArticleVariations = (
+    nextArticles: MercurialeArticle[],
+    nextMercuriales = mercuriales
+  ) => computeArticleVariations(nextMercuriales, nextArticles)
+
+  const handleCreateSupplier = async (input: SupplierCreateInput) => {
+    try {
+      const created = await createMercurialeSupplier({
         name: input.name,
         label: input.label,
         active: input.active,
-        marketSupplierId: input.marketSupplierId ?? null,
-        mercurialLogoPath: input.mercurialLogoPath ?? null,
-      },
-    ])
+        market_supplier_id: input.marketSupplierId ?? null,
+        mercurial_logo_path: input.mercurialLogoPath ?? null,
+      })
+      setSuppliers((prev) => [...prev, mapSupplier(created)])
+      toast.success("Fournisseur cree.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de creer le fournisseur.")
+    }
   }
 
-  const handleUpdateSupplier = (input: SupplierUpdateInput) => {
+  const handleUpdateSupplier = async (input: SupplierUpdateInput) => {
     if (!selectedSupplier) return
-    setSuppliers((prev) =>
-      prev.map((supplier) =>
-        supplier.id === selectedSupplier.id
-          ? {
-              ...supplier,
-              name: input.name,
-              label: input.label,
-              active: input.active,
-              marketSupplierId: input.marketSupplierId ?? null,
-              mercurialLogoPath: input.mercurialLogoPath ?? null,
-            }
-          : supplier
+    try {
+      const updated = await updateMercurialeSupplier(selectedSupplier.id, {
+        name: input.name,
+        label: input.label,
+        active: input.active,
+        market_supplier_id: input.marketSupplierId ?? null,
+        mercurial_logo_path: input.mercurialLogoPath ?? null,
+      })
+      setSuppliers((prev) =>
+        prev.map((supplier) =>
+          supplier.id === selectedSupplier.id
+            ? mapSupplier(updated)
+            : supplier
+        )
       )
-    )
+      toast.success("Fournisseur mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour le fournisseur.")
+    }
   }
 
-  const handleCreateMercuriale = (input: MercurialeCreateInput) => {
+  const handleCreateMercuriale = async (input: MercurialeCreateInput) => {
     if (!selectedSupplier) return
-    setMercuriales((prev) => [
-      ...prev,
-      {
-        id: createId("merc"),
-        supplierId: selectedSupplier.id,
+    try {
+      const created = await createMercuriale({
+        mercuriale_supplier_id: selectedSupplier.id,
         name: input.name,
         description: input.description ?? null,
         active: input.active,
-        effectiveFrom: input.effectiveFrom ?? null,
-        effectiveTo: input.effectiveTo ?? null,
-        updatedAt: nowStamp(),
-      },
-    ])
+        effective_from: input.effectiveFrom ?? null,
+        effective_to: input.effectiveTo ?? null,
+      })
+      const mapped = mapMercuriale(created)
+      setMercuriales((prev) => {
+        const next = [...prev, mapped]
+        setArticles((prevArticles) => refreshArticleVariations(prevArticles, next))
+        return next
+      })
+      toast.success("Mercuriale creee.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de creer la mercuriale.")
+    }
   }
 
-  const handleUpdateMercuriale = (input: MercurialeUpdateInput) => {
+  const handleUpdateMercuriale = async (input: MercurialeUpdateInput) => {
     if (!selectedMercuriale) return
-    setMercuriales((prev) =>
-      prev.map((item) =>
-        item.id === selectedMercuriale.id
-          ? {
-              ...item,
-              name: input.name,
-              description: input.description ?? null,
-              active: input.active,
-              effectiveFrom: input.effectiveFrom ?? null,
-              effectiveTo: input.effectiveTo ?? null,
-              updatedAt: nowStamp(),
-            }
-          : item
-      )
-    )
+    try {
+      const updated = await updateMercuriale(selectedMercuriale.id, {
+        name: input.name,
+        description: input.description ?? null,
+        active: input.active,
+        effective_from: input.effectiveFrom ?? null,
+        effective_to: input.effectiveTo ?? null,
+      })
+      const mapped = mapMercuriale(updated)
+      setMercuriales((prev) => {
+        const next = prev.map((item) =>
+          item.id === selectedMercuriale.id ? mapped : item
+        )
+        setArticles((prevArticles) => refreshArticleVariations(prevArticles, next))
+        return next
+      })
+      toast.success("Mercuriale mise a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour la mercuriale.")
+    }
   }
 
-  const handleCreateMasterArticle = (input: MasterArticleCreateInput) => {
+  const handleCreateMasterArticle = async (input: MasterArticleCreateInput) => {
     if (!selectedSupplier) return
-    setMasterArticles((prev) => [
-      ...prev,
-      {
-        id: createId("ma"),
-        supplierId: selectedSupplier.id,
+    try {
+      const created = await createMercurialeMasterArticle({
+        mercurial_supplier_id: selectedSupplier.id,
         name: input.name,
         unit: input.unit,
-        vatRate: input.vatRate,
-        category: input.category,
-        subcategory: input.subcategory,
-        raceName: input.raceName ?? null,
+        vat_rate: input.vatRate,
+        category_id: categoryByName.get(input.category) ?? null,
+        subcategory_id: subcategoryByName.get(input.subcategory) ?? null,
+        race_name: input.raceName ?? null,
         description: input.description ?? null,
         active: input.active,
-      },
-    ])
+      })
+      const categoryById = new Map(categories.map((row) => [row.id, row.name]))
+      const subcategoryById = new Map(
+        subcategories.map((row) => [row.id, row.name])
+      )
+      setMasterArticles((prev) => [
+        ...prev,
+        mapMasterArticle(created, categoryById, subcategoryById),
+      ])
+      toast.success("Master article cree.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de creer le master article.")
+    }
   }
 
-  const handleUpdateMasterArticle = (
+  const handleUpdateMasterArticle = async (
     id: string,
     input: MasterArticleUpdateInput
   ) => {
-    setMasterArticles((prev) =>
-      prev.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              name: input.name,
-              unit: input.unit,
-              vatRate: input.vatRate,
-              category: input.category,
-              subcategory: input.subcategory,
-              raceName: input.raceName ?? null,
-              description: input.description ?? null,
-              active: input.active,
-            }
-          : row
-      )
-    )
-  }
-
-  const handleDeleteMasterArticle = (id: string) => {
-    setMasterArticles((prev) => prev.filter((row) => row.id !== id))
-    setArticles((prev) => prev.filter((row) => row.masterArticleId !== id))
-  }
-
-  const handleCreateArticle = (input: MercurialeArticleCreateInput) => {
-    if (!selectedMercuriale) return
-    setArticles((prev) => [
-      ...prev,
-      {
-        id: createId("art"),
-        mercurialeId: selectedMercuriale.id,
-        masterArticleId: input.masterArticleId,
-        priceStandard: input.priceStandard ?? null,
-        pricePlus: input.pricePlus ?? null,
-        pricePremium: input.pricePremium ?? null,
-        variation: input.variation ?? null,
+    try {
+      const updated = await updateMercurialeMasterArticle(id, {
+        name: input.name,
+        unit: input.unit,
+        vat_rate: input.vatRate,
+        category_id: categoryByName.get(input.category) ?? null,
+        subcategory_id: subcategoryByName.get(input.subcategory) ?? null,
+        race_name: input.raceName ?? null,
+        description: input.description ?? null,
         active: input.active,
-      },
-    ])
+      })
+      const categoryById = new Map(categories.map((row) => [row.id, row.name]))
+      const subcategoryById = new Map(
+        subcategories.map((row) => [row.id, row.name])
+      )
+      setMasterArticles((prev) =>
+        prev.map((row) =>
+          row.id === id
+            ? mapMasterArticle(updated, categoryById, subcategoryById)
+            : row
+        )
+      )
+      toast.success("Master article mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour le master article.")
+    }
   }
 
-  const handleUpdateArticle = (
+  const handleDeleteMasterArticle = async (id: string) => {
+    try {
+      await deleteMercurialeMasterArticle(id)
+      setMasterArticles((prev) => prev.filter((row) => row.id !== id))
+      setArticles((prev) =>
+        refreshArticleVariations(
+          prev.filter((row) => row.masterArticleId !== id)
+        )
+      )
+      toast.success("Master article supprime.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de supprimer le master article.")
+    }
+  }
+
+  const handleCreateArticle = async (input: MercurialeArticleCreateInput) => {
+    if (!selectedMercuriale) return
+    try {
+      const created = await createMercurialeArticle({
+        mercuriale_id: selectedMercuriale.id,
+        mercurial_master_article_id: input.masterArticleId,
+        price_standard: input.priceStandard ?? null,
+        price_plus: input.pricePlus ?? null,
+        price_premium: input.pricePremium ?? null,
+        active: input.active,
+      })
+      const mapped = mapArticle(created, input.variation ?? null)
+      setArticles((prev) => refreshArticleVariations([...prev, mapped]))
+      toast.success("Article ajoute.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible d ajouter l article.")
+    }
+  }
+
+  const handleUpdateArticle = async (
     id: string,
     input: MercurialeArticleUpdateInput
   ) => {
-    setArticles((prev) =>
-      prev.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              masterArticleId: input.masterArticleId,
-              priceStandard: input.priceStandard ?? null,
-              pricePlus: input.pricePlus ?? null,
-              pricePremium: input.pricePremium ?? null,
-              variation: input.variation ?? null,
-              active: input.active,
-            }
-          : row
+    try {
+      const updated = await updateMercurialeArticle(id, {
+        mercurial_master_article_id: input.masterArticleId,
+        price_standard: input.priceStandard ?? null,
+        price_plus: input.pricePlus ?? null,
+        price_premium: input.pricePremium ?? null,
+        active: input.active,
+      })
+      setArticles((prev) =>
+        refreshArticleVariations(
+          prev.map((row) =>
+            row.id === id
+              ? {
+                  ...mapArticle(updated, input.variation ?? null),
+                  variation: input.variation ?? row.variation ?? null,
+                }
+              : row
+          )
+        )
       )
-    )
+      toast.success("Article mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour l article.")
+    }
   }
 
-  const handleRemoveArticle = (articleId: string) => {
-    setArticles((prev) => prev.filter((item) => item.id !== articleId))
+  const handleRemoveArticle = async (articleId: string) => {
+    try {
+      await deleteMercurialeArticle(articleId)
+      setArticles((prev) =>
+        refreshArticleVariations(prev.filter((item) => item.id !== articleId))
+      )
+      toast.success("Article supprime.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de supprimer l article.")
+    }
   }
 
   if (view.type === "list" || !selectedSupplier) {
@@ -521,6 +685,8 @@ export default function AdminMercurialesPage() {
       allArticles={articles}
       masterArticles={supplierMasterArticles}
       articles={mercurialeArticles}
+      categoryOptions={categoryOptions}
+      subcategoryOptions={subcategoryOptions}
       onBack={() =>
         setView({ type: "supplier", supplierId: selectedSupplier.id })
       }

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -12,8 +12,8 @@ class BillingAccount(BaseModel):
     stripe_customer_id_prod: Optional[str] = None
     stripe_customer_id_live: Optional[str] = None
     billing_cycle: Optional[Billing_cycle] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
+    updated_at: Optional[dt.datetime] = None
     free_mode: Optional[bool] = None
     stripe_subscription_id_prod: Optional[str] = None
     stripe_subscription_id_live: Optional[str] = None
@@ -21,6 +21,6 @@ class BillingAccount(BaseModel):
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

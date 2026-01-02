@@ -1,6 +1,23 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+
+import { useUserEstablishments } from "@/context/UserEstablishmentsContext"
+
 import { MergesListView } from "./list"
 import { MarketSupplierDetailView } from "./supplier-detail"
+import {
+  createMarketSupplierAlias,
+  createMergeRequest,
+  deleteMarketSupplierAlias,
+  fetchEstablishments,
+  fetchMarketSupplierAliases,
+  fetchMarketSuppliers,
+  fetchMergeRequests,
+  mergeSuppliers,
+  updateMarketSupplier,
+  updateMarketSupplierAlias,
+  updateMergeRequest,
+} from "./api"
 import type {
   MarketSupplier,
   MarketSupplierAlias,
@@ -16,105 +33,114 @@ type SupplierUpdateInput = {
   label?: SupplierLabel | null
 }
 
-const nowStamp = () => new Date().toISOString().slice(0, 10)
+const nowStamp = () => new Date().toISOString()
 
-const initialRequests: SupplierMergeRequest[] = [
-  {
-    id: "merge-1",
-    createdAt: "2025-01-06",
-    status: "pending",
-    sourceSupplierIds: ["sup-1", "sup-4"],
-    targetSupplierId: "sup-2",
-    establishment: "La Cantine Lumiere",
-  },
-  {
-    id: "merge-2",
-    createdAt: "2025-01-15",
-    status: "pending",
-    sourceSupplierIds: ["sup-3"],
-    targetSupplierId: "sup-1",
-    establishment: "Chez Antonio",
-  },
-  {
-    id: "merge-3",
-    createdAt: "2024-12-22",
-    status: "dismissed",
-    sourceSupplierIds: ["sup-5"],
-    targetSupplierId: "sup-2",
-    establishment: "Brasserie du Port",
-  },
-]
-
-const initialSuppliers: MarketSupplier[] = [
-  {
-    id: "sup-1",
-    name: "Metro",
-    active: true,
-    label: "FOOD",
-    updatedAt: "2025-01-18",
-  },
-  {
-    id: "sup-2",
-    name: "Transgourmet",
-    active: true,
-    label: "FOOD",
-    updatedAt: "2025-01-20",
-  },
-  {
-    id: "sup-3",
-    name: "France Boissons",
-    active: false,
-    label: "BEVERAGES",
-    updatedAt: "2024-12-10",
-  },
-  {
-    id: "sup-4",
-    name: "Sysco",
-    active: true,
-    label: "FOOD",
-    updatedAt: "2025-01-08",
-  },
-  {
-    id: "sup-5",
-    name: "Pomona",
-    active: true,
-    label: "FOOD",
-    updatedAt: "2025-01-12",
-  },
-]
-
-const initialAliases: MarketSupplierAlias[] = [
-  {
-    id: "alias-1",
-    supplierMarketId: "sup-1",
-    alias: "Metro Cash & Carry",
-    createdAt: "2024-11-30",
-  },
-  {
-    id: "alias-2",
-    supplierMarketId: "sup-1",
-    alias: "METRO",
-    createdAt: "2024-12-01",
-  },
-  {
-    id: "alias-3",
-    supplierMarketId: "sup-2",
-    alias: "TG",
-    createdAt: "2024-12-05",
-  },
-  {
-    id: "alias-4",
-    supplierMarketId: "sup-3",
-    alias: "FranceBoissons",
-    createdAt: "2024-10-14",
-  },
-]
+const normalizeSourceIds = (value: unknown): string[] => {
+  if (!value) return []
+  if (Array.isArray(value)) return value.map((item) => String(item))
+  if (typeof value === "object") {
+    const flattened: unknown[] = []
+    Object.values(value as Record<string, unknown>).forEach((entry) => {
+      if (Array.isArray(entry)) {
+        flattened.push(...entry)
+      } else {
+        flattened.push(entry)
+      }
+    })
+    return flattened.map((item) => String(item))
+  }
+  return [String(value)]
+}
 
 export default function AdminMergesPage() {
-  const [requests, setRequests] = useState(initialRequests)
-  const [suppliers, setSuppliers] = useState(initialSuppliers)
-  const [aliases, setAliases] = useState(initialAliases)
+  const userEstablishments = useUserEstablishments()
+  const [requests, setRequests] = useState<SupplierMergeRequest[]>([])
+  const [suppliers, setSuppliers] = useState<MarketSupplier[]>([])
+  const [aliases, setAliases] = useState<MarketSupplierAlias[]>([])
+  const [establishmentById, setEstablishmentById] = useState<Map<string, string>>(
+    new Map()
+  )
   const [view, setView] = useState<ViewState>({ type: "list" })
+
+  useEffect(() => {
+    let active = true
+
+    const loadData = async () => {
+      try {
+        const [requestsData, suppliersData, aliasesData, establishmentsData] =
+          await Promise.all([
+            fetchMergeRequests(),
+            fetchMarketSuppliers(),
+            fetchMarketSupplierAliases(),
+            fetchEstablishments(),
+          ])
+
+        if (!active) return
+
+        const establishmentsMap = new Map<string, string>(
+          establishmentsData.map((item) => [item.id, item.name ?? "--"])
+        )
+        setEstablishmentById(establishmentsMap)
+
+        setSuppliers(
+          suppliersData.map<MarketSupplier>((supplier) => ({
+            id: supplier.id,
+            name: supplier.name ?? "Fournisseur",
+            active: Boolean(supplier.active),
+            label: supplier.label ?? null,
+            createdAt: supplier.created_at ?? null,
+            updatedAt: supplier.updated_at ?? null,
+          }))
+        )
+
+        setAliases(
+          aliasesData.map<MarketSupplierAlias>((alias) => ({
+            id: alias.id,
+            supplierMarketId: alias.supplier_market_id ?? "",
+            alias: alias.alias ?? "--",
+            createdAt: alias.created_at ?? null,
+          }))
+        )
+
+        setRequests(
+          requestsData.map<SupplierMergeRequest>((request) => ({
+            id: request.id,
+            createdAt: request.created_at ?? nowStamp(),
+            status: (request.status ?? "pending") as SupplierMergeRequest["status"],
+            sourceSupplierIds: normalizeSourceIds(request.source_market_supplier_ids),
+            targetSupplierId: request.target_market_supplier_id ?? "",
+            requestingEstablishmentId: request.requesting_establishment_id ?? null,
+            establishment: request.requesting_establishment_id
+              ? establishmentsMap.get(request.requesting_establishment_id) ?? null
+              : null,
+          }))
+        )
+      } catch (error) {
+        console.error(error)
+        toast.error("Impossible de charger les fusions.")
+      }
+    }
+
+    loadData()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const ownerEstablishmentId = useMemo(() => {
+    const list = userEstablishments?.list ?? []
+    return (
+      list.find((item) => item.role === "padrino")?.establishmentId ??
+      list[0]?.establishmentId ??
+      null
+    )
+  }, [userEstablishments?.list])
+
+  const ownerEstablishmentName = useMemo(() => {
+    if (!ownerEstablishmentId) return null
+    return establishmentById.get(ownerEstablishmentId) ?? null
+  }, [establishmentById, ownerEstablishmentId])
 
   const selectedSupplier =
     view.type === "supplier"
@@ -128,62 +154,129 @@ export default function AdminMergesPage() {
     )
   }, [aliases, selectedSupplier])
 
-  const handleAcceptRequest = (id: string) => {
-    setRequests((prev) =>
-      prev.map((request) =>
-        request.id === id ? { ...request, status: "accepted" } : request
+  const handleAcceptRequest = async (id: string) => {
+    try {
+      const updated = await updateMergeRequest(id, { status: "accepted" })
+      setRequests((prev) =>
+        prev.map((request) =>
+          request.id === id
+            ? {
+                ...request,
+                status: (updated.status ?? "accepted") as SupplierMergeRequest["status"],
+              }
+            : request
+        )
       )
-    )
+      try {
+        await mergeSuppliers(id)
+        toast.success("Demande acceptee et fusion lancee.")
+      } catch (error) {
+        console.error(error)
+        toast.error("Fusion impossible apres acceptation.")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible d accepter la demande.")
+    }
   }
 
-  const handleRefuseRequest = (id: string) => {
-    setRequests((prev) =>
-      prev.map((request) =>
-        request.id === id ? { ...request, status: "dismissed" } : request
+  const handleRefuseRequest = async (id: string) => {
+    try {
+      const updated = await updateMergeRequest(id, { status: "refused" })
+      setRequests((prev) =>
+        prev.map((request) =>
+          request.id === id
+            ? {
+                ...request,
+                status: (updated.status ?? "refused") as SupplierMergeRequest["status"],
+              }
+            : request
+        )
       )
-    )
+      toast.success("Demande refusee.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de refuser la demande.")
+    }
   }
 
-  const handleUpdateSupplier = (input: SupplierUpdateInput) => {
+  const handleUpdateSupplier = async (input: SupplierUpdateInput) => {
     if (!selectedSupplier) return
-    setSuppliers((prev) =>
-      prev.map((supplier) =>
-        supplier.id === selectedSupplier.id
-          ? {
-              ...supplier,
-              name: input.name,
-              active: input.active,
-              label: input.label ?? null,
-              updatedAt: nowStamp(),
-            }
-          : supplier
+    try {
+      const updated = await updateMarketSupplier(selectedSupplier.id, {
+        name: input.name,
+        active: input.active,
+        label: input.label ?? null,
+      })
+      setSuppliers((prev) =>
+        prev.map((supplier) =>
+          supplier.id === selectedSupplier.id
+            ? {
+                ...supplier,
+                name: updated.name ?? input.name,
+                active: Boolean(updated.active),
+                label: updated.label ?? null,
+                updatedAt: updated.updated_at ?? nowStamp(),
+              }
+            : supplier
+        )
       )
-    )
+      toast.success("Fournisseur mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de mettre a jour le fournisseur.")
+    }
   }
 
-  const handleCreateAlias = (aliasValue: string) => {
+  const handleCreateAlias = async (aliasValue: string) => {
     if (!selectedSupplier) return
-    setAliases((prev) => [
-      ...prev,
-      {
-        id: `alias-${Math.random().toString(36).slice(2, 9)}`,
-        supplierMarketId: selectedSupplier.id,
+    try {
+      const created = await createMarketSupplierAlias({
+        supplier_market_id: selectedSupplier.id,
         alias: aliasValue,
-        createdAt: nowStamp(),
-      },
-    ])
+      })
+      setAliases((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          supplierMarketId: created.supplier_market_id ?? selectedSupplier.id,
+          alias: created.alias ?? aliasValue,
+          createdAt: created.created_at ?? nowStamp(),
+        },
+      ])
+      toast.success("Alias ajoute.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible d ajouter l alias.")
+    }
   }
 
-  const handleUpdateAlias = (id: string, aliasValue: string) => {
-    setAliases((prev) =>
-      prev.map((alias) =>
-        alias.id === id ? { ...alias, alias: aliasValue } : alias
+  const handleUpdateAlias = async (id: string, aliasValue: string) => {
+    try {
+      const updated = await updateMarketSupplierAlias(id, { alias: aliasValue })
+      setAliases((prev) =>
+        prev.map((alias) =>
+          alias.id === id
+            ? { ...alias, alias: updated.alias ?? aliasValue }
+            : alias
+        )
       )
-    )
+      toast.success("Alias mis a jour.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de modifier l alias.")
+    }
   }
 
-  const handleDeleteAlias = (id: string) => {
-    setAliases((prev) => prev.filter((alias) => alias.id !== id))
+  const handleDeleteAlias = async (id: string) => {
+    try {
+      await deleteMarketSupplierAlias(id)
+      setAliases((prev) => prev.filter((alias) => alias.id !== id))
+      toast.success("Alias supprime.")
+    } catch (error) {
+      console.error(error)
+      toast.error("Impossible de supprimer l alias.")
+    }
   }
 
   if (view.type === "supplier" && selectedSupplier) {
@@ -205,21 +298,36 @@ export default function AdminMergesPage() {
       requests={requests}
       suppliers={suppliers}
       aliases={aliases}
-      ownerEstablishment="Etablissement demo"
+      ownerEstablishment={ownerEstablishmentName ?? undefined}
+      ownerEstablishmentId={ownerEstablishmentId ?? undefined}
       onAcceptRequest={handleAcceptRequest}
       onRefuseRequest={handleRefuseRequest}
-      onCreateRequest={(input) => {
-        setRequests((prev) => [
-          {
-            id: `merge-${Math.random().toString(36).slice(2, 9)}`,
-            createdAt: nowStamp(),
-            status: "pending",
-            sourceSupplierIds: input.sourceSupplierIds,
-            targetSupplierId: input.targetSupplierId,
-            establishment: input.establishment ?? null,
-          },
-          ...prev,
-        ])
+      onCreateRequest={async (input) => {
+        try {
+          const payload = {
+            source_market_supplier_ids: { ids: input.sourceSupplierIds },
+            target_market_supplier_id: input.targetSupplierId,
+            requesting_establishment_id: input.requestingEstablishmentId ?? null,
+            status: "pending" as const,
+          }
+          const created = await createMergeRequest(payload)
+          const normalized: SupplierMergeRequest = {
+            id: created.id,
+            createdAt: created.created_at ?? nowStamp(),
+            status: (created.status ?? "pending") as SupplierMergeRequest["status"],
+            sourceSupplierIds: normalizeSourceIds(created.source_market_supplier_ids),
+            targetSupplierId: created.target_market_supplier_id ?? "",
+            requestingEstablishmentId: created.requesting_establishment_id ?? null,
+            establishment: created.requesting_establishment_id
+              ? establishmentById.get(created.requesting_establishment_id) ?? null
+              : null,
+          }
+          setRequests((prev) => [normalized, ...prev])
+          toast.success("Demande creee.")
+        } catch (error) {
+          console.error(error)
+          toast.error("Impossible de creer la demande.")
+        }
       }}
       onOpenSupplier={(supplierId) =>
         setView({ type: "supplier", supplierId })

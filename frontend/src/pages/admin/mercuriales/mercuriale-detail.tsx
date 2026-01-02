@@ -108,6 +108,8 @@ type MercurialeDetailViewProps = {
   allArticles: MercurialeArticle[]
   masterArticles: MercurialeMasterArticle[]
   articles: MercurialeArticle[]
+  categoryOptions: string[]
+  subcategoryOptions: string[]
   onBack: () => void
   onUpdateMercuriale: (input: MercurialeUpdateInput) => void
   onCreateMasterArticle: (input: MasterArticleCreateInput) => void
@@ -142,33 +144,10 @@ const parseOptionalNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-const categoryOptions = [
-  "Fruits",
-  "Legumes",
-  "Poissons",
-  "Viandes",
-  "Epicerie",
-  "Cremerie",
-  "Boulangerie",
-  "Boissons",
-]
-
 const vatOptions = [
   { value: "5.5", label: "5,5%" },
   { value: "10", label: "10%" },
   { value: "20", label: "20%" },
-]
-
-const subcategoryOptions = [
-  "Frais",
-  "Surgeles",
-  "Sec",
-  "Bio",
-  "Agrumes",
-  "Fromages",
-  "Boucherie",
-  "Boulangerie",
-  "Divers",
 ]
 
 export function MercurialeDetailView({
@@ -178,6 +157,8 @@ export function MercurialeDetailView({
   allArticles,
   masterArticles,
   articles,
+  categoryOptions,
+  subcategoryOptions,
   onBack,
   onUpdateMercuriale,
   onCreateMasterArticle,
@@ -187,6 +168,16 @@ export function MercurialeDetailView({
   onUpdateArticle,
   onRemoveArticle,
 }: MercurialeDetailViewProps) {
+  const safeCategoryOptions = useMemo(() => {
+    const options = categoryOptions.length ? categoryOptions : ["Divers"]
+    return options.includes("Divers") ? options : ["Divers", ...options]
+  }, [categoryOptions])
+
+  const safeSubcategoryOptions = useMemo(() => {
+    const options = subcategoryOptions.length ? subcategoryOptions : ["Divers"]
+    return options.includes("Divers") ? options : ["Divers", ...options]
+  }, [subcategoryOptions])
+
   const [draftName, setDraftName] = useState(mercuriale.name)
   const [draftDescription, setDraftDescription] = useState(
     mercuriale.description ?? ""
@@ -301,6 +292,14 @@ export function MercurialeDetailView({
     const previousPrice = previousPricesByMasterId.get(masterId) ?? null
     if (previousPrice == null || previousPrice === 0) return null
     return (currentPrice - previousPrice) / previousPrice
+  }
+
+  const computeVariationValue = (masterId: string, price?: number | null) => {
+    if (price == null) return null
+    if (!previousMercuriale) return null
+    const previousPrice = previousPricesByMasterId.get(masterId) ?? null
+    if (previousPrice == null || previousPrice === 0) return null
+    return (price - previousPrice) / previousPrice
   }
 
   const computedVariation = useMemo(
@@ -630,7 +629,7 @@ export function MercurialeDetailView({
                         <SelectValue placeholder="Categorie" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categoryOptions.map((option) => (
+                        {safeCategoryOptions.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>
@@ -648,7 +647,7 @@ export function MercurialeDetailView({
                         <SelectValue placeholder="Sous-categorie" />
                       </SelectTrigger>
                       <SelectContent>
-                        {subcategoryOptions.map((option) => (
+                        {safeSubcategoryOptions.map((option) => (
                           <SelectItem key={option} value={option}>
                             {option}
                           </SelectItem>
@@ -757,7 +756,7 @@ export function MercurialeDetailView({
                       <SelectValue placeholder="Choisir une categorie" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoryOptions.map((option) => (
+                      {safeCategoryOptions.map((option) => (
                         <SelectItem key={option} value={option}>
                           {option}
                         </SelectItem>
@@ -775,7 +774,7 @@ export function MercurialeDetailView({
                       <SelectValue placeholder="Choisir une sous-categorie" />
                     </SelectTrigger>
                     <SelectContent>
-                      {subcategoryOptions.map((option) => (
+                      {safeSubcategoryOptions.map((option) => (
                         <SelectItem key={option} value={option}>
                           {option}
                         </SelectItem>
@@ -1260,7 +1259,11 @@ export function MercurialeDetailView({
                     <TableCell>{formatPrice(row.priceStandard)}</TableCell>
                     <TableCell>{formatPrice(row.pricePlus)}</TableCell>
                     <TableCell>{formatPrice(row.pricePremium)}</TableCell>
-                    <TableCell>{formatPercent(row.variation)}</TableCell>
+                  <TableCell>
+                    {formatPercent(
+                      computeVariationValue(row.masterArticleId, row.priceStandard)
+                    )}
+                  </TableCell>
                     <TableCell>
                       <Badge variant={row.active ? "default" : "secondary"}>
                         {row.active ? "Actif" : "Inactif"}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type WheelEventHandler } from "react"
 import { toast } from "sonner"
-import { useLocation } from "react-router-dom"
+import { useLocation, useParams } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import InvoiceDetailHeader from "./components/detail/invoice-detail-header"
 import InvoiceDocumentCard from "./components/detail/invoice-document-card"
@@ -11,12 +11,17 @@ import { clamp, PINCH_SENSITIVITY, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP, useInvoiceDeta
 
 export default function InvoiceDetailPage() {
   const location = useLocation()
+  const { id } = useParams()
   const { estId } = useEstablishment()
   const invoiceId = useMemo(() => {
+    if (id) return id
     const state = location.state as { invoiceId?: string } | null
-    return state?.invoiceId
-  }, [location.state])
-  const { invoice, priceHistoryById, isLoading } = useInvoiceDetailData(invoiceId, estId)
+    return state?.invoiceId ?? null
+  }, [id, location.state])
+  const { invoice, isLoading, isArticlesLoading } = useInvoiceDetailData(
+    invoiceId,
+    estId
+  )
   const [localInvoice, setLocalInvoice] = useState(invoice)
   const [articlesExpanded, setArticlesExpanded] = useState(false)
   const [itemSheetOpen, setItemSheetOpen] = useState(false)
@@ -151,7 +156,7 @@ export default function InvoiceDetailPage() {
     return <div className="text-sm text-muted-foreground">Aucune facture sélectionnée.</div>
   }
 
-  if (isLoading) {
+  if (isLoading && !resolvedInvoice) {
     return <div className="text-sm text-muted-foreground">Chargement de la facture...</div>
   }
   if (!resolvedInvoice) {
@@ -199,9 +204,10 @@ export default function InvoiceDetailPage() {
               invoice={resolvedInvoice}
               isExpanded={false}
               isBeverageSupplier={isBeverageSupplier}
+              isLoading={isArticlesLoading}
               onToggleExpand={() => setArticlesExpanded(true)}
               onEditItem={handleEditItem}
-              priceHistoryById={priceHistoryById}
+              establishmentId={estId}
               fallbackDate={new Date()}
             />
           )}
@@ -212,9 +218,10 @@ export default function InvoiceDetailPage() {
             invoice={resolvedInvoice}
             isExpanded
             isBeverageSupplier={isBeverageSupplier}
+            isLoading={isArticlesLoading}
             onToggleExpand={() => setArticlesExpanded(false)}
             onEditItem={handleEditItem}
-            priceHistoryById={priceHistoryById}
+            establishmentId={estId}
             fallbackDate={new Date()}
           />
         )}

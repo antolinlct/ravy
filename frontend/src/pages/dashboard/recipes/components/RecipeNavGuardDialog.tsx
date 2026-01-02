@@ -16,6 +16,7 @@ type RecipeNavGuardDialogProps = {
   ingredientsCount: number
   onConfirmLeave: () => void
   onSaveAndLeave: () => void
+  onDeleteAndLeave: () => void
 }
 
 export function RecipeNavGuardDialog({
@@ -24,6 +25,7 @@ export function RecipeNavGuardDialog({
   ingredientsCount,
   onConfirmLeave,
   onSaveAndLeave,
+  onDeleteAndLeave,
 }: RecipeNavGuardDialogProps) {
   const hasIngredients = ingredientsCount > 0
 
@@ -33,23 +35,33 @@ export function RecipeNavGuardDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Modifications non enregistrées</AlertDialogTitle>
           <AlertDialogDescription>
-            Vous avez des paramètres non enregistrés. Voulez-vous quitter cette page sans enregistrer,
-            ou enregistrer vos paramètres avant de partir ?
-            {hasIngredients ? "" : " Ajoutez au moins un ingrédient pour pouvoir quitter ou enregistrer."}
+            {hasIngredients
+              ? "Vous avez des paramètres non enregistrés. Voulez-vous quitter cette page sans enregistrer, ou enregistrer vos paramètres avant de partir ?"
+              : "Cette recette ne contient aucun ingrédient. Quitter supprimera la recette."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-end">
           <AlertDialogCancel>Rester</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirmLeave}
-            className={buttonVariants({ variant: "destructive" })}
-            disabled={!hasIngredients}
-          >
-            Quitter sans enregistrer
-          </AlertDialogAction>
-          <AlertDialogAction className={buttonVariants({ variant: "default" })} onClick={onSaveAndLeave}>
-            Enregistrer
-          </AlertDialogAction>
+          {hasIngredients ? (
+            <>
+              <AlertDialogAction
+                onClick={onConfirmLeave}
+                className={buttonVariants({ variant: "destructive" })}
+              >
+                Quitter sans enregistrer
+              </AlertDialogAction>
+              <AlertDialogAction className={buttonVariants({ variant: "default" })} onClick={onSaveAndLeave}>
+                Enregistrer
+              </AlertDialogAction>
+            </>
+          ) : (
+            <AlertDialogAction
+              onClick={onDeleteAndLeave}
+              className={buttonVariants({ variant: "destructive" })}
+            >
+              Quitter et supprimer
+            </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

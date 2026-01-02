@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -12,7 +12,7 @@ class Recipes(BaseModel):
     vat_id: Optional[UUID] = None
     recommanded_retail_price: Optional[float] = None
     active: Optional[bool] = None
-    created_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
     saleable: Optional[bool] = None
     contains_sub_recipe: Optional[bool] = None
     purchase_cost_total: Optional[float] = None
@@ -26,7 +26,7 @@ class Recipes(BaseModel):
     price_tax: Optional[float] = None
     category_id: Optional[UUID] = None
     subcategory_id: Optional[UUID] = None
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[dt.datetime] = None
     created_by: Optional[UUID] = None
     updated_by: Optional[UUID] = None
     technical_data_sheet_image_path: Optional[str] = None
@@ -34,6 +34,6 @@ class Recipes(BaseModel):
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

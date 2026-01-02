@@ -1,4 +1,4 @@
-import { Fragment } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { Link, Outlet, useLocation } from "react-router-dom"
 import {
   Breadcrumb,
@@ -11,6 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { OnboardingGate } from "@/features/onboarding/OnboardingGate"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import api from "@/lib/axiosClient"
 
 type Crumb = {
   label: string
@@ -18,10 +19,24 @@ type Crumb = {
   hideOnMobile?: boolean
 }
 
+type ApiInvoice = {
+  id: string
+  invoice_number?: string | null
+  supplier_id?: string | null
+}
+
+type ApiSupplier = {
+  id: string
+  name?: string | null
+}
+
 export default function DashboardLayout() {
   const location = useLocation()
 
   const segments = location.pathname.split("/").filter(Boolean)
+  const invoiceSubPage = segments[2]
+  const isInvoiceDetail = segments[1] === "invoices" && invoiceSubPage && invoiceSubPage !== "suppliers"
+  const [invoiceBreadcrumbLabel, setInvoiceBreadcrumbLabel] = useState<string | null>(null)
 
   const labels: Record<string, string> = {
     account: "Compte",
@@ -37,7 +52,6 @@ export default function DashboardLayout() {
   const settingsLabel = "Paramètres"
 
   const getInvoiceBreadcrumbs = (): Crumb[] => {
-    const invoiceSubPage = segments[2]
     const invoiceLabel = "Factures"
 
     if (invoiceSubPage === "suppliers") {
@@ -58,7 +72,7 @@ export default function DashboardLayout() {
           to: "/dashboard/invoices",
           hideOnMobile: true,
         },
-        { label: "Facture" },
+        { label: invoiceBreadcrumbLabel ?? "Facture" },
       ]
     }
 
@@ -112,6 +126,58 @@ export default function DashboardLayout() {
     : segments[1] === "settings"
       ? getSettingsBreadcrumbs()
       : getDefaultBreadcrumbs()
+
+  useEffect(() => {
+    if (!isInvoiceDetail || !invoiceSubPage) {
+      setInvoiceBreadcrumbLabel(null)
+      return
+    }
+
+    const state = location.state as { invoiceBreadcrumb?: string } | null
+    if (state?.invoiceBreadcrumb) {
+      setInvoiceBreadcrumbLabel(state.invoiceBreadcrumb)
+      return
+    }
+
+    let active = true
+
+    const loadInvoiceBreadcrumb = async () => {
+      try {
+        const invoiceRes = await api.get<ApiInvoice>(`/invoices/${invoiceSubPage}`)
+        const invoice = invoiceRes.data
+        if (!invoice?.id) return
+
+        const baseReference = invoice.invoice_number
+          ? invoice.invoice_number.startsWith("N°")
+            ? invoice.invoice_number
+            : `N° ${invoice.invoice_number}`
+          : `Facture ${invoice.id.slice(0, 6)}`
+        let label = baseReference.startsWith("Facture") ? baseReference : `Facture ${baseReference}`
+
+        if (invoice.supplier_id) {
+          const supplierRes = await api.get<ApiSupplier>(`/suppliers/${invoice.supplier_id}`)
+          const supplierName = supplierRes.data?.name
+          if (supplierName) {
+            label = `${label} - ${supplierName}`
+          }
+        }
+
+        if (active) {
+          setInvoiceBreadcrumbLabel(label)
+        }
+      } catch {
+        if (active) {
+          setInvoiceBreadcrumbLabel("Facture")
+        }
+      }
+    }
+
+    loadInvoiceBreadcrumb()
+
+    return () => {
+      active = false
+    }
+  }, [invoiceSubPage, isInvoiceDetail, location.state])
 
   return (
     <SidebarInset>

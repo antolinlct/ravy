@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Check, ChevronsUpDown, Trash2 } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type {
   IngredientEditorDraft,
@@ -44,6 +44,8 @@ type IngredientEditorSheetProps = {
   productOptionsBySupplier: Record<string, SupplierProductOption[]>
   categoryOptions: RecipeCategoryOption[]
   subcategoryOptionsByCategory: Record<string, RecipeSubcategoryOption[]>
+  isSaving?: boolean
+  isDeleting?: boolean
   onSave: () => void
   onDelete?: () => void
 }
@@ -61,6 +63,8 @@ export function IngredientEditorSheet({
   productOptionsBySupplier,
   categoryOptions,
   subcategoryOptionsByCategory,
+  isSaving = false,
+  isDeleting = false,
   onSave,
   onDelete,
 }: IngredientEditorSheetProps) {
@@ -353,17 +357,31 @@ export function IngredientEditorSheet({
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+                      <SelectValue
+                        placeholder={
+                          draft.categoryId
+                            ? "Sélectionnez une sous-catégorie"
+                            : "Sélectionnez une catégorie"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__all__">
-                        <span className="text-muted-foreground">Toutes les sous-catégories</span>
-                      </SelectItem>
-                      {editorSubcategoryOptions.map((opt) => (
-                        <SelectItem key={opt.id} value={opt.id}>
-                          {opt.label}
+                      {!draft.categoryId ? (
+                        <SelectItem value="__missing_category__" disabled>
+                          Sélectionnez une catégorie
                         </SelectItem>
-                      ))}
+                      ) : (
+                        <>
+                          <SelectItem value="__all__">
+                            <span className="text-muted-foreground">Toutes les sous-catégories</span>
+                          </SelectItem>
+                          {editorSubcategoryOptions.map((opt) => (
+                            <SelectItem key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -542,18 +560,22 @@ export function IngredientEditorSheet({
                 variant="ghost"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={onDelete}
+                disabled={isDeleting || isSaving}
               >
-                <Trash2 className="h-4 w-4" />
-                Supprimer
+                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {isDeleting ? "Suppression..." : "Supprimer"}
               </Button>
             ) : (
               <div />
             )}
             <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={resetAndClose}>
+              <Button variant="secondary" onClick={resetAndClose} disabled={isSaving || isDeleting}>
                 Annuler
               </Button>
-              <Button onClick={onSave}>Enregistrer</Button>
+              <Button onClick={onSave} disabled={isSaving || isDeleting}>
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isSaving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
             </div>
           </div>
 

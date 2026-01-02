@@ -1,9 +1,17 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.product_stripe import ProductStripe
+
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
 
 def get_all_product_stripe(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("product_stripe").select("*")
@@ -42,12 +50,17 @@ def get_all_product_stripe(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_product_stripe_by_id(id: UUID):
-    response = supabase.table("product_stripe").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.table("product_stripe").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return ProductStripe(**response.data) if response.data else None
 
 
 def create_product_stripe(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
     response = supabase.table("product_stripe").insert(prepared).execute()
     return response.data[0] if response.data else None
 

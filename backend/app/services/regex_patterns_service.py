@@ -1,12 +1,20 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.regex_patterns import RegexPatterns
 
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
+
 def get_all_regex_patterns(filters: dict | None = None, limit: int = 200, page: int = 1):
-    query = supabase.table("regex_patterns").select("*")
+    query = supabase.schema("internal").table("regex_patterns").select("*")
     if not filters:
         filters = {}
 
@@ -42,22 +50,27 @@ def get_all_regex_patterns(filters: dict | None = None, limit: int = 200, page: 
 
 
 def get_regex_patterns_by_id(id: UUID):
-    response = supabase.table("regex_patterns").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.schema("internal").table("regex_patterns").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return RegexPatterns(**response.data) if response.data else None
 
 
 def create_regex_patterns(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
-    response = supabase.table("regex_patterns").insert(prepared).execute()
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
+    response = supabase.schema("internal").table("regex_patterns").insert(prepared).execute()
     return response.data[0] if response.data else None
 
 
 def update_regex_patterns(id: UUID, payload: dict):
     prepared = jsonable_encoder(payload)
-    response = supabase.table("regex_patterns").update(prepared).eq("id", str(id)).execute()
+    response = supabase.schema("internal").table("regex_patterns").update(prepared).eq("id", str(id)).execute()
     return response.data[0] if response.data else None
 
 
 def delete_regex_patterns(id: UUID):
-    supabase.table("regex_patterns").delete().eq("id", str(id)).execute()
+    supabase.schema("internal").table("regex_patterns").delete().eq("id", str(id)).execute()
     return {"deleted": True}

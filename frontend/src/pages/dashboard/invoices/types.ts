@@ -12,7 +12,6 @@ export type InvoiceListItem = {
   date: string
   dateValue: Date
   createdAt: Date
-  items: string
   ht: string
   tva: string
   ttc: string

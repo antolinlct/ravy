@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Loader2 } from "lucide-react"
 import type { RecipeCategoryOption, RecipeDetail, RecipeSubcategoryOption, VatRateOption } from "../types"
 import { formatCurrency } from "../utils"
 
@@ -50,6 +51,7 @@ type RecipeSettingsCardProps = {
   onSubcategoryChange: (value: string) => void
   onSave: () => void
   saveDisabled: boolean
+  isSaving?: boolean
   categoryOptions: RecipeCategoryOption[]
   subcategoryOptionsByCategory: Record<string, RecipeSubcategoryOption[]>
   vatOptions: VatRateOption[]
@@ -94,6 +96,7 @@ export function RecipeSettingsCard({
   onSubcategoryChange,
   onSave,
   saveDisabled,
+  isSaving = false,
   categoryOptions,
   subcategoryOptionsByCategory,
   vatOptions,
@@ -353,18 +356,26 @@ export function RecipeSettingsCard({
                 </Label>
                 <Select value={recipe.subcategoryId} onValueChange={onSubcategoryChange}>
                   <SelectTrigger id="recipe-subcategory">
-                    <SelectValue />
+                    <SelectValue
+                      placeholder={
+                        recipe.categoryId ? "Sélectionnez une sous-catégorie" : "Sélectionnez une catégorie"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    {subcategoryOptions.length ? (
+                    {!recipe.categoryId ? (
+                      <SelectItem value="__missing_category__" disabled>
+                        Sélectionnez une catégorie
+                      </SelectItem>
+                    ) : subcategoryOptions.length ? (
                       subcategoryOptions.map((opt) => (
                         <SelectItem key={opt.id} value={opt.id}>
                           {opt.label}
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value={recipe.subcategoryId} disabled>
-                        Sélectionnez d&apos;abord une catégorie
+                      <SelectItem value="__empty_subcategory__" disabled>
+                        Aucune sous-catégorie disponible
                       </SelectItem>
                     )}
                   </SelectContent>
@@ -395,8 +406,9 @@ export function RecipeSettingsCard({
         </Tabs>
       </CardContent>
       <CardFooter className="p-6 pt-0">
-        <Button className="w-full" size="lg" onClick={onSave} disabled={saveDisabled}>
-          Enregistrer les paramètres
+        <Button className="w-full" size="lg" onClick={onSave} disabled={saveDisabled || isSaving}>
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {isSaving ? "Enregistrement..." : "Enregistrer les paramètres"}
         </Button>
       </CardFooter>
     </Card>

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import datetime, date
+import datetime as dt
 from typing import List, Optional, Any, Literal
 from uuid import UUID
 
@@ -7,19 +7,19 @@ from uuid import UUID
 Import_job_status = Literal["pending", "running", "completed", "error", "ocr_failed"]
 
 class ImportJob(BaseModel):
-    created_at: Optional[datetime] = None
+    created_at: Optional[dt.datetime] = None
     id: Optional[UUID] = None
     status: Optional[Import_job_status] = None
     establishment_id: Optional[UUID] = None
     file_path: Optional[str] = None
     ocr_result_json: Optional[dict] = None
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[dt.datetime] = None
     is_beverage: Optional[bool] = None
-    invoice_date: Optional[datetime] = None
+    invoice_date: Optional[dt.datetime] = None
 
     class Config:
         json_encoders = {
             UUID: lambda v: str(v),
-            datetime: lambda v: v.isoformat() if isinstance(v, datetime) else v,
-            date: lambda v: v.isoformat() if isinstance(v, date) else v,
+            dt.datetime: lambda v: v.isoformat() if isinstance(v, dt.datetime) else v,
+            dt.date: lambda v: v.isoformat() if isinstance(v, dt.date) else v,
         }

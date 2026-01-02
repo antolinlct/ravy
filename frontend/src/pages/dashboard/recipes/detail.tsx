@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import type { SerializedEditorState } from "lexical"
+import axios from "axios"
 import { toast } from "sonner"
 import { Info, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
@@ -19,6 +20,7 @@ import {
   deleteRecipe,
   deleteIngredient,
   duplicateRecipe,
+  clearIngredientsCache,
   fetchIngredients,
   fetchMasterArticles,
   fetchRecipeById,
@@ -28,6 +30,7 @@ import {
   fetchRecipes,
   fetchSuppliers,
   fetchVatRates,
+  removeCachedRecipe,
   recomputeIngredient,
   recomputeRecipe,
   updateIngredient,
@@ -54,7 +57,7 @@ import type {
   SupplierProductOption,
   VatRateOption,
 } from "./types"
-import { parseNumber, sameNumber, toSerializedState } from "./utils"
+import { parseNumber, sameNumber, toRecipeDetail, toSerializedState } from "./utils"
 
 const TECH_IMAGE_BUCKET =
   import.meta.env.VITE_SUPABASE_TECHNICAL_DS_BUCKET || "technical_data_sheet_image"
@@ -74,33 +77,37 @@ const toNumber = (value: unknown): number | null => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const toRecipeDetail = (recipe: ApiRecipe): RecipeDetail => {
-  const portions = toNumber(recipe.portion) ?? 1
-  const updatedAt = recipe.updated_at
-    ? new Date(recipe.updated_at)
-    : recipe.created_at
-      ? new Date(recipe.created_at)
-      : new Date()
-
-  return {
-    id: recipe.id,
-    name: recipe.name ?? "Recette sans nom",
-    active: Boolean(recipe.active),
-    saleable: Boolean(recipe.saleable),
-    vatId: recipe.vat_id ?? "",
-    recommendedRetailPrice: toNumber(recipe.recommanded_retail_price) ?? 0,
-    portions: Number.isFinite(portions) && portions > 0 ? portions : 1,
-    portionWeightGrams: toNumber(recipe.portion_weight),
-    priceInclTax: toNumber(recipe.price_incl_tax),
-    categoryId: recipe.category_id ?? "",
-    subcategoryId: recipe.subcategory_id ?? "",
-    updatedAt,
-    containsSubRecipe: Boolean(recipe.contains_sub_recipe),
-    purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
-    technicalDataSheetInstructions: recipe.technical_data_sheet_instructions ?? "",
-    technicalDataSheetImagePath: recipe.technical_data_sheet_image_path ?? null,
-  }
+const normalizeVatRate = (raw: number | null | undefined) => {
+  const value = toNumber(raw) ?? 0
+  if (value <= 0) return 0
+  return value > 1 ? value / 100 : value
 }
+
+const isMissingIngredientError = (error: unknown) => {
+  if (!axios.isAxiosError(error)) return false
+  if (error.response?.status !== 400) return false
+  const detail = (error.response?.data as { detail?: string } | undefined)?.detail
+  return typeof detail === "string" && detail.toLowerCase().includes("introuvable")
+}
+
+const buildEmptyRecipe = (id: string): RecipeDetail => ({
+  id,
+  name: "",
+  active: false,
+  saleable: false,
+  vatId: "",
+  recommendedRetailPrice: 0,
+  portions: 1,
+  portionWeightGrams: null,
+  priceInclTax: null,
+  categoryId: "",
+  subcategoryId: "",
+  updatedAt: new Date(),
+  containsSubRecipe: false,
+  purchaseCostPerPortion: null,
+  technicalDataSheetInstructions: "",
+  technicalDataSheetImagePath: null,
+})
 
 type PendingNav =
   | { type: "path"; value: string }
@@ -115,28 +122,13 @@ export default function RecipeDetailPage() {
   const { estId } = useEstablishment()
 
   const recipeId = params.id ?? state.recipeId ?? ""
-  const [recipe, setRecipe] = useState<RecipeDetail>(() => ({
-    id: recipeId,
-    name: "",
-    active: false,
-    saleable: false,
-    vatId: "",
-    recommendedRetailPrice: 0,
-    portions: 1,
-    portionWeightGrams: null,
-    priceInclTax: null,
-    categoryId: "",
-    subcategoryId: "",
-    updatedAt: new Date(),
-    containsSubRecipe: false,
-    purchaseCostPerPortion: null,
-    technicalDataSheetInstructions: "",
-    technicalDataSheetImagePath: null,
-  }))
-  const [ingredients, setIngredients] = useState<Ingredient[]>([])
+  const seedRecipe = state.recipe && state.recipe.id ? state.recipe : null
+  const [recipe, setRecipe] = useState<RecipeDetail>(() => seedRecipe ?? buildEmptyRecipe(recipeId))
+  const [ingredients, setIngredients] = useState<Ingredient[]>(() => state.ingredients ?? [])
   const [forceSaveOnEntry, setForceSaveOnEntry] = useState<boolean>(Boolean(state.forceSaveOnEntry))
   const [hasLoaded, setHasLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const hasSeedRecipe = Boolean(seedRecipe)
   const [categoryOptions, setCategoryOptions] = useState<RecipeCategoryOption[]>([])
   const [subcategoryOptions, setSubcategoryOptions] = useState<RecipeSubcategoryOption[]>([])
   const [vatOptions, setVatOptions] = useState<VatRateOption[]>([])
@@ -145,6 +137,7 @@ export default function RecipeDetailPage() {
   const [subRecipeOptions, setSubRecipeOptions] = useState<RecipeDetail[]>([])
 
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteSaving, setDeleteSaving] = useState(false)
   const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [duplicateName, setDuplicateName] = useState("")
   const [renameOpen, setRenameOpen] = useState(false)
@@ -202,6 +195,9 @@ export default function RecipeDetailPage() {
   const [ingredientEditorOpen, setIngredientEditorOpen] = useState(false)
   const [ingredientEditorMode, setIngredientEditorMode] = useState<"create" | "edit">("create")
   const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null)
+  const [ingredientSaving, setIngredientSaving] = useState(false)
+  const [ingredientDeleting, setIngredientDeleting] = useState(false)
+  const [recipeSaving, setRecipeSaving] = useState(false)
   const [ingredientDraft, setIngredientDraft] = useState<IngredientEditorDraft>({
     type: "ARTICLE",
     supplierId: "",
@@ -302,6 +298,38 @@ export default function RecipeDetailPage() {
   }
 
   useEffect(() => {
+    if (!recipeId) return
+    setHasLoaded(false)
+    setLoadError(null)
+    const nextRecipe =
+      state.recipe && state.recipe.id === recipeId ? state.recipe : buildEmptyRecipe(recipeId)
+    setIngredients(state.ingredients ?? [])
+    setRecipe(nextRecipe)
+    setForceSaveOnEntry(Boolean(state.forceSaveOnEntry))
+    setPortionsText(String(nextRecipe.portions ?? 1))
+    setPortionWeightText(
+      nextRecipe.portionWeightGrams === null ? "" : String(nextRecipe.portionWeightGrams)
+    )
+    setPriceInclTaxText(nextRecipe.priceInclTax === null ? "" : String(nextRecipe.priceInclTax))
+    setBaselineParams({
+      vatId: nextRecipe.vatId,
+      priceInclTax: nextRecipe.priceInclTax,
+      portions: nextRecipe.portions,
+      portionWeightGrams: nextRecipe.portionWeightGrams,
+      categoryId: nextRecipe.categoryId,
+      subcategoryId: nextRecipe.subcategoryId,
+      active: nextRecipe.active,
+      saleable: nextRecipe.saleable,
+    })
+    setTechnicalImagePath(nextRecipe.technicalDataSheetImagePath ?? null)
+    setTechnicalImagePreview(
+      resolveTechnicalImageUrl(nextRecipe.technicalDataSheetImagePath) || null
+    )
+    setTechnicalImageFile(null)
+    closeIngredientEditor()
+  }, [recipeId, state.forceSaveOnEntry, state.recipe, state.ingredients])
+
+  useEffect(() => {
     if (!hasLoaded) return
     setPortionsText(String(recipe.portions ?? 1))
     setPortionWeightText(recipe.portionWeightGrams === null ? "" : String(recipe.portionWeightGrams))
@@ -361,9 +389,9 @@ export default function RecipeDetailPage() {
         recipesData,
       ] = await Promise.all([
         fetchRecipeById(recipeId),
-        fetchIngredients(estId, recipeId),
-        fetchRecipeCategories(estId),
-        fetchRecipeSubcategories(estId),
+        fetchIngredients(estId, recipeId, { useCache: false }),
+        fetchRecipeCategories(),
+        fetchRecipeSubcategories(),
         fetchVatRates(),
         fetchSuppliers(estId),
         fetchMasterArticles(estId),
@@ -381,21 +409,20 @@ export default function RecipeDetailPage() {
           id: cat.id,
           label: cat.name ?? "Sans nom",
         }))
-        .sort((a, b) => a.label.localeCompare(b.label, "fr"))
       const mappedSubcategories: RecipeSubcategoryOption[] = subcategoriesData
         .map((sub: ApiRecipeSubcategory) => ({
           id: sub.id,
           label: sub.name ?? "Sans nom",
           categoryId: sub.category_id ?? "",
         }))
-        .sort((a, b) => a.label.localeCompare(b.label, "fr"))
-      const mappedVatRates: VatRateOption[] = vatRatesData.map((rate: ApiVatRate) => ({
-        id: rate.id,
-        label:
-          rate.name ??
-          `${((toNumber(rate.percentage_rate) ?? 0) * 100).toLocaleString("fr-FR")} %`,
-        rate: toNumber(rate.percentage_rate) ?? 0,
-      }))
+      const mappedVatRates: VatRateOption[] = vatRatesData.map((rate: ApiVatRate) => {
+        const normalizedRate = normalizeVatRate(rate.percentage_rate)
+        return {
+          id: rate.id,
+          label: rate.name ?? `${(normalizedRate * 100).toLocaleString("fr-FR")} %`,
+          rate: normalizedRate,
+        }
+      })
       const mappedSuppliers: SupplierOption[] = suppliersData
         .map((supplier: ApiSupplier) => ({
           id: supplier.id,
@@ -466,7 +493,7 @@ export default function RecipeDetailPage() {
       const hasSubrecipe = mappedIngredients.some((item) => item.type === "SUBRECIPE")
       const nextRecipe = {
         ...toRecipeDetail(recipeData),
-        containsSubRecipe: hasSubrecipe || Boolean(recipeData.contains_sub_recipe),
+        containsSubRecipe: hasSubrecipe,
       }
 
       setRecipe(nextRecipe)
@@ -680,8 +707,86 @@ export default function RecipeDetailPage() {
     setIngredientEditorOpen(true)
   }
 
+  const updateContainsSubRecipe = useCallback(
+    (nextIngredients: Ingredient[]) => {
+      const hasSubrecipe = nextIngredients.some((item) => item.type === "SUBRECIPE")
+      setRecipe((prev) => {
+        if (prev.containsSubRecipe === hasSubrecipe) return prev
+        if (estId && prev.id) {
+          updateRecipe(prev.id, { contains_sub_recipe: hasSubrecipe }).catch(() => {})
+        }
+        return { ...prev, containsSubRecipe: hasSubrecipe }
+      })
+    },
+    [estId, updateRecipe]
+  )
+
+  const buildIngredientFromDraft = useCallback(
+    (ingredientId: string, apiIngredient?: ApiIngredient | null): Ingredient | null => {
+      if (ingredientDraft.type === "ARTICLE") {
+        const productId = ingredientDraft.productId || apiIngredient?.master_article_id || ""
+        const product = productId ? masterArticleMap[productId] : undefined
+        if (!productId || !product) return null
+        return {
+          id: ingredientId,
+          type: "ARTICLE",
+          name: product.name ?? product.unformatted_name ?? "Produit",
+          quantity: parseNumber(ingredientDraft.quantity),
+          unit: product.unit ?? "—",
+          unitCost: toNumber(product.current_unit_price) ?? 0,
+          masterArticleId: productId,
+          supplierId: product.supplier_id ?? undefined,
+          productId,
+          wastePercent: parseNumber(ingredientDraft.wastePercent),
+        }
+      }
+
+      if (ingredientDraft.type === "SUBRECIPE") {
+        const subId = ingredientDraft.recipeId || apiIngredient?.subrecipe_id || ""
+        const subRecipe = subId ? subRecipeMap[subId] : undefined
+        if (!subId || !subRecipe) return null
+        return {
+          id: ingredientId,
+          type: "SUBRECIPE",
+          name: subRecipe.name ?? "Sous-recette",
+          quantity: parseNumber(ingredientDraft.portionsUsed),
+          unit: "portion",
+          unitCost: subRecipe.purchaseCostPerPortion ?? 0,
+          subRecipeId: subId,
+        }
+      }
+
+      const fixedName = ingredientDraft.name.trim()
+      return {
+        id: ingredientId,
+        type: "FIXED",
+        name: fixedName || apiIngredient?.unit || "Charge fixe",
+        quantity: 1,
+        unit: "forfait",
+        unitCost: parseNumber(ingredientDraft.fixedCost),
+      }
+    },
+    [ingredientDraft, masterArticleMap, subRecipeMap]
+  )
+
+  const upsertIngredient = useCallback(
+    (nextIngredient: Ingredient) => {
+      setIngredients((prev) => {
+        const index = prev.findIndex((item) => item.id === nextIngredient.id)
+        const next =
+          index === -1
+            ? [...prev, nextIngredient]
+            : prev.map((item, idx) => (idx === index ? nextIngredient : item))
+        updateContainsSubRecipe(next)
+        return next
+      })
+    },
+    [updateContainsSubRecipe]
+  )
+
   const handleDeleteIngredient = () => {
     if (!editingIngredientId || !estId) return
+    setIngredientDeleting(true)
     deleteIngredient({
       ingredient_id: editingIngredientId,
       establishment_id: estId,
@@ -691,15 +796,37 @@ export default function RecipeDetailPage() {
         toast.error("L'ingrédient a bien été supprimé de la recette.", {
           icon: <Trash2 className="h-4 w-4 text-destructive" />,
         })
-        loadRecipeData()
+        setIngredients((prev) => {
+          const next = prev.filter((item) => item.id !== editingIngredientId)
+          updateContainsSubRecipe(next)
+          return next
+        })
+        clearIngredientsCache(estId, recipe.id)
       })
-      .catch(() => {
+      .catch((error) => {
+        if (isMissingIngredientError(error)) {
+          closeIngredientEditor()
+          setIngredients((prev) => {
+            const next = prev.filter((item) => item.id !== editingIngredientId)
+            updateContainsSubRecipe(next)
+            return next
+          })
+          clearIngredientsCache(estId, recipe.id)
+          toast.message("L'ingrédient était déjà supprimé.", {
+            icon: <Info className="h-4 w-4 text-muted-foreground" />,
+          })
+          return
+        }
         toast.error("Impossible de supprimer l'ingrédient.")
+      })
+      .finally(() => {
+        setIngredientDeleting(false)
       })
   }
 
   const handleSaveIngredient = () => {
     if (!estId || !recipe.id) return
+    if (ingredientSaving) return
 
     const runRecompute = (ingredientId: string) =>
       recomputeIngredient({
@@ -707,6 +834,31 @@ export default function RecipeDetailPage() {
         recipe_id: recipe.id,
         establishment_id: estId,
       })
+
+    const finalizeSave = async (data: ApiIngredient | null | undefined, successMessage: string) => {
+      const nextId =
+        ingredientEditorMode === "edit" && editingIngredientId ? editingIngredientId : data?.id
+      if (!nextId) {
+        toast.error("Impossible de récupérer l'identifiant de l'ingrédient.")
+        return
+      }
+      const nextIngredient = buildIngredientFromDraft(nextId, data)
+      if (nextIngredient) {
+        upsertIngredient(nextIngredient)
+      }
+      if (estId) {
+        clearIngredientsCache(estId, recipe.id)
+      }
+      try {
+        await runRecompute(nextId)
+      } catch {
+        toast.message("Ingrédient enregistré, recalcul en attente.", {
+          icon: <Info className="h-4 w-4 text-muted-foreground" />,
+        })
+      }
+      closeIngredientEditor()
+      toast.success(successMessage)
+    }
 
     if (ingredientDraft.type === "ARTICLE") {
       const supplierId = ingredientDraft.supplierId
@@ -739,21 +891,19 @@ export default function RecipeDetailPage() {
           ? updateIngredient(editingIngredientId, payload)
           : createIngredient(payload)
 
+      setIngredientSaving(true)
       request
-        .then((data) => {
-          const nextId =
-            ingredientEditorMode === "edit" && editingIngredientId ? editingIngredientId : data.id
-          return runRecompute(nextId)
-        })
-        .then(() => {
-          closeIngredientEditor()
-          toast.success(
+        .then((data) =>
+          finalizeSave(
+            data,
             ingredientEditorMode === "edit" ? "Ingrédient mis à jour." : "Ingrédient ajouté."
           )
-          loadRecipeData()
-        })
+        )
         .catch(() => {
           toast.error("Impossible d'enregistrer l'ingrédient.")
+        })
+        .finally(() => {
+          setIngredientSaving(false)
         })
       return
     }
@@ -786,21 +936,19 @@ export default function RecipeDetailPage() {
           ? updateIngredient(editingIngredientId, payload)
           : createIngredient(payload)
 
+      setIngredientSaving(true)
       request
-        .then((data) => {
-          const nextId =
-            ingredientEditorMode === "edit" && editingIngredientId ? editingIngredientId : data.id
-          return runRecompute(nextId)
-        })
-        .then(() => {
-          closeIngredientEditor()
-          toast.success(
+        .then((data) =>
+          finalizeSave(
+            data,
             ingredientEditorMode === "edit" ? "Sous-recette mise à jour." : "Sous-recette ajoutée."
           )
-          loadRecipeData()
-        })
+        )
         .catch(() => {
           toast.error("Impossible d'enregistrer la sous-recette.")
+        })
+        .finally(() => {
+          setIngredientSaving(false)
         })
       return
     }
@@ -830,19 +978,16 @@ export default function RecipeDetailPage() {
         ? updateIngredient(editingIngredientId, payload)
         : createIngredient(payload)
 
+    setIngredientSaving(true)
     request
-      .then((data) => {
-        const nextId =
-          ingredientEditorMode === "edit" && editingIngredientId ? editingIngredientId : data.id
-        return runRecompute(nextId)
-      })
-      .then(() => {
-        closeIngredientEditor()
-        toast.success(ingredientEditorMode === "edit" ? "Charge mise à jour." : "Charge ajoutée.")
-        loadRecipeData()
-      })
+      .then((data) =>
+        finalizeSave(data, ingredientEditorMode === "edit" ? "Charge mise à jour." : "Charge ajoutée.")
+      )
       .catch(() => {
         toast.error("Impossible d'enregistrer la charge.")
+      })
+      .finally(() => {
+        setIngredientSaving(false)
       })
   }
 
@@ -878,19 +1023,51 @@ export default function RecipeDetailPage() {
     )
   }
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(
+    async (options?: { redirect?: boolean }) => {
     if (!estId || !recipe.id) return false
+    if (recipeSaving) return false
+    if (ingredients.length === 0) {
+      toast.error("Ajoutez au moins un ingrédient avant d'enregistrer la recette.")
+      return false
+    }
+    const trimmedName = recipe.name.trim()
+    if (!trimmedName) {
+      toast.error("Renseignez un nom de recette.")
+      return false
+    }
+    if (!recipe.categoryId) {
+      toast.error("Sélectionnez une catégorie.")
+      return false
+    }
+    if (!recipe.subcategoryId) {
+      toast.error("Sélectionnez une sous-catégorie.")
+      return false
+    }
+    if (recipe.saleable) {
+      if (!recipe.vatId) {
+        toast.error("Sélectionnez une TVA.")
+        return false
+      }
+      if (priceInclTaxValue === null) {
+        toast.error("Renseignez un prix de vente TTC.")
+        return false
+      }
+    }
     const hasSubrecipe = ingredients.some((item) => item.type === "SUBRECIPE")
     const priceTaxValue =
       recipe.saleable && priceInclTaxValue !== null
         ? Math.max(0, priceInclTaxValue - priceExclTax)
         : null
+    const recommendedRetailPriceValue =
+      Number.isFinite(recommendedPriceTtc) && recommendedPriceTtc > 0 ? recommendedPriceTtc : null
 
+    setRecipeSaving(true)
     try {
       const updated = await updateRecipe(recipe.id, {
-        name: recipe.name,
+        name: trimmedName,
         vat_id: recipe.vatId || null,
-        recommanded_retail_price: recipe.recommendedRetailPrice || null,
+        recommanded_retail_price: recommendedRetailPriceValue,
         active: recipe.active,
         saleable: recipe.saleable,
         contains_sub_recipe: hasSubrecipe,
@@ -905,7 +1082,8 @@ export default function RecipeDetailPage() {
         technical_data_sheet_image_path: technicalImagePath ?? null,
       })
       await recomputeRecipe({ recipe_id: recipe.id, establishment_id: estId })
-      const normalized = toRecipeDetail(updated as ApiRecipe)
+      const refreshed = await fetchRecipeById(recipe.id)
+      const normalized = toRecipeDetail((refreshed ?? updated) as ApiRecipe)
       setRecipe((prev) => ({
         ...prev,
         ...normalized,
@@ -926,23 +1104,31 @@ export default function RecipeDetailPage() {
       })
       setForceSaveOnEntry(false)
       toast.success("Recette enregistrée.")
-      loadRecipeData()
+      if (options?.redirect) {
+        navigate("/dashboard/recipes")
+      }
       return true
     } catch {
       toast.error("Impossible d'enregistrer la recette.")
       return false
+    } finally {
+      setRecipeSaving(false)
     }
-  }, [
-    estId,
-    ingredients,
-    loadRecipeData,
-    portionWeightValue,
-    portionsValue,
-    priceExclTax,
-    priceInclTaxValue,
-    recipe,
-    technicalImagePath,
-  ])
+  },
+    [
+      estId,
+      ingredients,
+      navigate,
+      portionWeightValue,
+      portionsValue,
+      priceExclTax,
+      priceInclTaxValue,
+      recommendedPriceTtc,
+      recipe,
+      recipeSaving,
+      technicalImagePath,
+    ]
+  )
 
   const openDuplicate = () => {
     setDuplicateName(`Copie de ${recipe.name}`)
@@ -966,11 +1152,7 @@ export default function RecipeDetailPage() {
     [navigationBlocked, navigate]
   )
 
-  const confirmNavigate = () => {
-    if (ingredients.length === 0) {
-      toast.error("Ajoutez au moins un ingrédient avant de quitter cette recette.")
-      return
-    }
+  const performPendingNavigation = useCallback(() => {
     if (pendingNav) {
       if (pendingNav.type === "path") {
         navigate(pendingNav.value)
@@ -990,9 +1172,19 @@ export default function RecipeDetailPage() {
           bypassClickGuardRef.current = false
         }, 0)
       }
+    } else {
+      navigate("/dashboard/recipes")
     }
     setNavConfirmOpen(false)
     setPendingNav(null)
+  }, [navigate, pendingNav])
+
+  const confirmNavigate = () => {
+    if (ingredients.length === 0) {
+      toast.error("Ajoutez au moins un ingrédient avant de quitter cette recette.")
+      return
+    }
+    performPendingNavigation()
   }
 
   const handleNavClickCapture = useCallback(
@@ -1161,12 +1353,17 @@ export default function RecipeDetailPage() {
 
   const confirmDeleteRecipe = () => {
     if (!estId) return
+    if (deleteSaving) return
+    setDeleteSaving(true)
     deleteRecipe({
       recipe_id: recipe.id,
       establishment_id: estId,
     })
-      .then(() => {
+      .then((result) => {
         setDeleteOpen(false)
+        const deletedIds = new Set<string>(result?.deleted_recipes ?? [recipe.id])
+        deletedIds.forEach((id) => removeCachedRecipe(estId, id))
+        clearIngredientsCache(estId)
         toast.success(
           <>
             Recette <span className="font-semibold">{recipe.name}</span> supprimée
@@ -1176,6 +1373,36 @@ export default function RecipeDetailPage() {
       })
       .catch(() => {
         toast.error("Impossible de supprimer la recette.")
+      })
+      .finally(() => {
+        setDeleteSaving(false)
+      })
+  }
+
+  const confirmDeleteAndLeave = () => {
+    if (!estId) return
+    if (deleteSaving) return
+    setDeleteSaving(true)
+    deleteRecipe({
+      recipe_id: recipe.id,
+      establishment_id: estId,
+    })
+      .then((result) => {
+        const deletedIds = new Set<string>(result?.deleted_recipes ?? [recipe.id])
+        deletedIds.forEach((id) => removeCachedRecipe(estId, id))
+        clearIngredientsCache(estId)
+        toast.success(
+          <>
+            Recette <span className="font-semibold">{recipe.name}</span> supprimée
+          </>
+        )
+        performPendingNavigation()
+      })
+      .catch(() => {
+        toast.error("Impossible de supprimer la recette.")
+      })
+      .finally(() => {
+        setDeleteSaving(false)
       })
   }
 
@@ -1279,7 +1506,7 @@ export default function RecipeDetailPage() {
     )
   }
 
-  if (!hasLoaded) {
+  if (!hasLoaded && !hasSeedRecipe) {
     return (
       <div className="flex min-h-[400px] items-center justify-center text-sm text-muted-foreground">
         Chargement de la recette...
@@ -1303,13 +1530,20 @@ export default function RecipeDetailPage() {
             confirmNavigate()
           }
         }}
+        onDeleteAndLeave={confirmDeleteAndLeave}
       />
 
       <RecipeDeleteDialog
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        onOpenChange={(open) => {
+          setDeleteOpen(open)
+          if (!open) {
+            setDeleteSaving(false)
+          }
+        }}
         recipeName={recipe.name}
         onConfirm={confirmDeleteRecipe}
+        isDeleting={deleteSaving}
       />
 
       <RecipeDuplicateDialog
@@ -1359,6 +1593,8 @@ export default function RecipeDetailPage() {
         productOptionsBySupplier={productOptionsBySupplier}
         categoryOptions={categoryOptions}
         subcategoryOptionsByCategory={subcategoryOptionsByCategory}
+        isSaving={ingredientSaving}
+        isDeleting={ingredientDeleting}
         onSave={handleSaveIngredient}
         onDelete={ingredientEditorMode === "edit" ? handleDeleteIngredient : undefined}
       />
@@ -1394,6 +1630,7 @@ export default function RecipeDetailPage() {
             ingredientsCount={ingredients.length}
             purchaseCostTotal={purchaseCostTotal}
             purchaseCostPerPortion={purchaseCostPerPortion}
+            isLoading={!hasLoaded}
             onAddArticle={() => openCreateIngredient("ARTICLE")}
             onAddSubRecipe={() => openCreateIngredient("SUBRECIPE")}
             onAddFixed={() => openCreateIngredient("FIXED")}
@@ -1441,8 +1678,9 @@ export default function RecipeDetailPage() {
             onSubcategoryChange={(value) =>
               setRecipe((prev) => ({ ...prev, subcategoryId: value, updatedAt: new Date() }))
             }
-            onSave={handleSave}
-            saveDisabled={!hasChanges && !forceSaveOnEntry}
+            onSave={() => handleSave({ redirect: true })}
+            saveDisabled={(!hasChanges && !forceSaveOnEntry) || ingredients.length === 0}
+            isSaving={recipeSaving}
             categoryOptions={categoryOptions}
             subcategoryOptionsByCategory={subcategoryOptionsByCategory}
             vatOptions={vatOptions}

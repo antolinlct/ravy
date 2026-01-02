@@ -59,29 +59,32 @@ type MergesListViewProps = {
   suppliers: MarketSupplier[]
   aliases: MarketSupplierAlias[]
   ownerEstablishment?: string
+  ownerEstablishmentId?: string
   onAcceptRequest: (id: string) => void
   onRefuseRequest: (id: string) => void
   onCreateRequest: (input: {
     sourceSupplierIds: string[]
     targetSupplierId: string
-    establishment?: string
+    requestingEstablishmentId?: string | null
   }) => void
   onOpenSupplier: (id: string) => void
 }
 
 const statusLabelMap: Record<MergeRequestStatus, string> = {
   pending: "En attente",
+  to_confirm: "A confirmer",
   accepted: "Acceptee",
-  ignored: "Ignoree",
-  dismissed: "Classee",
+  resolved: "Ignoree",
+  refused: "Classee",
 }
 
 const statusVariantMap: Partial<Record<MergeRequestStatus, "default" | "secondary">> =
   {
     pending: "secondary",
+    to_confirm: "secondary",
     accepted: "default",
-    ignored: "secondary",
-    dismissed: "secondary",
+    resolved: "secondary",
+    refused: "secondary",
   }
 
 export function MergesListView({
@@ -89,6 +92,7 @@ export function MergesListView({
   suppliers,
   aliases,
   ownerEstablishment,
+  ownerEstablishmentId,
   onAcceptRequest,
   onRefuseRequest,
   onCreateRequest,
@@ -432,13 +436,10 @@ export function MergesListView({
                       type="button"
                       disabled={!canCreateRequest}
                       onClick={() => {
-                        const establishmentValue =
-                          ownerEstablishment ??
-                          (createEstablishment.trim() || undefined)
                         onCreateRequest({
                           sourceSupplierIds: createSources,
                           targetSupplierId: createTarget,
-                          establishment: establishmentValue,
+                          requestingEstablishmentId: ownerEstablishmentId ?? null,
                         })
                         setCreateOpen(false)
                         setCreateSources([])

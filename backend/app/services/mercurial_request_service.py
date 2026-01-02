@@ -1,9 +1,17 @@
 from uuid import UUID
 
 from fastapi.encoders import jsonable_encoder
+from postgrest.exceptions import APIError
 
 from app.core.supabase_client import supabase
 from app.schemas.mercurial_request import MercurialRequest
+
+def _is_no_row_error(exc: APIError) -> bool:
+    payload = exc.args[0] if exc.args else None
+    if isinstance(payload, dict):
+        if payload.get("code") == "PGRST116":
+            return True
+    return "PGRST116" in str(exc)
 
 def get_all_mercurial_request(filters: dict | None = None, limit: int = 200, page: int = 1):
     query = supabase.table("mercurial_request").select("*")
@@ -43,12 +51,17 @@ def get_all_mercurial_request(filters: dict | None = None, limit: int = 200, pag
 
 
 def get_mercurial_request_by_id(id: UUID):
-    response = supabase.table("mercurial_request").select("*").eq("id", str(id)).single().execute()
+    try:
+        response = supabase.table("mercurial_request").select("*").eq("id", str(id)).single().execute()
+    except APIError as exc:
+        if _is_no_row_error(exc):
+            return None
+        raise
     return MercurialRequest(**response.data) if response.data else None
 
 
 def create_mercurial_request(payload: dict):
-    prepared = {k: v for k, v in payload.items() if v is not None and k != "id"}
+    prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
     response = supabase.table("mercurial_request").insert(prepared).execute()
     return response.data[0] if response.data else None
 

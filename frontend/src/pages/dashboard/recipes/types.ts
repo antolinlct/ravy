@@ -11,6 +11,7 @@ export type RecipeListItem = {
   salePrice: string | null
   margin: string | null
   marginValue: number | null
+  updatedAt: Date | null
 }
 
 export type RecipeListCategoryOption = {
