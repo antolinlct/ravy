@@ -45,7 +45,7 @@ def _fetch_product_data(
     if not only_my_invoices:
         # --- Données marché global ---
         resp = (
-            supabase.table("market_articles")
+            supabase.schema("market").table("market_articles")
             .select("unit_price, date")
             .eq("market_master_article_id", market_master_article_id)
             .gte("date", str(start_date))
@@ -169,7 +169,7 @@ def market_comparator(
 
     # --- 2. Métadonnées des market_master_articles ---
     product1_meta = (
-        supabase.table("market_master_articles")
+        supabase.schema("market").table("market_master_articles")
         .select("*")
         .eq("id", market_master_article_1_id)
         .limit(1)
@@ -178,7 +178,7 @@ def market_comparator(
     product1_meta = product1_meta.data[0] if product1_meta.data else None
 
     product2_meta = (
-        supabase.table("market_master_articles")
+        supabase.schema("market").table("market_master_articles")
         .select("*")
         .eq("id", market_master_article_2_id)
         .limit(1)

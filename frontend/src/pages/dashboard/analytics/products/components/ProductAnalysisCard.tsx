@@ -101,6 +101,7 @@ export const ProductAnalysisCard = ({
   euroFormatterNoDecimals,
 }: ProductAnalysisCardProps) => {
   const sortedRecipesRows = recipesRows
+  const hasRecipes = sortedRecipesRows.length > 0
 
   return (
     <Card>
@@ -272,160 +273,166 @@ export const ProductAnalysisCard = ({
               </AlertDescription>
             </Alert>
 
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Recettes impactées</TableHead>
-                    <TableHead className="w-32">
-                      <ColumnHeader
-                        label={`Coût au ${analysisStartLabel}`}
-                        tooltip="Coût de production au début de la période sélectionnée."
-                      />
-                    </TableHead>
-                    <TableHead className="w-32">
-                      <ColumnHeader
-                        label={`Coût au ${analysisEndLabel}`}
-                        tooltip="Coût de production à la fin de la période sélectionnée."
-                      />
-                    </TableHead>
-                    <TableHead className="w-28">
-                      <ColumnHeader
-                        label="Variation (%)"
-                        tooltip="Évolution relative du coût de production sur la période."
-                      />
-                    </TableHead>
-                    <TableHead className="w-28">
-                      <ColumnHeader
-                        label="Impact (€)"
-                        tooltip="Impact en euros lié à l'évolution du prix de l'ingrédient."
-                      />
-                    </TableHead>
-                    <TableHead className="w-10 text-right" />
-                  </TableRow>
-                </TableHeader>
-              </Table>
-              <ScrollArea className="max-h-[360px]">
+            {hasRecipes ? (
+              <div className="rounded-md border">
                 <Table className="table-fixed w-full">
-                  <TableBody>
-                    {sortedRecipesRows.map((row) => {
-                      const costStart = row.costStart
-                      const costEnd = row.costEnd
-                      const impactEuro = typeof row.impactEuro === "number" ? row.impactEuro : null
-                      const costDelta =
-                        typeof costStart === "number" && typeof costEnd === "number" && costStart !== 0
-                          ? ((costEnd - costStart) / costStart) * 100
-                          : null
-                      const hasCost = typeof costStart === "number" && typeof costEnd === "number"
-                      const hasSignificantDelta = typeof costDelta === "number" && Math.abs(costDelta) >= 0.001
-                      const hasSignificantImpact =
-                        typeof impactEuro === "number" && Math.abs(impactEuro) >= 0.001
-                      const impactClass = hasSignificantImpact
-                        ? impactEuro >= 0
-                          ? "text-red-500"
-                          : "text-green-500"
-                        : "text-muted-foreground"
-                      return (
-                        <TableRow key={row.id}>
-                          <TableCell className="w-[40%]">
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">{row.name}</p>
-                              {hasCost ? (
-                                <p className="text-xs text-muted-foreground">
-                                  Coût actuel : {euroFormatter.format(costEnd)}
-                                </p>
-                              ) : null}
-                              {!row.isActive ? (
-                                <p className="text-xs text-muted-foreground">Recette inactive</p>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "w-32 text-sm font-semibold",
-                              hasCost ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            {hasCost ? (
-                              <span className="inline-flex items-baseline gap-1">
-                                <span>{euroFormatter.format(costStart)}</span>
-                                <span className="text-muted-foreground font-normal">/ portions</span>
-                              </span>
-                            ) : (
-                              "--"
-                            )}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "w-32 text-sm font-semibold",
-                              hasCost ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            {hasCost ? (
-                              <span className="inline-flex items-baseline gap-1">
-                                <span>{euroFormatter.format(costEnd)}</span>
-                                <span className="text-muted-foreground font-normal">/ portions</span>
-                              </span>
-                            ) : (
-                              "--"
-                            )}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "w-28 text-sm font-semibold",
-                              hasCost ? "text-foreground" : "text-muted-foreground"
-                            )}
-                          >
-                            {hasCost && hasSignificantDelta ? (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  costDelta > 0
-                                    ? "border-red-500/20 bg-red-500/10 text-red-600"
-                                    : costDelta < 0
-                                      ? "border-green-500/20 bg-green-500/10 text-green-600"
-                                      : "text-muted-foreground"
-                                }
-                              >
-                                {costDelta > 0 ? "+" : ""}
-                                {costDelta.toFixed(1).replace(".", ",")}%
-                              </Badge>
-                            ) : (
-                              <span className="text-muted-foreground">--</span>
-                            )}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              "w-28 text-sm font-semibold",
-                              hasCost ? impactClass : "text-muted-foreground"
-                            )}
-                          >
-                            {hasCost && hasSignificantImpact ? (
-                              <span className="inline-flex items-baseline gap-1">
-                                <span>
-                                  {impactEuro >= 0 ? "-" : "+"}
-                                  {euroFormatter.format(Math.abs(impactEuro))}
-                                </span>
-                                <span className="text-muted-foreground font-normal">
-                                  / {row.isSold ? "vente" : "portion"}
-                                </span>
-                              </span>
-                            ) : (
-                              "--"
-                            )}
-                          </TableCell>
-                          <TableCell className="w-10 text-right">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40%]">Recettes impactées</TableHead>
+                      <TableHead className="w-32">
+                        <ColumnHeader
+                          label={`Coût au ${analysisStartLabel}`}
+                          tooltip="Coût de production au début de la période sélectionnée."
+                        />
+                      </TableHead>
+                      <TableHead className="w-32">
+                        <ColumnHeader
+                          label={`Coût au ${analysisEndLabel}`}
+                          tooltip="Coût de production à la fin de la période sélectionnée."
+                        />
+                      </TableHead>
+                      <TableHead className="w-28">
+                        <ColumnHeader
+                          label="Variation (%)"
+                          tooltip="Évolution relative du coût de production sur la période."
+                        />
+                      </TableHead>
+                      <TableHead className="w-28">
+                        <ColumnHeader
+                          label="Impact (€)"
+                          tooltip="Impact en euros lié à l'évolution du prix de l'ingrédient."
+                        />
+                      </TableHead>
+                      <TableHead className="w-10 text-right" />
+                    </TableRow>
+                  </TableHeader>
                 </Table>
-              </ScrollArea>
-            </div>
+                <ScrollArea className="max-h-[360px]">
+                  <Table className="table-fixed w-full">
+                    <TableBody>
+                      {sortedRecipesRows.map((row) => {
+                        const costStart = row.costStart
+                        const costEnd = row.costEnd
+                        const impactEuro = typeof row.impactEuro === "number" ? row.impactEuro : null
+                        const costDelta =
+                          typeof costStart === "number" && typeof costEnd === "number" && costStart !== 0
+                            ? ((costEnd - costStart) / costStart) * 100
+                            : null
+                        const hasCost = typeof costStart === "number" && typeof costEnd === "number"
+                        const hasSignificantDelta = typeof costDelta === "number" && Math.abs(costDelta) >= 0.001
+                        const hasSignificantImpact =
+                          typeof impactEuro === "number" && Math.abs(impactEuro) >= 0.001
+                        const impactClass = hasSignificantImpact
+                          ? impactEuro >= 0
+                            ? "text-red-500"
+                            : "text-green-500"
+                          : "text-muted-foreground"
+                        return (
+                          <TableRow key={row.id}>
+                            <TableCell className="w-[40%]">
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">{row.name}</p>
+                                {hasCost ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    Coût actuel : {euroFormatter.format(costEnd)}
+                                  </p>
+                                ) : null}
+                                {!row.isActive ? (
+                                  <p className="text-xs text-muted-foreground">Recette inactive</p>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "w-32 text-sm font-semibold",
+                                hasCost ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              {hasCost ? (
+                                <span className="inline-flex items-baseline gap-1">
+                                  <span>{euroFormatter.format(costStart)}</span>
+                                  <span className="text-muted-foreground font-normal">/ portions</span>
+                                </span>
+                              ) : (
+                                "--"
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "w-32 text-sm font-semibold",
+                                hasCost ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              {hasCost ? (
+                                <span className="inline-flex items-baseline gap-1">
+                                  <span>{euroFormatter.format(costEnd)}</span>
+                                  <span className="text-muted-foreground font-normal">/ portions</span>
+                                </span>
+                              ) : (
+                                "--"
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "w-28 text-sm font-semibold",
+                                hasCost ? "text-foreground" : "text-muted-foreground"
+                              )}
+                            >
+                              {hasCost && hasSignificantDelta ? (
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    costDelta > 0
+                                      ? "border-red-500/20 bg-red-500/10 text-red-600"
+                                      : costDelta < 0
+                                        ? "border-green-500/20 bg-green-500/10 text-green-600"
+                                        : "text-muted-foreground"
+                                  }
+                                >
+                                  {costDelta > 0 ? "+" : ""}
+                                  {costDelta.toFixed(1).replace(".", ",")}%
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">--</span>
+                              )}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "w-28 text-sm font-semibold",
+                                hasCost ? impactClass : "text-muted-foreground"
+                              )}
+                            >
+                              {hasCost && hasSignificantImpact ? (
+                                <span className="inline-flex items-baseline gap-1">
+                                  <span>
+                                    {impactEuro >= 0 ? "-" : "+"}
+                                    {euroFormatter.format(Math.abs(impactEuro))}
+                                  </span>
+                                  <span className="text-muted-foreground font-normal">
+                                    / {row.isSold ? "vente" : "portion"}
+                                  </span>
+                                </span>
+                              ) : (
+                                "--"
+                              )}
+                            </TableCell>
+                            <TableCell className="w-10 text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
+            ) : (
+              <div className="flex min-h-[140px] items-center justify-center rounded-md border bg-muted/20 text-sm text-muted-foreground">
+                Aucune recette liée à cet article sur la période sélectionnée.
+              </div>
+            )}
           </>
         )}
       </CardContent>

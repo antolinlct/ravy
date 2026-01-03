@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { AnalyticsPageHeader } from "./components/AnalyticsPageHeader"
 import { ProductSelectionCard } from "./components/ProductSelectionCard"
@@ -11,15 +11,32 @@ import type { IntervalKey } from "@/components/blocks/area-chart"
 
 export default function ProductDetailPage() {
   const navigate = useNavigate()
+  const { id: routeArticleId } = useParams()
+  const normalizedRouteRef = useRef<string | null>(null)
+  const isUuid = useMemo(
+    () => (value?: string) =>
+      Boolean(
+        value &&
+          /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value)
+      ),
+    []
+  )
+  const isValidRouteId = useMemo(
+    () => isUuid(routeArticleId),
+    [isUuid, routeArticleId]
+  )
+  const resolvedRouteId = isValidRouteId ? routeArticleId : undefined
   const [selectedSupplierId, setSelectedSupplierId] = useState("")
   const [selectedArticleId, setSelectedArticleId] = useState("")
   const [costMetric, setCostMetric] = useState("Prix unitaire")
   const [costInterval, setCostInterval] = useState<IntervalKey>("week")
   const [costZoomRange, setCostZoomRange] = useState<{ start?: Date; end?: Date }>({})
-  const [analysisRange, setAnalysisRange] = useState<{ start?: Date; end?: Date }>(() => ({
-    start: new Date("2025-01-01"),
-    end: new Date("2025-12-31"),
-  }))
+  const [analysisRange, setAnalysisRange] = useState<{ start?: Date; end?: Date }>(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setMonth(end.getMonth() - 3)
+    return { start, end }
+  })
   const minAnalysisDate = useMemo(() => new Date("2022-01-01"), [])
   const euroFormatter = useMemo(
     () =>
@@ -74,15 +91,31 @@ export default function ProductDetailPage() {
     () => masterArticles.find((article) => article.id === selectedArticleId),
     [masterArticles, selectedArticleId]
   )
+  const isSelectedArticleValid = useMemo(
+    () => isUuid(selectedArticleId),
+    [isUuid, selectedArticleId]
+  )
 
   useEffect(() => {
+    if (resolvedRouteId && resolvedRouteId !== selectedArticleId) {
+      setSelectedArticleId(resolvedRouteId)
+    }
+  }, [resolvedRouteId, selectedArticleId])
+
+  useEffect(() => {
+    const analysisSupplierId = analysis?.master_article?.supplier_id
+    if (analysisSupplierId && analysisSupplierId !== selectedSupplierId) {
+      setSelectedSupplierId(analysisSupplierId)
+      return
+    }
     if (!supplierOptions.length) return
     if (!selectedSupplierId || !supplierOptions.some((supplier) => supplier.id === selectedSupplierId)) {
       setSelectedSupplierId(supplierOptions[0].id)
     }
-  }, [selectedSupplierId, supplierOptions])
+  }, [analysis?.master_article?.supplier_id, selectedSupplierId, supplierOptions])
 
   useEffect(() => {
+    if (resolvedRouteId) return
     if (!selectedSupplierId) {
       setSelectedArticleId("")
       return
@@ -94,7 +127,7 @@ export default function ProductDetailPage() {
     if (!filteredArticles.some((article) => article.id === selectedArticleId)) {
       setSelectedArticleId(filteredArticles[0].id)
     }
-  }, [filteredArticles, selectedArticleId, selectedSupplierId])
+  }, [filteredArticles, resolvedRouteId, selectedArticleId, selectedSupplierId])
 
   const unitCostSeries = useMemo(() => (selectedArticleId ? rawCostSeries : []), [rawCostSeries, selectedArticleId])
   const filteredCostSeries = useMemo(() => {
@@ -261,6 +294,14 @@ export default function ProductDetailPage() {
     setCostZoomRange({})
   }, [analysisRange.end, analysisRange.start, selectedArticleId])
 
+  useEffect(() => {
+    if (!selectedArticleId || !isSelectedArticleValid) return
+    if (resolvedRouteId === selectedArticleId) return
+    if (!resolvedRouteId && normalizedRouteRef.current === selectedArticleId) return
+    normalizedRouteRef.current = selectedArticleId
+    navigate(`/dashboard/analytics/products/${selectedArticleId}`, { replace: true })
+  }, [isSelectedArticleValid, navigate, resolvedRouteId, selectedArticleId])
+
   return (
     <div className="space-y-6">
       <AnalyticsPageHeader
@@ -271,7 +312,11 @@ export default function ProductDetailPage() {
           if (tab === "general") {
             navigate("/dashboard/analytics/products")
           } else {
-            navigate("/dashboard/analytics/products/detail")
+            navigate(
+              selectedArticleId && isSelectedArticleValid
+                ? `/dashboard/analytics/products/${selectedArticleId}`
+                : "/dashboard/analytics/products"
+            )
           }
         }}
       />

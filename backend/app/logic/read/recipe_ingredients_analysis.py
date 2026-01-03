@@ -80,7 +80,7 @@ def recipe_ingredients_analysis(
         if ing_type == "ARTICLE" and master_article_id:
             master_resp = (
                 supabase.table("master_articles")
-                .select("id, name_raw, supplier_id, market_master_article_id")
+                .select("id, unformatted_name, name, supplier_id, market_master_article_id")
                 .eq("id", master_article_id)
                 .limit(1)
                 .execute()

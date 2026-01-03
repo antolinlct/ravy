@@ -9,6 +9,7 @@ export type InvoiceListItem = {
   supplier: string
   supplierValue: string
   reference: string
+  invoiceNumber?: string | null
   date: string
   dateValue: Date
   createdAt: Date
@@ -16,6 +17,7 @@ export type InvoiceListItem = {
   tva: string
   ttc: string
   ttcValue?: number
+  fileStoragePath?: string | null
 }
 
 export type InvoiceTotals = {

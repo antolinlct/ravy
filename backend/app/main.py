@@ -101,6 +101,10 @@ app.include_router(wake_invoice.router)
 from app.api.routes import pdf_recipes
 app.include_router(pdf_recipes.router)
 
+# Routes Invoice Export
+from app.api.routes import invoice_export
+app.include_router(invoice_export.router)
+
 
 
 

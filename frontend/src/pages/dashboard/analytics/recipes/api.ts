@@ -160,9 +160,9 @@ const resolveIngredientName = (ingredient: ApiRecipeAnalysisIngredient) => {
     return ingredient.subrecipe?.name ?? "Sous-recette"
   }
   return (
-    ingredient.master_article?.name_raw ??
-    ingredient.master_article?.name ??
     ingredient.master_article?.unformatted_name ??
+    ingredient.master_article?.name ??
+    ingredient.master_article?.name_raw ??
     "Ingrédient"
   )
 }

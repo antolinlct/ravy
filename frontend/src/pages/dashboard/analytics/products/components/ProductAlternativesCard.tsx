@@ -80,7 +80,7 @@ export const ProductAlternativesCard = ({ alternatives, euroFormatter }: Product
                   ))
                 ) : (
                   <div className="flex h-24 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-                    Aucune alternative trouvée sur la période.
+                    Aucune alternative trouvée pour ce produit.
                   </div>
                 )}
               </div>

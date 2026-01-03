@@ -7,7 +7,6 @@ import {
   buildSupplierSeries,
   formatVariationLabel,
   supplierLabelDisplay,
-  useMarketComparisons,
   useProductOverviewData,
 } from "./api"
 import type { SupplierLabel } from "./types"
@@ -24,15 +23,17 @@ export default function ProductAnalyticsPage() {
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [supplierInterval, setSupplierInterval] = useState<"day" | "week" | "month">("week")
   const minSupplierDate = useMemo(() => new Date("2022-01-01"), [])
-  const [supplierRange, setSupplierRange] = useState<{ start?: Date; end?: Date }>(() => ({
-    start: new Date("2025-01-01"),
-    end: new Date("2025-12-31"),
-  }))
+  const [supplierRange, setSupplierRange] = useState<{ start?: Date; end?: Date }>(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setMonth(end.getMonth() - 3)
+    return { start, end }
+  })
   const {
     suppliers,
     masterArticles,
     invoices,
-    productAggregates,
+    financialIngredients,
     variations,
   } = useProductOverviewData(estId, supplierRange.start, supplierRange.end)
   const diffNumberFormatter = useMemo(
@@ -85,30 +86,34 @@ export default function ProductAnalyticsPage() {
   )
   const productBaseItems = useMemo(
     () =>
-      productAggregates.map((aggregate) => {
-        const master = masterArticlesById.get(aggregate.masterArticleId)
-        const supplier = aggregate.supplierId ? suppliersById.get(aggregate.supplierId) : undefined
-        const unit = aggregate.unit ?? master?.unit ?? "unité"
-        const qtyLabel =
-          aggregate.totalQty > 0
-            ? `${quantityFormatter.format(aggregate.totalQty)} ${unit}`
-            : `-- ${unit}`
-        return {
-          id: aggregate.masterArticleId,
-          name: master?.name ?? "Article",
-          supplier: supplier?.name ?? "Fournisseur",
-          supplierId: aggregate.supplierId ?? "",
-          consumption: aggregate.totalSpend,
-          paidPrice: aggregate.avgUnitPrice,
-          marketPrice: aggregate.avgUnitPrice,
-          deltaPct: 0,
-          qty: qtyLabel,
-          qtyValue: aggregate.totalQty,
-          unit,
-          marketTrend: { from: aggregate.avgUnitPrice, to: aggregate.avgUnitPrice },
-        }
-      }),
-    [masterArticlesById, productAggregates, quantityFormatter, suppliersById]
+      financialIngredients
+        .filter((ingredient) => ingredient.masterArticleId)
+        .map((ingredient) => {
+          const master = ingredient.masterArticleId ? masterArticlesById.get(ingredient.masterArticleId) : undefined
+          const supplier = master?.supplierId ? suppliersById.get(master.supplierId) : undefined
+          const unit = master?.unit ?? "unité"
+          const qtyValue = ingredient.quantity ?? 0
+          const qtyLabel =
+            qtyValue > 0 ? `${quantityFormatter.format(qtyValue)} ${unit}` : `-- ${unit}`
+          const paidPrice = qtyValue > 0 ? ingredient.consumedValue / qtyValue : 0
+          const marketPrice = qtyValue > 0 ? paidPrice - ingredient.marketGapValue : paidPrice
+          const deltaPct = ingredient.marketGapPercentage * 100
+          return {
+            id: ingredient.masterArticleId as string,
+            name: master?.name ?? "Article",
+            supplier: supplier?.name ?? "Fournisseur",
+            supplierId: master?.supplierId ?? "",
+            consumption: ingredient.consumedValue,
+            paidPrice,
+            marketPrice,
+            deltaPct,
+            qty: qtyLabel,
+            qtyValue,
+            unit,
+            marketTrend: { from: marketPrice, to: marketPrice },
+          }
+        }),
+    [financialIngredients, masterArticlesById, quantityFormatter, suppliersById]
   )
   const productTopOptions = [
     { value: "10", label: "Top 10" },
@@ -127,26 +132,8 @@ export default function ProductAnalyticsPage() {
     return list.slice(0, limit)
   }, [productBaseItems, productSelectedSuppliers, productTop])
 
-  const topProductIds = useMemo(() => topProductBaseItems.map((item) => item.id), [topProductBaseItems])
-  const marketComparisons = useMarketComparisons(estId, topProductIds, supplierRange.start, supplierRange.end)
-
   const filteredProductItems = useMemo(() => {
-    let list = topProductBaseItems.map((item) => {
-      const comparison = marketComparisons[item.id]
-      const marketPrice = comparison?.statsMarket.avgPrice || item.marketPrice
-      const minPrice = comparison?.statsMarket.minPrice ?? marketPrice
-      const maxPrice = comparison?.statsMarket.maxPrice ?? marketPrice
-      const deltaPct = marketPrice > 0 ? ((item.paidPrice - marketPrice) / marketPrice) * 100 : 0
-      return {
-        ...item,
-        marketPrice,
-        deltaPct,
-        marketTrend: {
-          from: Math.min(minPrice ?? marketPrice, maxPrice ?? marketPrice),
-          to: Math.max(minPrice ?? marketPrice, maxPrice ?? marketPrice),
-        },
-      }
-    })
+    let list = [...topProductBaseItems]
     if (productSort !== "default") {
       const direction = productSort === "asc" ? 1 : -1
       list = [...list].sort((a, b) => {
@@ -156,13 +143,18 @@ export default function ProductAnalyticsPage() {
       })
     }
     return list
-  }, [marketComparisons, productSort, topProductBaseItems])
+  }, [productSort, topProductBaseItems])
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const selectedProduct = useMemo(
     () => filteredProductItems.find((p) => p.id === selectedProductId) ?? filteredProductItems[0] ?? null,
     [filteredProductItems, selectedProductId]
   )
+  useEffect(() => {
+    if (!selectedProductId && filteredProductItems.length > 0) {
+      setSelectedProductId(filteredProductItems[0].id)
+    }
+  }, [filteredProductItems, selectedProductId])
   const selectedProductEconomy = useMemo(() => {
     if (!selectedProduct) return null
     const qtyValue = selectedProduct.qtyValue ?? 0
@@ -369,7 +361,12 @@ export default function ProductAnalyticsPage() {
           activeTab="general"
           onNavigate={(tab) => {
             if (tab === "detail") {
-              navigate("/dashboard/analytics/products/detail")
+              const detailId = selectedProductId || filteredProductItems[0]?.id || masterArticles[0]?.id
+              if (detailId) {
+                navigate(`/dashboard/analytics/products/${detailId}`)
+              } else {
+                navigate("/dashboard/analytics/products")
+              }
             } else {
               navigate("/dashboard/analytics/products")
             }

@@ -26,6 +26,7 @@ export default function InvoicesPage() {
         <InvoicesHeader />
         <InvoiceUploadCard />
         <InvoicesTableCard
+          establishmentId={estId ?? undefined}
           invoices={invoices}
           supplierOptions={supplierOptions}
           isLoading={isLoading}

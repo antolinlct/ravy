@@ -46,7 +46,7 @@ def invoices_sum(
     - par labels de fournisseurs (ENUM : FOOD, BEVERAGES, FIXED_COSTS, etc.)
 
     Champs conformes aux contrats :
-    - public.invoices : total_ht, total_tva, total_ttc
+    - public.invoices : total_excl_tax, total_tax, total_incl_tax
     - public.suppliers : label_id (ENUM label_supplier.label)
     """
 
@@ -59,7 +59,7 @@ def invoices_sum(
     # --- 2. Construction de la requête principale ---
     query = (
         supabase.table("invoices")
-        .select("id, date, supplier_id, total_ht, total_tva, total_ttc, establishment_id")
+        .select("id, date, supplier_id, total_excl_tax, total_tax, total_incl_tax, establishment_id")
         .eq("establishment_id", establishment_id)
         .gte("date", str(start_date))
         .lte("date", str(end_date))
@@ -88,9 +88,18 @@ def invoices_sum(
     invoices = result.data or []
 
     # --- 6. Calculs totaux sécurisés ---
-    sum_ht = sum(_safe_decimal(inv.get("total_ht", 0)) for inv in invoices)
-    sum_tva = sum(_safe_decimal(inv.get("total_tva", 0)) for inv in invoices)
-    sum_ttc = sum(_safe_decimal(inv.get("total_ttc", 0)) for inv in invoices)
+    sum_ht = sum(
+        _safe_decimal(inv.get("total_excl_tax", inv.get("total_ht", 0)))
+        for inv in invoices
+    )
+    sum_tva = sum(
+        _safe_decimal(inv.get("total_tax", inv.get("total_tva", 0)))
+        for inv in invoices
+    )
+    sum_ttc = sum(
+        _safe_decimal(inv.get("total_incl_tax", inv.get("total_ttc", 0)))
+        for inv in invoices
+    )
 
     def _quantize(value: Decimal, exp: str = "0.01") -> float:
         return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))

@@ -16,12 +16,14 @@ import {
 type InvoiceDetailHeaderProps = {
   invoiceNumber: string
   lastModified: string
+  onDownload: () => void
   onDelete: () => void
 }
 
 export default function InvoiceDetailHeader({
   invoiceNumber,
   lastModified,
+  onDownload,
   onDelete,
 }: InvoiceDetailHeaderProps) {
   return (
@@ -39,7 +41,7 @@ export default function InvoiceDetailHeader({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={onDownload}>
           <Download className="h-4 w-4" />
           Télécharger
         </Button>

@@ -29,6 +29,17 @@ export type ProductAggregate = {
   lastInvoiceDate?: string | null
 }
 
+export type FinancialIngredientInfo = {
+  id: string
+  masterArticleId: string | null
+  quantity: number
+  consumedValue: number
+  marketGapValue: number
+  marketGapPercentage: number
+  marketTotalSavings: number
+  marketBalanced: number
+}
+
 export type MasterArticleInfo = {
   id: string
   name: string

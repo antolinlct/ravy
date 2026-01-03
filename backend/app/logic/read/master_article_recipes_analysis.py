@@ -22,8 +22,8 @@ def master_article_impact_analysis(
 ) -> Dict[str, Any]:
     """
     Analyse l’impact d’un master_article sur toutes les recettes qui l’utilisent :
-    - Recettes directes (ingredient_type = ARTICLE)
-    - Recettes indirectes via sous-recettes (ingredient_type = SUBRECIPE)
+    - Recettes directes (type = ARTICLE)
+    - Recettes indirectes via sous-recettes (type = SUBRECIPE)
     - Calcul du coût par portion, du % du coût dans la recette, et des variations
     - Retourne un flag is_subrecipe pour filtrage côté front
     """
@@ -35,8 +35,8 @@ def master_article_impact_analysis(
     # --- 2. Ingrédients directs liés à ce master_article ---
     direct_ing_resp = (
         supabase.table("ingredients")
-        .select("id, recipe_id, ingredient_type, master_article_id, quantity, unit_cost")
-        .eq("ingredient_type", "ARTICLE")
+        .select("id, recipe_id, type, master_article_id, quantity, unit_cost")
+        .eq("type", "ARTICLE")
         .eq("master_article_id", master_article_id)
         .eq("establishment_id", establishment_id)
         .execute()
@@ -47,8 +47,8 @@ def master_article_impact_analysis(
     # --- 3. Ingrédients de type sous-recette ---
     sub_ing_resp = (
         supabase.table("ingredients")
-        .select("id, recipe_id, ingredient_type, subrecipe_id, quantity")
-        .eq("ingredient_type", "SUBRECIPE")
+        .select("id, recipe_id, type, subrecipe_id, quantity")
+        .eq("type", "SUBRECIPE")
         .eq("establishment_id", establishment_id)
         .execute()
     )
@@ -58,7 +58,7 @@ def master_article_impact_analysis(
     subrecipes_with_article_resp = (
         supabase.table("ingredients")
         .select("recipe_id")
-        .eq("ingredient_type", "ARTICLE")
+        .eq("type", "ARTICLE")
         .eq("master_article_id", master_article_id)
         .eq("establishment_id", establishment_id)
         .execute()

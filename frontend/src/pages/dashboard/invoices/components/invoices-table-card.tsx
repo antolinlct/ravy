@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react"
-import { ArrowDownToLine, ArrowRight, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react"
+import { ArrowDownToLine, ArrowRight, ChevronDown, ChevronUp, ChevronsUpDown, Loader2 } from "lucide-react"
+import JSZip from "jszip"
+import * as XLSX from "xlsx"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+import api from "@/lib/axiosClient"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,7 +33,7 @@ import {
 } from "@/components/ui/table"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
 import { DoubleDatePicker, type DoubleDatePickerValue } from "@/components/blocks/double-datepicker"
-import { filterInvoices, toCurrencyNumber } from "../api"
+import { filterInvoices, getInvoiceDocumentUrl, toCurrencyNumber } from "../api"
 import type { InvoiceListItem, SupplierOption } from "../types"
 
 const MIN_DATE = new Date("2022-01-01")
@@ -37,6 +41,7 @@ const MIN_DATE = new Date("2022-01-01")
 type SortKey = "createdAt" | "supplier" | "date" | "ht" | "tva" | "ttc"
 
 type InvoicesTableCardProps = {
+  establishmentId?: string
   invoices: InvoiceListItem[]
   supplierOptions: SupplierOption[]
   isLoading?: boolean
@@ -46,6 +51,7 @@ type InvoicesTableCardProps = {
 }
 
 export default function InvoicesTableCard({
+  establishmentId,
   invoices,
   supplierOptions,
   isLoading,
@@ -60,6 +66,7 @@ export default function InvoicesTableCard({
   const [exportEndDate, setExportEndDate] = useState<Date | undefined>(endDate)
   const [exportSuppliers, setExportSuppliers] = useState<string[]>([])
   const [exportSelectedIds, setExportSelectedIds] = useState<Set<string>>(new Set())
+  const [exporting, setExporting] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>("createdAt")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
 
@@ -98,6 +105,10 @@ export default function InvoicesTableCard({
   }, [filteredInvoices, sortDir, sortKey])
 
   const exportFilteredInvoices = filterInvoices(invoices, exportStartDate, exportEndDate, exportSuppliers)
+  const exportSelectedInvoices = useMemo(
+    () => exportFilteredInvoices.filter((inv) => exportSelectedIds.has(inv.id)),
+    [exportFilteredInvoices, exportSelectedIds]
+  )
 
   const exportTotalTtc = exportFilteredInvoices.reduce((acc, inv) => {
     if (exportSelectedIds.has(inv.id) && typeof inv.ttcValue === "number") {
@@ -140,6 +151,137 @@ export default function InvoicesTableCard({
     const nextDir = sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : "desc"
     setSortKey(key)
     setSortDir(nextDir)
+  }
+
+  const toSafeFilename = (value: string) =>
+    value
+      .normalize("NFKD")
+      .replace(/[^\w().-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+  const handleExport = async () => {
+    if (exporting) return
+    if (!exportSelectedInvoices.length) {
+      toast.error("Sélectionnez au moins une facture.")
+      return
+    }
+    setExporting(true)
+    try {
+      const exportDate = new Date()
+      const exportDateLabel = [
+        `${exportDate.getDate()}`.padStart(2, "0"),
+        `${exportDate.getMonth() + 1}`.padStart(2, "0"),
+        exportDate.getFullYear(),
+      ].join("-")
+      const exportFilenameBase = `ravy-export(${exportDateLabel})`
+
+      if (exportSelectedInvoices.length > 5) {
+        if (!establishmentId) {
+          toast.error("Établissement manquant pour l'export.")
+          return
+        }
+        const response = await api.post(
+          "/invoices/export",
+          {
+            establishment_id: establishmentId,
+            invoice_ids: exportSelectedInvoices.map((inv) => inv.id),
+          },
+          { responseType: "blob" }
+        )
+        const blob = new Blob([response.data], { type: "application/zip" })
+        const objectUrl = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = objectUrl
+        link.download = `${exportFilenameBase}.zip`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(objectUrl)
+        toast.success("Export terminé.")
+        return
+      }
+
+      const formatInvoiceDate = (value?: Date, separator = "-") => {
+        if (!value || Number.isNaN(value.getTime())) return exportDateLabel
+        const day = `${value.getDate()}`.padStart(2, "0")
+        const month = `${value.getMonth() + 1}`.padStart(2, "0")
+        const year = `${value.getFullYear()}`
+        return [day, month, year].join(separator)
+      }
+      const getInvoiceFileName = (invoice: InvoiceListItem) => {
+        const number = invoice.invoiceNumber || invoice.reference || "facture"
+        const dateLabel = formatInvoiceDate(invoice.dateValue, "-")
+        const base = `${invoice.supplier}-${number}(${dateLabel})`
+        return `${toSafeFilename(base)}.pdf`
+      }
+
+      const workbook = XLSX.utils.book_new()
+      const rows = exportSelectedInvoices.map((inv) => ({
+        Date: formatInvoiceDate(inv.dateValue, "/"),
+        Fournisseur: inv.supplier,
+        Numéro: inv.invoiceNumber || inv.reference,
+        HT: inv.ht,
+        TVA: inv.tva,
+        TTC: inv.ttc,
+        Fichier: getInvoiceFileName(inv),
+      }))
+      const worksheet = XLSX.utils.json_to_sheet(rows)
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Factures")
+      const xlsxBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" })
+
+      const zip = new JSZip()
+      zip.file(`${exportFilenameBase}.xlsx`, xlsxBuffer)
+      const pdfFolder = zip.folder("factures")
+      const missing: string[] = []
+
+      for (const invoice of exportSelectedInvoices) {
+        if (!pdfFolder) continue
+        const path = invoice.fileStoragePath
+        if (!path) {
+          missing.push(invoice.reference)
+          continue
+        }
+        const url = await getInvoiceDocumentUrl(path)
+        if (!url) {
+          missing.push(invoice.reference)
+          continue
+        }
+        try {
+          const response = await fetch(url)
+          if (!response.ok) {
+            missing.push(invoice.reference)
+            continue
+          }
+          const blob = await response.blob()
+          pdfFolder.file(getInvoiceFileName(invoice), blob)
+        } catch {
+          missing.push(invoice.reference)
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" })
+      const zipUrl = URL.createObjectURL(zipBlob)
+      const link = document.createElement("a")
+      link.href = zipUrl
+      link.download = `${exportFilenameBase}.zip`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(zipUrl)
+
+      if (missing.length) {
+        toast.message("Export terminé avec des documents manquants.", {
+          description: `${missing.length} facture(s) sans document joint.`,
+        })
+      } else {
+        toast.success("Export terminé.")
+      }
+    } catch {
+      toast.error("Impossible de générer l'export.")
+    } finally {
+      setExporting(false)
+    }
   }
 
   const sortIcon = (key: SortKey) => {
@@ -268,9 +410,13 @@ export default function InvoicesTableCard({
                       <SheetTrigger asChild>
                         <Button variant="ghost">Annuler</Button>
                       </SheetTrigger>
-                      <Button disabled={!exportSelectedIds.size}>
-                        Lancer l&apos;export
-                        <ArrowDownToLine className="h-4 w-4" />
+                      <Button disabled={!exportSelectedIds.size || exporting} onClick={handleExport}>
+                        {exporting ? "Export en cours..." : "Lancer l'export"}
+                        {exporting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ArrowDownToLine className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>

@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useNavigate } from "react-router-dom"
 import { ArrowRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,8 @@ export type ProductInvoicesCardProps = {
 }
 
 export const ProductInvoicesCard = ({ invoiceRows, range, euroFormatter }: ProductInvoicesCardProps) => {
+  const navigate = useNavigate()
+
   const parseInvoiceDate = (value: string) => {
     if (!value) return null
     if (value.includes("-")) {
@@ -73,7 +76,19 @@ export const ProductInvoicesCard = ({ invoiceRows, range, euroFormatter }: Produ
             <Table className="table-fixed w-full">
               <TableBody>
                 {filteredInvoiceRows.map((invoice) => (
-                  <TableRow key={invoice.id}>
+                  <TableRow
+                    key={invoice.id}
+                    className="cursor-pointer hover:bg-muted/40"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/dashboard/invoices/${invoice.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault()
+                        navigate(`/dashboard/invoices/${invoice.id}`)
+                      }
+                    }}
+                  >
                     <TableCell className="pl-3">
                       <div className="space-y-1">
                         <p className="text-sm font-medium">{invoice.number}</p>
@@ -82,7 +97,7 @@ export const ProductInvoicesCard = ({ invoiceRows, range, euroFormatter }: Produ
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="w-36 text-sm text-muted-foreground">
+                    <TableCell className="w-36 text-sm">
                       {(() => {
                         const parsedDate = parseInvoiceDate(invoice.date)
                         return parsedDate ? formatInvoiceDate(parsedDate) : invoice.date

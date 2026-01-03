@@ -48,7 +48,7 @@ def master_article_analysis(
     # --- 2. Récupération du master_article ---
     master_resp = (
         supabase.table("master_articles")
-        .select("id, name_raw, supplier_id, establishment_id, market_master_article_id")
+        .select("id, unformatted_name, name, supplier_id, establishment_id, market_master_article_id")
         .eq("id", master_article_id)
         .eq("establishment_id", establishment_id)
         .limit(1)
@@ -140,7 +140,9 @@ def master_article_analysis(
     invoice_ids = list({a.get("invoice_id") for a in articles if a.get("invoice_id")})
     invoices_resp = (
         supabase.table("invoices")
-        .select("id, supplier_id, date, total_ht, total_ttc, establishment_id")
+        .select(
+            "id, supplier_id, invoice_number, date, total_excl_tax, total_tax, total_incl_tax, establishment_id"
+        )
         .in_("id", invoice_ids)
         .eq("establishment_id", establishment_id)
         .execute()

@@ -73,7 +73,7 @@ def master_article_alternatives(
     # --- 1. Master_article de référence ---
     master_resp = (
         supabase.table("master_articles")
-        .select("id, name_raw, supplier_id, establishment_id")
+        .select("id, unformatted_name, name, supplier_id, establishment_id")
         .eq("id", master_article_id)
         .eq("establishment_id", establishment_id)
         .execute()
@@ -82,7 +82,11 @@ def master_article_alternatives(
         return {"error": "Master article not found", "master_article_id": master_article_id}
 
     master_article = master_resp.data[0]
-    reference_name = clean_name(master_article.get("name_raw", ""))
+    reference_name = clean_name(
+        master_article.get("unformatted_name")
+        or master_article.get("name")
+        or ""
+    )
     reference_supplier_id = master_article.get("supplier_id")
 
     # --- 2. Récupération des fournisseurs valides selon les labels ---
@@ -98,7 +102,7 @@ def master_article_alternatives(
     # --- 3. Requête master_articles candidats ---
     query = (
         supabase.table("master_articles")
-        .select("id, name_raw, supplier_id, establishment_id")
+        .select("id, unformatted_name, name, supplier_id, establishment_id")
         .eq("establishment_id", establishment_id)
         .neq("id", master_article_id)
     )
@@ -115,7 +119,11 @@ def master_article_alternatives(
     # --- 4. Calcul du score de similarité ---
     results = []
     for cand in candidates:
-        cand_name = clean_name(cand.get("name_raw", ""))
+        cand_name = clean_name(
+            cand.get("unformatted_name")
+            or cand.get("name")
+            or ""
+        )
         score = fuzz.token_sort_ratio(reference_name, cand_name)
         if score < score_min:
             continue

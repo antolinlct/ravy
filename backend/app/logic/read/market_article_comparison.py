@@ -54,7 +54,7 @@ def market_article_comparison(
     # --- 2. Récupération du master_article ---
     master_resp = (
         supabase.table("master_articles")
-        .select("id, name_raw, supplier_id, establishment_id, market_master_article_id")
+        .select("id, unformatted_name, name, supplier_id, establishment_id, market_master_article_id")
         .eq("id", master_article_id)
         .eq("establishment_id", establishment_id)
         .limit(1)
@@ -65,6 +65,11 @@ def market_article_comparison(
 
     master_article = master_resp.data[0]
     market_master_id = master_article.get("market_master_article_id")
+    if not market_master_id:
+        return {
+            "master_article": master_article,
+            "error": "Missing market_master_article_id for master_article"
+        }
 
     # --- 3. Articles utilisateur (période) ---
     user_articles_resp = (
@@ -80,8 +85,8 @@ def market_article_comparison(
 
     # --- 4. Market master article lié directement ---
     market_master_resp = (
-        supabase.table("market_master_articles")
-        .select("id, reference_name, unit, current_unit_price")
+        supabase.schema("market").table("market_master_articles")
+        .select("id, name, unformatted_name, unit, current_unit_price")
         .eq("id", market_master_id)
         .limit(1)
         .execute()
@@ -96,7 +101,7 @@ def market_article_comparison(
 
     # --- 5. Market articles sur la période ---
     market_articles_resp = (
-        supabase.table("market_articles")
+        supabase.schema("market").table("market_articles")
         .select("id, unit_price, date, market_master_article_id")
         .eq("market_master_article_id", market_master_id)
         .gte("date", str(start_date))

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import api from "@/lib/axiosClient"
+import { supabase } from "@/lib/supabaseClient"
 import type {
   InvoiceDetail,
   InvoiceItem,
@@ -123,7 +124,7 @@ export const supplierLabelOptions: LabelOption[] = [
 
 export const ZOOM_MIN = 0.25
 export const ZOOM_MAX = 3
-export const ZOOM_STEP = 0.1
+export const ZOOM_STEP = 0.15
 export const PINCH_SENSITIVITY = 350
 
 const toNumber = (value: unknown): number | null => {
@@ -186,6 +187,36 @@ const formatDateParam = (value: Date) => {
   const day = `${value.getDate()}`.padStart(2, "0")
   return `${year}-${month}-${day}`
 }
+
+const normalizeStoragePath = (path?: string | null) => {
+  if (!path) return null
+  if (/^https?:\/\//i.test(path)) return path
+  const trimmed = path.replace(/^\/+/, "")
+  return trimmed.startsWith("invoices/") ? trimmed.slice("invoices/".length) : trimmed
+}
+
+const resolveInvoiceDocumentUrl = async (path?: string | null) => {
+  if (!path) return undefined
+  if (/^https?:\/\//i.test(path)) return path
+  const storagePath = normalizeStoragePath(path)
+  if (!storagePath) return undefined
+  try {
+    const { data, error } = await supabase
+      .storage
+      .from("invoices")
+      .createSignedUrl(storagePath, 60 * 60)
+    if (!error && data?.signedUrl) {
+      return data.signedUrl
+    }
+  } catch {
+    // Ignore and fallback to public URL.
+  }
+  const publicUrl = supabase.storage.from("invoices").getPublicUrl(storagePath).data.publicUrl
+  return publicUrl || undefined
+}
+
+export const getInvoiceDocumentUrl = async (path?: string | null) =>
+  resolveInvoiceDocumentUrl(path)
 
 export const formatCurrencyValue = (value?: number | null) => {
   if (value === null || value === undefined) return "--"
@@ -392,6 +423,7 @@ export const useInvoicesListData = (
         supplier: supplier?.name || "Fournisseur",
         supplierValue: inv.supplier_id || "",
         reference: formatInvoiceReference(inv.invoice_number, inv.id),
+        invoiceNumber: inv.invoice_number ?? null,
         date: formatShortDate(dateValue),
         dateValue,
         createdAt,
@@ -399,6 +431,7 @@ export const useInvoicesListData = (
         tva: formatCurrencyValue(totals.tva),
         ttc: formatCurrencyValue(totals.ttc),
         ttcValue: totals.ttc ?? undefined,
+        fileStoragePath: inv.file_storage_path ?? null,
       }
     })
   }, [invoicesQuery.data, supplierMap])
@@ -562,6 +595,7 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
       const invoiceDateValue = invoiceData.date ? new Date(invoiceData.date) : null
       const fallbackDate =
         invoiceDateValue && !Number.isNaN(invoiceDateValue.getTime()) ? invoiceDateValue : new Date()
+      const documentUrl = await resolveInvoiceDocumentUrl(invoiceData.file_storage_path ?? null)
 
       const supplierType =
         supplierLabel.toLowerCase().includes("beverage") ||
@@ -576,7 +610,7 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
         supplierType,
         date: formatLongDate(invoiceData.date),
         importedAt: formatShortDate(invoiceData.created_at ?? invoiceData.date),
-        documentUrl: invoiceData.file_storage_path ?? undefined,
+        documentUrl,
         pageCount: 1,
         totals: {
           ht: formatCurrencyValue(totals.ht),

@@ -13,3 +13,4 @@ rapidfuzz
 unidecode
 requests
 fpdf2
+openpyxl

@@ -57,7 +57,7 @@ def _ensure_period(
 # =============================
 
 def _fetch_market_suppliers(supplier_id: Optional[str]) -> List[Dict[str, Any]]:
-    q = supabase.table("market_suppliers").select("*")
+    q = supabase.schema("market").table("market_suppliers").select("*")
     if supplier_id:
         q = q.eq("id", supplier_id).limit(1)
     res = q.execute()
@@ -72,7 +72,7 @@ def _fetch_market_articles(
     end: date,
 ) -> List[Dict[str, Any]]:
     res = (
-        supabase.table("market_articles")
+        supabase.schema("market").table("market_articles")
         .select("unit_price, date")
         .eq("market_supplier_id", supplier_id)
         .eq("market_master_article_id", product_id)
@@ -355,7 +355,7 @@ def market_database_overview(
 
         # Produits (market_master_article_id) avec activité pour ce fournisseur, dans la période
         prod_resp = (
-            supabase.table("market_articles")
+            supabase.schema("market").table("market_articles")
             .select("market_master_article_id")
             .eq("market_supplier_id", sup_id)
             .gte("date", str(start))
@@ -375,7 +375,7 @@ def market_database_overview(
             meta_map: Dict[str, Dict[str, Any]] = {}
             for chunk in chunks:
                 mm = (
-                    supabase.table("market_master_articles")
+                    supabase.schema("market").table("market_master_articles")
                     .select("*")
                     .in_("id", chunk)
                     .execute()
