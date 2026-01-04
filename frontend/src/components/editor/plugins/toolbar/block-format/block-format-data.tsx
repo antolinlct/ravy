@@ -15,7 +15,7 @@ export const blockTypeToBlockName: Record<
   { label: string; icon: React.ReactNode }
 > = {
   paragraph: {
-    label: "Paragraph",
+    label: "Paragraphe",
     icon: <TextIcon className="size-4" />,
   },
   h1: {
@@ -27,15 +27,15 @@ export const blockTypeToBlockName: Record<
     icon: <Heading2Icon className="size-4" />,
   },
   h3: {
-    label: "Heading 3",
+    label: "Titre",
     icon: <Heading3Icon className="size-4" />,
   },
   number: {
-    label: "Numbered List",
+    label: "Liste numérotée",
     icon: <ListOrderedIcon className="size-4" />,
   },
   bullet: {
-    label: "Bulleted List",
+    label: "Liste",
     icon: <ListIcon className="size-4" />,
   },
   check: {

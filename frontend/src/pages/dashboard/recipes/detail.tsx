@@ -33,6 +33,7 @@ import {
   removeCachedRecipe,
   recomputeIngredient,
   recomputeRecipe,
+  generateRecipePdf,
   updateIngredient,
   updateRecipe,
   type ApiIngredient,
@@ -57,18 +58,44 @@ import type {
   SupplierProductOption,
   VatRateOption,
 } from "./types"
-import { parseNumber, sameNumber, toRecipeDetail, toSerializedState } from "./utils"
+import {
+  parseNumber,
+  parseInstructionsState,
+  sameNumber,
+  toInstructionsHtml,
+  toPlainText,
+  toRecipeDetail,
+} from "./utils"
 
 const TECH_IMAGE_BUCKET =
   import.meta.env.VITE_SUPABASE_TECHNICAL_DS_BUCKET || "technical_data_sheet_image"
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
 
-const resolveTechnicalImageUrl = (raw?: string | null) => {
+const normalizeTechnicalImagePath = (raw?: string | null) => {
   if (!raw) return null
   if (/^https?:\/\//i.test(raw)) return raw
-  if (!SUPABASE_URL) return null
-  const clean = raw.replace(/^technical_data_sheet_image\//, "")
-  return `${SUPABASE_URL}/storage/v1/object/public/${TECH_IMAGE_BUCKET}/${clean}`
+  return raw.replace(/^technical_data_sheet_image\//, "")
+}
+
+const toStoragePath = (raw?: string | null) => {
+  const normalized = normalizeTechnicalImagePath(raw)
+  if (!normalized) return null
+  return normalized.replace(/^\/+/, "")
+}
+
+const buildRecipePdfFilename = (name: string | null | undefined) => {
+  const safeName = (name ?? "recette")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim() || "recette"
+  const dateLabel = new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+    .format(new Date())
+    .replace(/\//g, "-")
+  return `Ravy - ${safeName} - ${dateLabel}.pdf`
 }
 
 const toNumber = (value: unknown): number | null => {
@@ -146,12 +173,36 @@ export default function RecipeDetailPage() {
   const [downloadOpen, setDownloadOpen] = useState(false)
   const [downloadEditorState, setDownloadEditorState] = useState<SerializedEditorState | null>(null)
   const [downloadShowFinancial, setDownloadShowFinancial] = useState(true)
+  const [downloadSaving, setDownloadSaving] = useState(false)
+  const downloadAbortRef = useRef<AbortController | null>(null)
   const [technicalImageFile, setTechnicalImageFile] = useState<File | null>(null)
   const [technicalImagePath, setTechnicalImagePath] = useState<string | null>(
     recipe.technicalDataSheetImagePath ?? null
   )
-  const [technicalImagePreview, setTechnicalImagePreview] = useState<string | null>(
-    resolveTechnicalImageUrl(recipe.technicalDataSheetImagePath) || null
+  const [technicalImagePreview, setTechnicalImagePreview] = useState<string | null>(null)
+
+  const getSignedTechnicalImageUrl = useCallback(async (raw?: string | null) => {
+    if (!raw) return null
+    if (/^https?:\/\//i.test(raw)) return raw
+    const clean = normalizeTechnicalImagePath(raw)
+    if (!clean) return null
+    const { data, error } = await supabase.storage
+      .from(TECH_IMAGE_BUCKET)
+      .createSignedUrl(clean, 60 * 10)
+    if (error) return null
+    return data?.signedUrl ?? null
+  }, [])
+
+  const setPreviewFromPath = useCallback(
+    async (raw?: string | null) => {
+      if (!raw) {
+        setTechnicalImagePreview(null)
+        return
+      }
+      const signed = await getSignedTechnicalImageUrl(raw)
+      setTechnicalImagePreview(signed)
+    },
+    [getSignedTechnicalImageUrl]
   )
 
   const [portionsText, setPortionsText] = useState(() => String(recipe.portions ?? 1))
@@ -259,7 +310,7 @@ export default function RecipeDetailPage() {
   const handleTechnicalImageChange = (file: File | null) => {
     if (!file) {
       setTechnicalImageFile(null)
-      setTechnicalImagePreview(resolveTechnicalImageUrl(technicalImagePath) || null)
+      void setPreviewFromPath(technicalImagePath)
       return
     }
     const allowed = ["image/png", "image/svg+xml", "image/jpeg", "image/jpg"]
@@ -267,15 +318,62 @@ export default function RecipeDetailPage() {
       toast.error("Formats acceptés : png, jpg, svg.")
       return
     }
+    if (!technicalImageFile && technicalImagePath) {
+      void removeTechnicalImageFromStorage(technicalImagePath)
+      void updateRecipe(recipe.id, { technical_data_sheet_image_path: null })
+      setRecipe((prev) => ({ ...prev, technicalDataSheetImagePath: null }))
+      setTechnicalImagePath(null)
+    }
     setTechnicalImageFile(file)
     const objectUrl = URL.createObjectURL(file)
     setTechnicalImagePreview(objectUrl)
   }
 
+  const removeTechnicalImageFromStorage = useCallback(async (rawPath?: string | null) => {
+    const path = toStoragePath(rawPath)
+    if (!path) return
+    const { error } = await supabase.storage.from(TECH_IMAGE_BUCKET).remove([path])
+    if (error) {
+      toast.error("Impossible de supprimer l'image enregistrée.")
+    }
+  }, [])
+
+  const handleTechnicalImageRemove = useCallback(async () => {
+    if (technicalImageFile) {
+      setTechnicalImageFile(null)
+      void setPreviewFromPath(technicalImagePath)
+      return
+    }
+    if (!technicalImagePath) {
+      setTechnicalImagePreview(null)
+      return
+    }
+    try {
+      await updateRecipe(recipe.id, { technical_data_sheet_image_path: null })
+      setRecipe((prev) => ({ ...prev, technicalDataSheetImagePath: null }))
+      setTechnicalImagePath(null)
+      setTechnicalImagePreview(null)
+      await removeTechnicalImageFromStorage(technicalImagePath)
+    } catch {
+      toast.error("Impossible de mettre à jour la recette.")
+    }
+  }, [
+    removeTechnicalImageFromStorage,
+    recipe.id,
+    technicalImageFile,
+    technicalImagePath,
+    updateRecipe,
+    setPreviewFromPath,
+  ])
+
   const uploadTechnicalImage = async (): Promise<string | null> => {
     if (!technicalImageFile) return technicalImagePath
+    if (!estId) {
+      toast.error("Aucun établissement sélectionné.")
+      return null
+    }
     const safeName = technicalImageFile.name.replace(/\s+/g, "-")
-    const path = `${recipe.id}/${Date.now()}-${safeName}`
+    const path = `${estId}/${recipe.id}-${Date.now()}-${safeName}`
     const { data, error } = await supabase.storage
       .from(TECH_IMAGE_BUCKET)
       .upload(path, technicalImageFile, {
@@ -322,12 +420,10 @@ export default function RecipeDetailPage() {
       saleable: nextRecipe.saleable,
     })
     setTechnicalImagePath(nextRecipe.technicalDataSheetImagePath ?? null)
-    setTechnicalImagePreview(
-      resolveTechnicalImageUrl(nextRecipe.technicalDataSheetImagePath) || null
-    )
+    void setPreviewFromPath(nextRecipe.technicalDataSheetImagePath ?? null)
     setTechnicalImageFile(null)
     closeIngredientEditor()
-  }, [recipeId, state.forceSaveOnEntry, state.recipe, state.ingredients])
+  }, [recipeId, setPreviewFromPath, state.forceSaveOnEntry, state.ingredients, state.recipe])
 
   useEffect(() => {
     if (!hasLoaded) return
@@ -349,15 +445,11 @@ export default function RecipeDetailPage() {
   }, [hasLoaded, recipe.id])
 
   useEffect(() => {
-    if (recipe.technicalDataSheetInstructions?.trim()) {
-      setDownloadEditorState(toSerializedState(recipe.technicalDataSheetInstructions.trim()))
-    } else {
-      setDownloadEditorState(null)
-    }
+    setDownloadEditorState(parseInstructionsState(recipe.technicalDataSheetInstructions ?? null))
     setTechnicalImagePath(recipe.technicalDataSheetImagePath ?? null)
-    setTechnicalImagePreview(resolveTechnicalImageUrl(recipe.technicalDataSheetImagePath) || null)
+    void setPreviewFromPath(recipe.technicalDataSheetImagePath ?? null)
     setTechnicalImageFile(null)
-  }, [recipe.technicalDataSheetInstructions, recipe.technicalDataSheetImagePath, recipe.id])
+  }, [recipe.technicalDataSheetInstructions, recipe.technicalDataSheetImagePath, recipe.id, setPreviewFromPath])
 
   useEffect(() => {
     if (!estId) return
@@ -1300,23 +1392,157 @@ export default function RecipeDetailPage() {
   }, [navigationBlocked])
 
   const confirmDownload = async () => {
-    if (technicalImageFile) {
-      const uploaded = await uploadTechnicalImage()
-      if (!uploaded) return
-      setTechnicalImagePath(uploaded)
-      setTechnicalImageFile(null)
-      setTechnicalImagePreview(resolveTechnicalImageUrl(uploaded))
-      setRecipe((prev) => ({
-        ...prev,
-        technicalDataSheetImagePath: uploaded,
-      }))
+    if (downloadSaving || !estId) return
+    setDownloadSaving(true)
+    const controller = new AbortController()
+    downloadAbortRef.current = controller
+    try {
+      const previousImagePath = technicalImagePath
+      let nextImagePath = technicalImagePath
+      let signedImageUrl: string | null = null
+      if (technicalImageFile) {
+        const uploaded = await uploadTechnicalImage()
+        if (!uploaded) return
+        nextImagePath = uploaded
+        setTechnicalImagePath(uploaded)
+        setTechnicalImageFile(null)
+        signedImageUrl = await getSignedTechnicalImageUrl(uploaded)
+        setTechnicalImagePreview(signedImageUrl)
+        setRecipe((prev) => ({
+          ...prev,
+          technicalDataSheetImagePath: uploaded,
+        }))
+      }
+
+      const fallbackState = parseInstructionsState(recipe.technicalDataSheetInstructions ?? null)
+      const instructionsState = downloadEditorState ?? fallbackState
+      const instructionsText = instructionsState ? toPlainText(instructionsState).trim() : ""
+      const instructionsHtml = instructionsState ? toInstructionsHtml(instructionsState) : ""
+      const instructionsSerialized = instructionsState ? JSON.stringify(instructionsState) : null
+      if (instructionsSerialized !== recipe.technicalDataSheetInstructions) {
+        setRecipe((prev) => ({
+          ...prev,
+          technicalDataSheetInstructions: instructionsSerialized ?? "",
+        }))
+      }
+
+      const updates: Partial<ApiRecipe> = {}
+      if (instructionsSerialized !== recipe.technicalDataSheetInstructions) {
+        updates.technical_data_sheet_instructions = instructionsSerialized
+      }
+      if (nextImagePath !== recipe.technicalDataSheetImagePath) {
+        updates.technical_data_sheet_image_path = nextImagePath ?? null
+      }
+      if (Object.keys(updates).length) {
+        await updateRecipe(recipe.id, updates)
+      }
+      if (
+        technicalImageFile &&
+        previousImagePath &&
+        toStoragePath(previousImagePath) !== toStoragePath(nextImagePath)
+      ) {
+        await removeTechnicalImageFromStorage(previousImagePath)
+      }
+
+      const hasSubrecipe = ingredients.some((item) => item.type === "SUBRECIPE")
+      const priceTaxValue =
+        recipe.saleable && priceInclTaxValue !== null
+          ? Math.max(0, priceInclTaxValue - priceExclTax)
+          : null
+
+      const pdfRecipe: ApiRecipe = {
+        id: recipe.id,
+        establishment_id: estId,
+        name: recipe.name,
+        vat_id: recipe.vatId || null,
+        recommanded_retail_price: recipe.recommendedRetailPrice || null,
+        active: recipe.active,
+        saleable: recipe.saleable,
+        contains_sub_recipe: hasSubrecipe,
+        purchase_cost_total: purchaseCostTotal,
+        portion: portionsValue,
+        purchase_cost_per_portion: purchaseCostPerPortion,
+        technical_data_sheet_instructions: instructionsText || null,
+        current_margin: marginHtPerPortion ?? null,
+        portion_weight: portionWeightValue,
+        price_excl_tax: recipe.saleable ? priceExclTax : null,
+        price_incl_tax: recipe.saleable ? priceInclTaxValue : null,
+        price_tax: recipe.saleable ? priceTaxValue : null,
+        category_id: recipe.categoryId || null,
+        subcategory_id: recipe.subcategoryId || null,
+        technical_data_sheet_image_path: nextImagePath ?? null,
+      }
+
+      if (!signedImageUrl) {
+        signedImageUrl = await getSignedTechnicalImageUrl(nextImagePath)
+      }
+
+      const pdfIngredients = ingredients.map((item) => {
+        const lossPercent = item.type === "ARTICLE" ? item.wastePercent ?? 0 : null
+        const lossFactor = lossPercent ? 1 + lossPercent / 100 : 1
+        const netUnitCost = item.unitCost * lossFactor
+        const subRecipe =
+          item.type === "SUBRECIPE" ? subRecipeMap[item.subRecipeId ?? ""] : undefined
+        const portionWeight = item.type === "SUBRECIPE" ? subRecipe?.portionWeightGrams ?? null : null
+        return {
+          name: item.name,
+          type: item.type,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_cost: netUnitCost,
+          loss_percent: lossPercent,
+          portion_weight: portionWeight,
+          supplier:
+            item.type === "ARTICLE" ? supplierMap[item.supplierId ?? ""] ?? null : null,
+        }
+      })
+
+      const blob = await generateRecipePdf(
+        {
+          recipe: pdfRecipe,
+          ingredients: pdfIngredients,
+          include_financials: downloadShowFinancial,
+          technical_image_url: signedImageUrl,
+          instructions_html: instructionsHtml || null,
+        },
+        { signal: controller.signal }
+      )
+
+      const filename = buildRecipePdfFilename(recipe.name)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = filename
+      link.rel = "noopener"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      setDownloadOpen(false)
+      toast.success(
+        <>
+          Téléchargement de <span className="font-semibold">{recipe.name}</span> prêt.
+        </>
+      )
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.code === "ERR_CANCELED") {
+        return
+      }
+      toast.error("Impossible de générer la fiche technique.")
+    } finally {
+      setDownloadSaving(false)
+      downloadAbortRef.current = null
     }
-    setDownloadOpen(false)
-    toast.message(
-      <>
-        Téléchargement de <span className="font-semibold">{recipe.name}</span>…
-      </>
-    )
+  }
+
+  const handleDownloadOpenChange = (open: boolean) => {
+    if (!open && downloadSaving) {
+      downloadAbortRef.current?.abort()
+      downloadAbortRef.current = null
+      setDownloadSaving(false)
+    }
+    setDownloadOpen(open)
   }
 
   const confirmDuplicate = () => {
@@ -1565,15 +1791,17 @@ export default function RecipeDetailPage() {
 
       <RecipeDownloadDialog
         open={downloadOpen}
-        onOpenChange={setDownloadOpen}
+        onOpenChange={handleDownloadOpenChange}
         recipeName={recipe.name}
         technicalImageFile={technicalImageFile}
         technicalImagePreview={technicalImagePreview}
         onTechnicalImageChange={handleTechnicalImageChange}
+        onTechnicalImageRemove={handleTechnicalImageRemove}
         downloadEditorState={downloadEditorState}
         onDownloadEditorStateChange={setDownloadEditorState}
         downloadShowFinancial={downloadShowFinancial}
         onDownloadShowFinancialChange={setDownloadShowFinancial}
+        isDownloading={downloadSaving}
         onConfirm={confirmDownload}
       />
 

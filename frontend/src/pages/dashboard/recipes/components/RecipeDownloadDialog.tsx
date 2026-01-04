@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox as CheckboxIcon } from "@/components/ui/checkbox"
 import { Editor } from "@/components/blocks/editor-00/editor"
-import { FileDown, X } from "lucide-react"
+import { FileDown, Loader2, X } from "lucide-react"
 import type { SerializedEditorState } from "lexical"
 
 const imageHint = "Glissez-déposez ou cliquez pour ajouter une image."
@@ -23,10 +23,12 @@ type RecipeDownloadDialogProps = {
   technicalImageFile: File | null
   technicalImagePreview: string | null
   onTechnicalImageChange: (file: File | null) => void
+  onTechnicalImageRemove: () => void
   downloadEditorState: SerializedEditorState | null
   onDownloadEditorStateChange: (state: SerializedEditorState | null) => void
   downloadShowFinancial: boolean
   onDownloadShowFinancialChange: (next: boolean) => void
+  isDownloading?: boolean
   onConfirm: () => void
 }
 
@@ -37,10 +39,12 @@ export function RecipeDownloadDialog({
   technicalImageFile,
   technicalImagePreview,
   onTechnicalImageChange,
+  onTechnicalImageRemove,
   downloadEditorState,
   onDownloadEditorStateChange,
   downloadShowFinancial,
   onDownloadShowFinancialChange,
+  isDownloading = false,
   onConfirm,
 }: RecipeDownloadDialogProps) {
   return (
@@ -57,8 +61,8 @@ export function RecipeDownloadDialog({
           <Label htmlFor="technical-image" className="text-base">
             Image de fiche technique
           </Label>
-          <div className="grid grid-cols-4 items-stretch gap-4">
-            <div className="relative col-span-3 flex h-20 flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/40 p-2 text-center">
+          <div className="flex items-stretch gap-4">
+            <div className="relative flex h-20 flex-1 flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/40 p-2 text-center">
               <p className="text-xs text-muted-foreground">
                 {technicalImageFile?.name ? `Fichier sélectionné : ${technicalImageFile.name}` : imageHint}
               </p>
@@ -81,11 +85,21 @@ export function RecipeDownloadDialog({
                 </button>
               )}
             </div>
-            <div className="flex h-20 w-20 items-center justify-center rounded-lg border border-sidebar-border/60 bg-sidebar p-0.5">
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-lg border border-sidebar-border/60 bg-sidebar p-0.5">
               {technicalImagePreview ? (
                 <img src={technicalImagePreview} alt="Aperçu fiche technique" className="h-full w-full rounded-md object-contain" />
               ) : (
                 <div className="text-center text-xs text-muted-foreground">Aucun visuel</div>
+              )}
+              {technicalImagePreview && (
+                <button
+                  type="button"
+                  aria-label="Supprimer l'image de la fiche technique"
+                  className="absolute -right-2 -top-2 rounded-full border border-sidebar-border/70 bg-background p-1 text-muted-foreground shadow-sm transition hover:text-foreground"
+                  onClick={onTechnicalImageRemove}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
               )}
             </div>
           </div>
@@ -103,27 +117,25 @@ export function RecipeDownloadDialog({
         </div>
         <DialogFooter className="flex flex-col gap-4">
           <div className="flex w-full flex-wrap items-center gap-2 justify-start">
-            <button
-              type="button"
-              onClick={() => onDownloadShowFinancialChange(!downloadShowFinancial)}
-              className="inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm transition hover:bg-muted"
-              aria-pressed={downloadShowFinancial}
-            >
+            <div className="inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm transition hover:bg-muted">
               <CheckboxIcon
+                id="download-show-financial"
                 checked={downloadShowFinancial}
                 onCheckedChange={(state) => onDownloadShowFinancialChange(state === true)}
                 className="h-4 w-4 text-[#108FFF] data-[state=checked]:border-[#108FFF] data-[state=checked]:bg-[#108FFF]"
               />
-              <span>Afficher les données financières</span>
-            </button>
+              <Label htmlFor="download-show-financial" className="cursor-pointer text-sm">
+                Afficher les données financières
+              </Label>
+            </div>
           </div>
           <div className="flex items-center justify-end gap-2">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button onClick={onConfirm} className="gap-2">
-              <FileDown className="h-4 w-4" />
-              Télécharger
+            <Button onClick={onConfirm} className="gap-2" disabled={isDownloading}>
+              {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {isDownloading ? "Génération..." : "Télécharger"}
             </Button>
           </div>
         </DialogFooter>

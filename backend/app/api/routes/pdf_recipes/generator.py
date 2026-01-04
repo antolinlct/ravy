@@ -17,6 +17,8 @@ class PDFIngredient(BaseModel):
   quantity: Optional[float] = None
   unit: Optional[str] = None
   unit_cost: Optional[float] = None
+  loss_percent: Optional[float] = None
+  portion_weight: Optional[float] = None
   supplier: Optional[str] = None
   product: Optional[str] = None
 
@@ -26,6 +28,7 @@ class RecipePDFPayload(BaseModel):
   ingredients: List[PDFIngredient] = Field(default_factory=list)
   include_financials: bool = True
   technical_image_url: Optional[str] = None
+  instructions_html: Optional[str] = None
 
 
 router = APIRouter(prefix="/pdf/recipes", tags=["PDF Recipes"])
@@ -38,6 +41,7 @@ def generate_recipe_pdf(payload: RecipePDFPayload):
     ingredients=[ing.dict(exclude_none=True) for ing in payload.ingredients],
     include_financials=payload.include_financials,
     technical_image_url=payload.technical_image_url,
+    instructions_html=payload.instructions_html,
   )
 
   filename = f"{payload.recipe.name or 'fiche-technique'}.pdf"

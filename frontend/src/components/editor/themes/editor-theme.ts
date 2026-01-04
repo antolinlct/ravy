@@ -13,7 +13,7 @@ export const editorTheme: EditorThemeClasses = {
     h5: "scroll-m-20 text-lg font-semibold tracking-tight",
     h6: "scroll-m-20 text-base font-semibold tracking-tight",
   },
-  paragraph: "leading-6 [&:not(:first-child)]:mt-2 text-[14px]",
+  paragraph: "leading-5 [&:not(:first-child)]:mt-1 text-[13px]",
   quote: "mt-6 border-l-2 pl-6 italic",
   link: "text-blue-600 hover:underline hover:cursor-pointer",
   list: {

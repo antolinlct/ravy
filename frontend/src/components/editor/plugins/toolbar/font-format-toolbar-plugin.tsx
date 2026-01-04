@@ -27,14 +27,25 @@ const FORMATS = [
   { format: "strikethrough", icon: StrikethroughIcon, label: "Strikethrough" },
 ] as const
 
-export function FontFormatToolbarPlugin() {
+type FontFormatName = (typeof FORMATS)[number]["format"]
+
+type FontFormatToolbarPluginProps = {
+  formats?: FontFormatName[]
+}
+
+export function FontFormatToolbarPlugin({
+  formats,
+}: FontFormatToolbarPluginProps) {
   const { activeEditor } = useToolbarContext()
   const [activeFormats, setActiveFormats] = useState<string[]>([])
+  const allowedFormats = formats?.length ? formats : FORMATS.map(({ format }) => format)
+  const allowedSet = new Set(allowedFormats)
+  const visibleFormats = FORMATS.filter(({ format }) => allowedSet.has(format))
 
   const $updateToolbar = useCallback((selection: BaseSelection) => {
     if ($isRangeSelection(selection) || $isTableSelection(selection)) {
       const formats: string[] = []
-      FORMATS.forEach(({ format }) => {
+      visibleFormats.forEach(({ format }) => {
         if (selection.hasFormat(format as TextFormatType)) {
           formats.push(format)
         }
@@ -50,7 +61,7 @@ export function FontFormatToolbarPlugin() {
         return prev
       })
     }
-  }, [])
+  }, [visibleFormats])
 
   useUpdateToolbarHandler($updateToolbar)
 
@@ -62,7 +73,7 @@ export function FontFormatToolbarPlugin() {
       variant="outline"
       size="sm"
     >
-      {FORMATS.map(({ format, icon: Icon, label }) => (
+      {visibleFormats.map(({ format, icon: Icon, label }) => (
         <ToggleGroupItem
           key={format}
           value={format}

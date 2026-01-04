@@ -347,3 +347,37 @@ export const recomputeIngredient = async (payload: {
 }) => {
   return api.post("/logic/write/update-ingredient", payload)
 }
+
+export type RecipePdfIngredient = {
+  name?: string | null
+  type?: string | null
+  quantity?: number | null
+  unit?: string | null
+  unit_cost?: number | null
+  loss_percent?: number | null
+  portion_weight?: number | null
+  supplier?: string | null
+  product?: string | null
+}
+
+export type RecipePdfPayload = {
+  recipe: ApiRecipe
+  ingredients: RecipePdfIngredient[]
+  include_financials: boolean
+  technical_image_url?: string | null
+  instructions_html?: string | null
+}
+
+export const generateRecipePdf = async (
+  payload: RecipePdfPayload,
+  options?: { signal?: AbortSignal }
+): Promise<Blob> => {
+  const res = await api.post("/pdf/recipes/generate", payload, {
+    responseType: "blob",
+    headers: {
+      Accept: "application/pdf",
+    },
+    signal: options?.signal,
+  })
+  return res.data
+}
