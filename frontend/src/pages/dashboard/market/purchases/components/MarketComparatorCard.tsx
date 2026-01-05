@@ -6,7 +6,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { ArrowDown, ArrowUp, Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown } from "lucide-react"
 
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -121,6 +121,7 @@ export function MarketComparatorCard({
     () => productOptions.filter((product) => product.supplierId === rightSupplierId),
     [rightSupplierId, productOptions]
   )
+  const showConsultant = hasLeftSelection && hasRightSelection
 
   return (
     <Card>
@@ -599,14 +600,20 @@ export function MarketComparatorCard({
                 Sélectionnez des produits pour afficher les indicateurs.
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col items-center">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={consultantAvatarSrc} alt="Consultant" className="bg-transparent" />
-                </Avatar>
+            {showConsultant ? (
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage
+                      src={consultantAvatarSrc}
+                      alt="Consultant"
+                      className="bg-transparent"
+                    />
+                  </Avatar>
+                </div>
+                <p className="flex-1 text-sm text-foreground leading-relaxed">{consultantMessage}</p>
               </div>
-              <p className="flex-1 text-sm text-foreground leading-relaxed">{consultantMessage}</p>
-            </div>
+            ) : null}
           </CardContent>
         </Card>
       </CardContent>

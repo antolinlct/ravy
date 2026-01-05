@@ -40,6 +40,7 @@ export type RecipeCostCardProps = {
   analysisStartLabel: string
   analysisEndLabel: string
   sortedIngredientRows: RecipeIngredientRow[]
+  onIngredientNavigate: (row: RecipeIngredientRow) => void
   euroFormatter: Intl.NumberFormat
   percentFormatter: Intl.NumberFormat
 }
@@ -55,6 +56,7 @@ export const RecipeCostCard = ({
   analysisStartLabel,
   analysisEndLabel,
   sortedIngredientRows,
+  onIngredientNavigate,
   euroFormatter,
   percentFormatter,
 }: RecipeCostCardProps) => {
@@ -150,6 +152,12 @@ export const RecipeCostCard = ({
             <Table className="table-fixed w-full">
               <TableBody>
                 {sortedIngredientRows.map((row) => {
+                  const isNavigable =
+                    row.type === "ARTICLE"
+                      ? Boolean(row.masterArticleId)
+                      : row.type === "SUBRECIPE"
+                        ? Boolean(row.subrecipeId)
+                        : false
                   const costStart = typeof row.costStart === "number" ? row.costStart : null
                   const costEnd = typeof row.costEnd === "number" ? row.costEnd : null
                   const impactEuro = typeof row.impactEuro === "number" ? row.impactEuro : null
@@ -169,7 +177,14 @@ export const RecipeCostCard = ({
                   const quantityLabel =
                     typeof row.quantity === "number" ? row.quantity.toString().replace(".", ",") : "--"
                   return (
-                    <TableRow key={row.id}>
+                    <TableRow
+                      key={row.id}
+                      className={isNavigable ? "cursor-pointer" : undefined}
+                      onClick={() => {
+                        if (!isNavigable) return
+                        onIngredientNavigate(row)
+                      }}
+                    >
                       <TableCell className="w-[30%]">
                         <div className="space-y-1">
                           <p className="text-sm font-medium">{row.name}</p>
@@ -245,9 +260,19 @@ export const RecipeCostCard = ({
                         )}
                       </TableCell>
                       <TableCell className="w-10 text-right">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
+                        {isNavigable ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onIngredientNavigate(row)
+                            }}
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   )}

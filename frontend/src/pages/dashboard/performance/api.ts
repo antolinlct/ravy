@@ -31,6 +31,11 @@ type FinancialReportSubmitParams = {
   salesByRecipe: Record<string, string>
 }
 
+type FinancialReportSubmitResponse = {
+  id?: string | null
+  month?: string | null
+}
+
 type PerformanceReportsState = {
   reports: FinancialReportRow[]
   reportableRecipes: ReportableRecipe[]
@@ -267,7 +272,7 @@ export const submitFinancialReport = async ({
   targetMonth,
   financialInputs,
   salesByRecipe,
-}: FinancialReportSubmitParams) => {
+}: FinancialReportSubmitParams): Promise<FinancialReportSubmitResponse> => {
   const payload = Object.entries(salesByRecipe)
     .map(([recipeId, value]) => ({
       id: recipeId,
@@ -275,7 +280,7 @@ export const submitFinancialReport = async ({
     }))
     .filter((entry) => entry.sales_number > 0)
 
-  await api.post("/logic/write/financial-report", {
+  const { data } = await api.post<FinancialReportSubmitResponse>("/logic/write/financial-report", {
     establishment_id: establishmentId,
     target_month: targetMonth.toISOString().slice(0, 10),
     payload,
@@ -287,6 +292,8 @@ export const submitFinancialReport = async ({
     total_revenue_excl_tax: parseLocaleNumber(financialInputs.revenueTotal),
     total_revenue_food_excl_tax: parseLocaleNumber(financialInputs.revenueFood),
   })
+
+  return data ?? {}
 }
 
 export const usePerformanceReportsData = (): PerformanceReportsState => {
@@ -311,7 +318,7 @@ export const usePerformanceReportsData = (): PerformanceReportsState => {
       ])
       setReports(reportsData)
       setReportableRecipes(buildReportableRecipes(recipesData))
-    } catch (err) {
+    } catch {
       setError("Impossible de charger les rapports financiers.")
     } finally {
       setIsLoading(false)
@@ -367,7 +374,7 @@ export const usePerformanceScoresData = (): PerformanceScoresState => {
       const position =
         sortedGlobal.findIndex((score) => score.establishment_id === estId) + 1
       setGlobalRanking(total ? { position: position || 1, total } : { position: 1, total: 1 })
-    } catch (err) {
+    } catch {
       setError("Impossible de charger les scores.")
     } finally {
       setIsLoading(false)
@@ -448,7 +455,7 @@ export const usePerformanceReportDetailData = (reportId?: string | null): Perfor
       setRecipes(allRecipes)
       setRecipeCategories(categoriesData)
       setRecipeSubcategories(subcategoriesData)
-    } catch (err) {
+    } catch {
       setError("Impossible de charger le rapport financier.")
     } finally {
       setIsLoading(false)
@@ -476,6 +483,10 @@ export const usePerformanceReportDetailData = (reportId?: string | null): Perfor
     error,
     reload: load,
   }
+}
+
+export const deleteFinancialReport = async (reportId: string) => {
+  await api.delete(`/financial_reports/${reportId}`)
 }
 
 export const getReportMonthKey = (report: FinancialReportRow): string | null =>

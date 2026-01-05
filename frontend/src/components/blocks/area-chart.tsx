@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useId, useMemo, useRef, useState } from "react"
+import React, { useCallback, useId, useMemo, useRef, useState } from "react"
 import {
   Area,
   AreaChart as AreaRechart,
@@ -333,7 +333,7 @@ const CustomTooltip = ({
   className,
 }: {
   active?: boolean
-  payload?: any[]
+  payload?: Array<{ value?: number | string; payload?: AreaChartPoint }>
   label?: string
   valueLabel?: React.ReactNode
   formatDisplayDate: (d: Date, opts?: { withYear?: boolean }) => string
@@ -462,7 +462,6 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
   const {
     className: chartContainerClassName,
     style: chartContainerStyle,
-    config: _chartContainerConfig,
     ...restChartContainerProps
   } = chartContainerProps ?? {}
   const {
@@ -527,8 +526,14 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
   const startDate = controlledStartDate ?? internalStartDate
   const endDate = controlledEndDate ?? internalEndDate
 
-  const parsePointDate = (point: AreaChartPoint) => getPointDate(point as TPoint)
-  const parsePointValue = (point: AreaChartPoint) => getPointValue(point as TPoint)
+  const parsePointDate = useCallback(
+    (point: AreaChartPoint) => getPointDate(point as TPoint),
+    [getPointDate]
+  )
+  const parsePointValue = useCallback(
+    (point: AreaChartPoint) => getPointValue(point as TPoint),
+    [getPointValue]
+  )
 
   const formatValue = (value: number, point: AreaChartPoint) =>
     (valueFormatter ?? ((v: number) => defaultFormatValue(v, currency)))(
@@ -561,7 +566,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
       if (endDate && d > endDate) return false
       return true
     })
-  }, [series, startDate, endDate])
+  }, [series, startDate, endDate, parsePointDate])
 
   const zoomedSeries = useMemo(() => {
     if (!zoomRange.start && !zoomRange.end) return filteredSeries
@@ -572,7 +577,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
       if (zoomRange.end && d > zoomRange.end) return false
       return true
     })
-  }, [filteredSeries, zoomRange])
+  }, [filteredSeries, zoomRange, parsePointDate])
 
   const applyWheelOrPinchZoom = (
     event: React.WheelEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>
@@ -747,7 +752,15 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
 
   const xTick =
     xAxisProps?.tick ??
-    (({ x, y, payload }: { x?: number; y?: number; payload?: any }) => {
+    (({
+      x,
+      y,
+      payload,
+    }: {
+      x?: number
+      y?: number
+      payload?: { value?: number | string; index?: number }
+    }) => {
       const idx = payload?.index
       const point = idx !== undefined ? zoomedSeries[idx] : null
       const d = point ? parsePointDate(point) : null

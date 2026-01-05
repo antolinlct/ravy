@@ -21,6 +21,7 @@ import {
   fetchRecipes,
   fetchVatRates,
   clearIngredientsCache,
+  getCachedRecipes,
   removeCachedRecipe,
   recomputeRecipe,
   updateRecipe,
@@ -28,7 +29,7 @@ import {
   type ApiVatRate,
 } from "./api"
 import type { RecipeListCategoryOption, RecipeListItem } from "./types"
-import { toRecipeDetail } from "./utils"
+import { getUniqueRecipeName, toRecipeDetail } from "./utils"
 
 const parseCurrency = (value: string | null | undefined) => {
   if (!value) return null
@@ -194,8 +195,10 @@ export default function RecipesPage() {
   }
 
   const handleDuplicateOpen = (recipe: RecipeListItem) => {
+    const cached = estId ? getCachedRecipes(estId) : null
+    const existingNames = cached?.map((item) => item.name) ?? recipes.map((item) => item.name)
     setRecipeToDuplicate(recipe)
-    setDuplicateName(`Copie de ${recipe.name}`)
+    setDuplicateName(getUniqueRecipeName(`Copie de ${recipe.name}`, existingNames))
     setDuplicateDialogOpen(true)
   }
 
@@ -209,16 +212,24 @@ export default function RecipesPage() {
     }
 
     setDuplicateSaving(true)
+    const existingNames = recipes
+      .filter((recipe) => recipe.id !== recipeToDuplicate.id)
+      .map((recipe) => recipe.name)
+    const resolvedName = getUniqueRecipeName(nextName, existingNames)
+    if (resolvedName !== nextName) {
+      setDuplicateName(resolvedName)
+      toast(`Nom déjà utilisé, renommé en "${resolvedName}".`)
+    }
     duplicateRecipe({
       recipe_id: recipeToDuplicate.id,
       establishment_id: estId,
-      new_name: nextName,
+      new_name: resolvedName,
     })
       .then(() => {
         setDuplicateDialogOpen(false)
         toast.success(
           <>
-            Recette <span className="font-semibold">{nextName}</span> dupliquée
+            Recette <span className="font-semibold">{resolvedName}</span> dupliquée
           </>
         )
         loadRecipes(false)
@@ -365,7 +376,7 @@ export default function RecipesPage() {
       setActiveById(
         Object.fromEntries(nextRecipes.map((recipe) => [recipe.id, recipe.status === "Active"]))
       )
-    } catch (error) {
+    } catch {
       toast.error("Impossible de charger vos recettes.")
     }
   }, [estId])

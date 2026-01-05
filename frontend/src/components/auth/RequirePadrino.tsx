@@ -65,7 +65,7 @@ export function RequirePadrino({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false
     }
-  }, [location.pathname])
+  }, [location.pathname, navigate])
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {

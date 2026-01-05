@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
 
 type RecipeDuplicateDialogProps = {
   open: boolean
@@ -17,6 +18,7 @@ type RecipeDuplicateDialogProps = {
   duplicateName: string
   onDuplicateNameChange: (value: string) => void
   onConfirm: () => void
+  isDuplicating?: boolean
 }
 
 export function RecipeDuplicateDialog({
@@ -26,6 +28,7 @@ export function RecipeDuplicateDialog({
   duplicateName,
   onDuplicateNameChange,
   onConfirm,
+  isDuplicating = false,
 }: RecipeDuplicateDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,8 +52,15 @@ export function RecipeDuplicateDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button onClick={onConfirm} disabled={!duplicateName.trim()}>
-            Dupliquer
+          <Button onClick={onConfirm} disabled={!duplicateName.trim() || isDuplicating}>
+            {isDuplicating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Duplication...
+              </>
+            ) : (
+              "Dupliquer"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

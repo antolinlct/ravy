@@ -181,8 +181,9 @@ export default function AdminTicketsPage() {
         console.error(error)
         toast.error("Impossible de charger les tickets.")
       } finally {
-        if (!active) return
-        setTicketsLoading(false)
+        if (active) {
+          setTicketsLoading(false)
+        }
       }
     }
 

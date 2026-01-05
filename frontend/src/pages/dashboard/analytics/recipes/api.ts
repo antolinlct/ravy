@@ -53,19 +53,21 @@ type ApiHistoryRecipe = {
 
 type ApiIngredientHistory = {
   date?: string | null
-  unit_price?: number | null
+  unit_cost?: number | null
 }
 
 type ApiRecipeAnalysisIngredient = {
   ingredient_id?: string
   ingredient_type?: string | null
   quantity?: number | null
+  unit?: string | null
   unit_cost?: number | null
   cost_per_portion?: number | null
   percent_on_recipe_cost?: number | null
   impact_on_recipe_euro?: number | null
   history?: ApiIngredientHistory[] | null
   master_article?: {
+    id?: string | null
     name_raw?: string | null
     name?: string | null
     unformatted_name?: string | null
@@ -74,7 +76,7 @@ type ApiRecipeAnalysisIngredient = {
     id: string
     name?: string | null
     purchase_cost_per_portion?: number | null
-    portions?: number | null
+    portion?: number | null
   } | null
 }
 
@@ -84,7 +86,7 @@ type ApiRecipeAnalysisResponse = {
     name?: string | null
     purchase_cost_per_portion?: number | null
     price_excl_tax?: number | null
-    portions?: number | null
+    portion?: number | null
   } | null
   ingredients?: ApiRecipeAnalysisIngredient[] | null
   period?: {
@@ -103,6 +105,33 @@ type RecipeAnalysisPayload = {
 }
 
 type DatedPoint = AreaChartPoint & { date: Date; value: number }
+
+type CacheEntry<T> = {
+  data: T
+  fetchedAt: number
+}
+
+const CATALOG_CACHE_TTL = 5 * 60 * 1000
+const OVERVIEW_CACHE_TTL = 2 * 60 * 1000
+const DETAIL_CACHE_TTL = 60 * 1000
+
+const recipeCatalogCache = new Map<string, CacheEntry<RecipeSummary[]>>()
+let categoryCatalogCache: CacheEntry<RecipeCategory[]> | null = null
+let subcategoryCatalogCache: CacheEntry<RecipeSubcategory[]> | null = null
+
+const historyCacheByEst = new Map<string, CacheEntry<ApiHistoryRecipe[]>>()
+const marginCacheByEst = new Map<string, CacheEntry<ApiRecipeMargin[]>>()
+const analysisCache = new Map<string, CacheEntry<ApiRecipeAnalysisResponse>>()
+
+const isFresh = <T>(entry: CacheEntry<T> | null, ttl: number) =>
+  Boolean(entry && Date.now() - entry.fetchedAt < ttl)
+
+const makeAnalysisKey = (
+  estId: string,
+  recipeId: string,
+  startDate?: Date,
+  endDate?: Date
+) => `${estId}:${recipeId}:${toISODate(startDate) ?? "all"}:${toISODate(endDate) ?? "all"}`
 
 const toNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null
@@ -159,10 +188,12 @@ const resolveIngredientName = (ingredient: ApiRecipeAnalysisIngredient) => {
   if (ingredient.ingredient_type === "SUBRECIPE") {
     return ingredient.subrecipe?.name ?? "Sous-recette"
   }
+  if (ingredient.ingredient_type === "FIXED") {
+    return ingredient.unit ?? "Charge fixe"
+  }
   return (
-    ingredient.master_article?.unformatted_name ??
     ingredient.master_article?.name ??
-    ingredient.master_article?.name_raw ??
+    ingredient.master_article?.unformatted_name ??
     "Ingrédient"
   )
 }
@@ -224,9 +255,10 @@ const buildHistoryMap = (rows: ApiHistoryRecipe[], startDate?: Date, endDate?: D
   return { firstMap, lastMap }
 }
 
-const buildRecipeKpis = (
+export const buildRecipeKpis = (
   recipes: RecipeSummary[],
   historyRows: ApiHistoryRecipe[],
+  marginSeries: AreaChartPoint[],
   startDate?: Date,
   endDate?: Date
 ): RecipeKpi[] => {
@@ -238,7 +270,18 @@ const buildRecipeKpis = (
       return recipe.priceExclTax - recipe.purchaseCostPerPortion
     })
   )
-  const avgMarginPercent = computeAverage(recipes.map(resolveRecipeMarginPercent))
+  const filteredMarginSeries = marginSeries.filter((point) => {
+    const d = point.date instanceof Date ? point.date : new Date(point.date ?? "")
+    if (!d || Number.isNaN(d.getTime())) return false
+    if (startDate && d < startDate) return false
+    if (endDate && d > endDate) return false
+    return true
+  })
+  const lastMarginPoint = filteredMarginSeries[filteredMarginSeries.length - 1]
+  const avgMarginPercent =
+    typeof lastMarginPoint?.value === "number"
+      ? lastMarginPoint.value
+      : computeAverage(recipes.map(resolveRecipeMarginPercent))
 
   let deltaCost: number | null = null
   let deltaPrice: number | null = null
@@ -255,8 +298,6 @@ const buildRecipeKpis = (
     let sumLastPrice = 0
     let sumFirstMarginEuro = 0
     let sumLastMarginEuro = 0
-    let sumFirstMarginPercent = 0
-    let sumLastMarginPercent = 0
 
     lastMap.forEach((lastRow, recipeId) => {
       const firstRow = firstMap.get(recipeId)
@@ -289,8 +330,6 @@ const buildRecipeKpis = (
       sumLastPrice += lastPrice
       sumFirstMarginEuro += firstPrice - firstCost
       sumLastMarginEuro += lastPrice - lastCost
-      sumFirstMarginPercent += firstMarginRatio * 100
-      sumLastMarginPercent += lastMarginRatio * 100
     })
 
     if (count > 0) {
@@ -300,16 +339,19 @@ const buildRecipeKpis = (
       const avgLastPrice = sumLastPrice / count
       const avgFirstMarginEuro = sumFirstMarginEuro / count
       const avgLastMarginEuro = sumLastMarginEuro / count
-      const avgFirstMarginPercent = sumFirstMarginPercent / count
-      const avgLastMarginPercent = sumLastMarginPercent / count
-
       deltaCost = avgFirstCost !== 0 ? (avgLastCost - avgFirstCost) / avgFirstCost : null
       deltaPrice = avgFirstPrice !== 0 ? (avgLastPrice - avgFirstPrice) / avgFirstPrice : null
       deltaMarginEuro = avgFirstMarginEuro !== 0 ? (avgLastMarginEuro - avgFirstMarginEuro) / avgFirstMarginEuro : null
-      deltaMarginPercent =
-        avgFirstMarginPercent !== 0
-          ? (avgLastMarginPercent - avgFirstMarginPercent) / avgFirstMarginPercent
-          : null
+    }
+  }
+
+  if (filteredMarginSeries.length >= 2) {
+    const firstPoint = filteredMarginSeries[0]
+    const lastPoint = filteredMarginSeries[filteredMarginSeries.length - 1]
+    const firstValue = typeof firstPoint.value === "number" ? firstPoint.value : null
+    const lastValue = typeof lastPoint.value === "number" ? lastPoint.value : null
+    if (firstValue !== null && lastValue !== null && firstValue !== 0) {
+      deltaMarginPercent = (lastValue - firstValue) / firstValue
     }
   }
 
@@ -397,38 +439,57 @@ export const useRecipeCatalog = (estId?: string | null) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!estId) return
     let active = true
 
     const load = async () => {
-      setIsLoading(true)
+      const cachedRecipes = estId ? recipeCatalogCache.get(estId) : null
+      const cachedCategories = categoryCatalogCache
+      const cachedSubcategories = subcategoryCatalogCache
+
+      if (cachedRecipes) setRecipes(cachedRecipes.data)
+      if (cachedCategories) setCategories(cachedCategories.data)
+      if (cachedSubcategories) setSubcategories(cachedSubcategories.data)
+
+      const shouldFetchRecipes = Boolean(estId) && !isFresh(cachedRecipes, CATALOG_CACHE_TTL)
+      const shouldFetchCategories = !isFresh(cachedCategories, CATALOG_CACHE_TTL)
+      const shouldFetchSubcategories = !isFresh(cachedSubcategories, CATALOG_CACHE_TTL)
+      const shouldFetch = shouldFetchRecipes || shouldFetchCategories || shouldFetchSubcategories
+
+      const hasCached =
+        Boolean(cachedRecipes?.data.length) ||
+        Boolean(cachedCategories?.data.length) ||
+        Boolean(cachedSubcategories?.data.length)
+
+      setIsLoading(shouldFetch && !hasCached)
       setError(null)
+      if (!shouldFetch) return
+
       try {
-        const [recipesRes, categoriesRes, subcategoriesRes] = await Promise.all([
-          api.get<ApiRecipe[]>("/recipes", {
-            params: {
-              establishment_id: estId,
-              order_by: "name",
-              direction: "asc",
-              limit: 2000,
-            },
-          }),
+        const [categoriesRes, subcategoriesRes, recipesRes] = await Promise.all([
           api.get<ApiRecipeCategory[]>("/recipe_categories", {
             params: {
-              establishment_id: estId,
-              order_by: "name",
+              order_by: "created_at",
               direction: "asc",
               limit: 500,
             },
           }),
           api.get<ApiRecipeSubcategory[]>("/recipes_subcategories", {
             params: {
-              establishment_id: estId,
-              order_by: "name",
+              order_by: "created_at",
               direction: "asc",
               limit: 1000,
             },
           }),
+          estId
+            ? api.get<ApiRecipe[]>("/recipes", {
+                params: {
+                  establishment_id: estId,
+                  order_by: "name",
+                  direction: "asc",
+                  limit: 2000,
+                },
+              })
+            : Promise.resolve({ data: [] as ApiRecipe[] }),
         ])
 
         if (!active) return
@@ -437,41 +498,40 @@ export const useRecipeCatalog = (estId?: string | null) => {
         const categoriesList = categoriesRes.data ?? []
         const subcategoriesList = subcategoriesRes.data ?? []
 
-        setRecipes(
-          recipeList.map((recipe) => ({
-            id: recipe.id,
-            name: resolveRecipeName(recipe),
-            active: recipe.active ?? false,
-            saleable: recipe.saleable ?? false,
-            categoryId: recipe.category_id ?? null,
-            subcategoryId: recipe.subcategory_id ?? null,
-            purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
-            priceExclTax: toNumber(recipe.price_excl_tax),
-            currentMarginPercent: normalizePercentValue(toNumber(recipe.current_margin)),
-            updatedAt: recipe.updated_at ?? null,
-          }))
-        )
+        const mappedRecipes = recipeList.map((recipe) => ({
+          id: recipe.id,
+          name: resolveRecipeName(recipe),
+          active: recipe.active ?? false,
+          saleable: recipe.saleable ?? false,
+          categoryId: recipe.category_id ?? null,
+          subcategoryId: recipe.subcategory_id ?? null,
+          purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
+          priceExclTax: toNumber(recipe.price_excl_tax),
+          currentMarginPercent: normalizePercentValue(toNumber(recipe.current_margin)),
+          updatedAt: recipe.updated_at ?? null,
+        }))
 
-        setCategories(
-          categoriesList.map((category) => ({
-            id: category.id,
-            name: category.name ?? "Catégorie",
-          }))
-        )
+        const mappedCategories = categoriesList.map((category) => ({
+          id: category.id,
+          name: category.name ?? "Catégorie",
+        }))
 
-        setSubcategories(
-          subcategoriesList.map((subcategory) => ({
-            id: subcategory.id,
-            name: subcategory.name ?? "Sous-catégorie",
-            categoryId: subcategory.category_id ?? null,
-          }))
-        )
-      } catch (err) {
+        const mappedSubcategories = subcategoriesList.map((subcategory) => ({
+          id: subcategory.id,
+          name: subcategory.name ?? "Sous-catégorie",
+          categoryId: subcategory.category_id ?? null,
+        }))
+
+        if (estId) recipeCatalogCache.set(estId, { data: mappedRecipes, fetchedAt: Date.now() })
+        categoryCatalogCache = { data: mappedCategories, fetchedAt: Date.now() }
+        subcategoryCatalogCache = { data: mappedSubcategories, fetchedAt: Date.now() }
+
+        setRecipes(mappedRecipes)
+        setCategories(mappedCategories)
+        setSubcategories(mappedSubcategories)
+      } catch {
         if (active) {
           setError("Impossible de charger les recettes.")
-          setRecipes([])
-          setCategories([])
-          setSubcategories([])
         }
       } finally {
         if (active) setIsLoading(false)
@@ -501,8 +561,20 @@ export const useRecipeOverviewData = (
 
   const load = useCallback(async () => {
     if (!estId) return
-    setIsLoading(true)
+    const cachedMargin = marginCacheByEst.get(estId)
+    const cachedHistory = historyCacheByEst.get(estId)
+
+    if (cachedMargin) setMarginRows(cachedMargin.data)
+    if (cachedHistory) setHistoryRows(cachedHistory.data)
+
+    const shouldFetchMargin = !isFresh(cachedMargin, OVERVIEW_CACHE_TTL)
+    const shouldFetchHistory = !isFresh(cachedHistory, OVERVIEW_CACHE_TTL)
+    const shouldFetch = shouldFetchMargin || shouldFetchHistory
+    const hasCached = Boolean(cachedMargin?.data.length) || Boolean(cachedHistory?.data.length)
+
+    setIsLoading(shouldFetch && !hasCached)
     setError(null)
+    if (!shouldFetch) return
     try {
       const [marginRes, historyRes] = await Promise.all([
         api.get<ApiRecipeMargin[]>("/recipe_margin", {
@@ -523,12 +595,16 @@ export const useRecipeOverviewData = (
         }),
       ])
 
-      setMarginRows(marginRes.data ?? [])
-      setHistoryRows(historyRes.data ?? [])
-    } catch (err) {
+      const nextMargin = marginRes.data ?? []
+      const nextHistory = historyRes.data ?? []
+
+      marginCacheByEst.set(estId, { data: nextMargin, fetchedAt: Date.now() })
+      historyCacheByEst.set(estId, { data: nextHistory, fetchedAt: Date.now() })
+
+      setMarginRows(nextMargin)
+      setHistoryRows(nextHistory)
+    } catch {
       setError("Impossible de charger les analyses recettes.")
-      setMarginRows([])
-      setHistoryRows([])
     } finally {
       setIsLoading(false)
     }
@@ -540,13 +616,17 @@ export const useRecipeOverviewData = (
 
   const marginSeries = useMemo(() => buildMarginSeries(marginRows), [marginRows])
   const marginItems = useMemo(() => buildRecipeMarginItems(recipes), [recipes])
-  const kpis = useMemo(() => buildRecipeKpis(recipes, historyRows, startDate, endDate), [recipes, historyRows, startDate, endDate])
+  const kpis = useMemo(
+    () => buildRecipeKpis(recipes, historyRows, marginSeries, startDate, endDate),
+    [recipes, historyRows, marginSeries, startDate, endDate]
+  )
   const variations = useMemo(() => buildRecipeVariations(recipes, historyRows), [recipes, historyRows])
 
   return {
     recipes,
     categories,
     subcategories,
+    historyRows,
     marginSeries,
     marginItems,
     kpis,
@@ -581,119 +661,163 @@ export const useRecipeDetailData = (
 
     let active = true
 
+    const analysisKey = makeAnalysisKey(estId, recipeId, startDate, endDate)
+    const cachedAnalysis = analysisCache.get(analysisKey)
+    const cachedHistory = historyCacheByEst.get(estId)
+    const analysisIsFresh = isFresh(cachedAnalysis, DETAIL_CACHE_TTL)
+    const historyIsFresh = isFresh(cachedHistory, OVERVIEW_CACHE_TTL)
+
+    const applyPayload = (analysisData: ApiRecipeAnalysisResponse, historyData: ApiHistoryRecipe[]) => {
+      const hasAnalysisError = Boolean(analysisData?.error)
+      const recipe = hasAnalysisError ? null : analysisData.recipe ?? null
+      const recipePortions = toNumber(recipe?.portion) ?? 1
+      const mappedAnalysis: RecipeAnalysis | null = recipe
+        ? {
+            id: recipe.id,
+            name: recipe.name ?? "Recette",
+            purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
+            priceExclTax: toNumber(recipe.price_excl_tax),
+            portions: toNumber(recipe.portion),
+          }
+        : null
+
+      const mappedIngredients = hasAnalysisError
+        ? []
+        : (analysisData.ingredients ?? []).map((ingredient, index) => {
+            const ingredientType = (ingredient.ingredient_type ?? "FIXED").toUpperCase()
+            const normalizedType =
+              ingredientType === "ARTICLE" || ingredientType === "SUBRECIPE" ? ingredientType : "FIXED"
+            const quantity = toNumber(ingredient.quantity)
+            const costPerPortion = toNumber(ingredient.cost_per_portion)
+            const weightShare = normalizePercentRatio(toNumber(ingredient.percent_on_recipe_cost))
+            const impactEuro = toNumber(ingredient.impact_on_recipe_euro)
+            const history = ingredient.history ?? []
+            const firstHistory = history[0]
+            const lastHistory = history[history.length - 1]
+            const firstPrice = toNumber(firstHistory?.unit_cost)
+            const lastPrice = toNumber(lastHistory?.unit_cost)
+
+            const calcCostStart =
+              firstPrice !== null && quantity !== null
+                ? (firstPrice * quantity) / recipePortions
+                : costPerPortion
+            const calcCostEnd =
+              lastPrice !== null && quantity !== null
+                ? (lastPrice * quantity) / recipePortions
+                : costPerPortion
+
+            return {
+              id:
+                ingredient.ingredient_id ??
+                ingredient.subrecipe?.id ??
+                ingredient.master_article?.name_raw ??
+                `${normalizedType}-${index}`,
+              name: resolveIngredientName(ingredient),
+              type: normalizedType as "ARTICLE" | "SUBRECIPE" | "FIXED",
+              masterArticleId: ingredient.master_article?.id ?? null,
+              subrecipeId: ingredient.subrecipe?.id ?? null,
+              quantity: quantity,
+              unit: ingredient.unit ?? null,
+              portions: ingredient.subrecipe?.portion ?? null,
+              weightShare,
+              costStart: calcCostStart,
+              costEnd: calcCostEnd,
+              impactEuro,
+            }
+          })
+
+      const periodStart = toDate(analysisData.period?.start)
+      const periodEnd = toDate(analysisData.period?.end)
+      setAnalysis(mappedAnalysis)
+      setIngredients(mappedIngredients)
+      setPeriod(periodStart || periodEnd ? { start: periodStart, end: periodEnd } : null)
+
+      const historyRows = historyData.filter((row) => row.recipe_id === recipeId)
+      const marginPoints: DatedPoint[] = []
+      const costPoints: DatedPoint[] = []
+      historyRows.forEach((row) => {
+        const date = toDate(row.date)
+        if (!date) return
+        const cost = toNumber(row.purchase_cost_per_portion)
+        const price = toNumber(row.price_excl_tax)
+        const marginRatio =
+          normalizePercentRatio(toNumber(row.margin)) ?? computeMarginRatio(price, cost)
+
+        if (typeof marginRatio === "number") {
+          marginPoints.push({ date, value: marginRatio })
+        }
+        if (typeof cost === "number") {
+          costPoints.push({ date, value: cost })
+        }
+      })
+      marginPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
+      costPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
+      setMarginSeries(marginPoints)
+      setCostSeries(costPoints)
+    }
+
+    if (analysisIsFresh) {
+      applyPayload(cachedAnalysis?.data ?? {}, cachedHistory?.data ?? [])
+    } else if (cachedAnalysis) {
+      applyPayload(cachedAnalysis.data, cachedHistory?.data ?? [])
+    }
+
     const load = async () => {
-      setIsLoading(true)
+      const shouldFetchAnalysis = !analysisIsFresh
+      const shouldFetchHistory = !historyIsFresh
+      const shouldFetch = shouldFetchAnalysis || shouldFetchHistory
+
+      setIsLoading(shouldFetchAnalysis && !cachedAnalysis)
+      if (!shouldFetch) return
       try {
-        const [analysisRes, historyRes] = await Promise.all([
-          api.get<ApiRecipeAnalysisResponse>(`/recipes/${recipeId}/ingredients-analysis`, {
-            params: {
-              establishment_id: estId,
-              start_date: toISODate(startDate),
-              end_date: toISODate(endDate),
-            },
-          }),
-          api.get<ApiHistoryRecipe[]>("/history_recipes", {
-            params: {
-              establishment_id: estId,
-              order_by: "date",
-              direction: "asc",
-              limit: 4000,
-            },
-          }),
+        const analysisPromise = shouldFetchAnalysis
+          ? api.get<ApiRecipeAnalysisResponse>(`/recipes/${recipeId}/ingredients-analysis`, {
+              params: {
+                establishment_id: estId,
+                start_date: toISODate(startDate),
+                end_date: toISODate(endDate),
+              },
+            })
+          : Promise.resolve({ data: cachedAnalysis?.data ?? {} })
+        const historyPromise = shouldFetchHistory
+          ? api.get<ApiHistoryRecipe[]>("/history_recipes", {
+              params: {
+                establishment_id: estId,
+                order_by: "date",
+                direction: "asc",
+                limit: 4000,
+              },
+            })
+          : Promise.resolve({ data: cachedHistory?.data ?? [] })
+
+        const [analysisResult, historyResult] = await Promise.allSettled([
+          analysisPromise,
+          historyPromise,
         ])
 
         if (!active) return
 
-        const analysisData = analysisRes.data ?? {}
-        if (analysisData?.error) {
+        const analysisData =
+          analysisResult.status === "fulfilled" ? analysisResult.value.data ?? {} : {}
+        const historyData =
+          historyResult.status === "fulfilled" ? historyResult.value.data ?? [] : []
+
+        if (analysisResult.status === "fulfilled") {
+          analysisCache.set(analysisKey, { data: analysisData, fetchedAt: Date.now() })
+        }
+        if (historyResult.status === "fulfilled") {
+          historyCacheByEst.set(estId, { data: historyData, fetchedAt: Date.now() })
+        }
+
+        applyPayload(analysisData, historyData)
+      } catch {
+        if (active && !cachedAnalysis) {
           setAnalysis(null)
           setIngredients([])
           setPeriod(null)
           setMarginSeries([])
           setCostSeries([])
-          return
         }
-        const recipe = analysisData.recipe
-        const recipePortions = toNumber(recipe?.portions) ?? 1
-        const mappedAnalysis: RecipeAnalysis | null = recipe
-          ? {
-              id: recipe.id,
-              name: recipe.name ?? "Recette",
-              purchaseCostPerPortion: toNumber(recipe.purchase_cost_per_portion),
-              priceExclTax: toNumber(recipe.price_excl_tax),
-              portions: toNumber(recipe.portions),
-            }
-          : null
-
-        const mappedIngredients = (analysisData.ingredients ?? []).map((ingredient, index) => {
-          const ingredientType = (ingredient.ingredient_type ?? "FIXED").toUpperCase()
-          const normalizedType =
-            ingredientType === "ARTICLE" || ingredientType === "SUBRECIPE" ? ingredientType : "FIXED"
-          const quantity = toNumber(ingredient.quantity)
-          const costPerPortion = toNumber(ingredient.cost_per_portion)
-          const weightShare = normalizePercentRatio(toNumber(ingredient.percent_on_recipe_cost))
-          const impactEuro = toNumber(ingredient.impact_on_recipe_euro)
-          const history = ingredient.history ?? []
-          const firstHistory = history[0]
-          const lastHistory = history[history.length - 1]
-          const firstPrice = toNumber(firstHistory?.unit_price)
-          const lastPrice = toNumber(lastHistory?.unit_price)
-
-          const calcCostStart =
-            firstPrice !== null && quantity !== null
-              ? (firstPrice * quantity) / recipePortions
-              : costPerPortion
-          const calcCostEnd =
-            lastPrice !== null && quantity !== null
-              ? (lastPrice * quantity) / recipePortions
-              : costPerPortion
-
-          return {
-            id:
-              ingredient.ingredient_id ??
-              ingredient.subrecipe?.id ??
-              ingredient.master_article?.name_raw ??
-              `${normalizedType}-${index}`,
-            name: resolveIngredientName(ingredient),
-            type: normalizedType as "ARTICLE" | "SUBRECIPE" | "FIXED",
-            quantity: quantity,
-            unit: null,
-            portions: ingredient.subrecipe?.portions ?? null,
-            weightShare,
-            costStart: calcCostStart,
-            costEnd: calcCostEnd,
-            impactEuro,
-          }
-        })
-
-        const periodStart = toDate(analysisData.period?.start)
-        const periodEnd = toDate(analysisData.period?.end)
-        setAnalysis(mappedAnalysis)
-        setIngredients(mappedIngredients)
-        setPeriod({ start: periodStart, end: periodEnd })
-
-        const historyRows = (historyRes.data ?? []).filter((row) => row.recipe_id === recipeId)
-        const marginPoints: DatedPoint[] = []
-        const costPoints: DatedPoint[] = []
-        historyRows.forEach((row) => {
-          const date = toDate(row.date)
-          if (!date) return
-          const cost = toNumber(row.purchase_cost_per_portion)
-          const price = toNumber(row.price_excl_tax)
-          const marginRatio =
-            normalizePercentRatio(toNumber(row.margin)) ?? computeMarginRatio(price, cost)
-
-          if (typeof marginRatio === "number") {
-            marginPoints.push({ date, value: marginRatio })
-          }
-          if (typeof cost === "number") {
-            costPoints.push({ date, value: cost })
-          }
-        })
-        marginPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
-        costPoints.sort((a, b) => a.date.getTime() - b.date.getTime())
-        setMarginSeries(marginPoints)
-        setCostSeries(costPoints)
       } finally {
         if (active) setIsLoading(false)
       }

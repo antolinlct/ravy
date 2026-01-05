@@ -73,8 +73,9 @@ export default function AdminRegexPage() {
         console.error(error)
         toast.error("Impossible de charger les regex.")
       } finally {
-        if (!active) return
-        setIsLoading(false)
+        if (active) {
+          setIsLoading(false)
+        }
       }
     }
 

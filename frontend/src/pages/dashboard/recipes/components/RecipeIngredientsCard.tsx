@@ -86,105 +86,118 @@ export function RecipeIngredientsCard({
       </CardHeader>
       <CardContent className="p-6 pt-0 space-y-4 flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-hidden rounded-md border min-h-0">
-          <div className="flex flex-col h-full min-h-0">
-            <Table>
-              <TableHeader>
+          <ScrollArea className="h-full">
+            <Table className="table-fixed w-full">
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                   <TableHead className="pl-3 text-left">Ingrédient</TableHead>
-                  <TableHead className="w-40 text-left">Quantité</TableHead>
-                  <TableHead className="w-32 text-left">Coût</TableHead>
+                  <TableHead className="w-36 text-left">Quantité</TableHead>
+                  <TableHead className="w-24 text-left">Perte</TableHead>
+                  <TableHead className="w-28 text-left">Coût net</TableHead>
                   <TableHead className="w-12 pr-3 text-right" />
                 </TableRow>
               </TableHeader>
-            </Table>
-            <ScrollArea className="flex-1 h-full border-t min-h-0">
-              <Table>
-                <TableBody>
-                  {isLoading
-                    ? skeletonRows.map((_, index) => (
-                        <TableRow key={`skeleton-${index}`} className="h-14">
-                          <TableCell className="pl-3 pr-3">
-                            <div className="space-y-2">
-                              <Skeleton className="h-4 w-40" />
-                              <Skeleton className="h-3 w-24" />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-4 w-20" />
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-6 w-20 rounded-md" />
-                          </TableCell>
-                          <TableCell className="pr-3 text-right">
-                            <Skeleton className="ml-auto h-8 w-8 rounded-md" />
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : ingredientRows.map((row) => (
-                        <TableRow
-                          key={row.id}
-                          className="cursor-pointer h-14"
-                          onClick={() => onEditIngredient(row.id)}
-                        >
-                          <TableCell className="pl-3 pr-3">
-                            <div className="space-y-1">
-                              <p className="font-medium leading-tight">{row.name}</p>
-                              <p className="text-xs text-muted-foreground">{row.subtitle}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {row.type === "FIXED" ? (
-                              <span className="text-sm text-muted-foreground">-</span>
+              <TableBody>
+                {isLoading
+                  ? skeletonRows.map((_, index) => (
+                      <TableRow key={`skeleton-${index}`} className="h-14">
+                        <TableCell className="pl-3 pr-3">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-36">
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                        <TableCell className="w-24">
+                          <Skeleton className="h-4 w-14" />
+                        </TableCell>
+                        <TableCell className="w-28">
+                          <Skeleton className="h-6 w-20 rounded-md" />
+                        </TableCell>
+                        <TableCell className="pr-3 text-right">
+                          <Skeleton className="ml-auto h-8 w-8 rounded-md" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : ingredientRows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        className="cursor-pointer h-14"
+                        onClick={() => onEditIngredient(row.id)}
+                      >
+                        <TableCell className="pl-3 pr-3">
+                          <div className="space-y-1">
+                            <p className="font-medium leading-tight">{row.name}</p>
+                            <p className="text-xs text-muted-foreground">{row.subtitle}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-36 whitespace-nowrap">
+                          {row.type === "FIXED" ? (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium text-foreground">
+                                {row.quantity.toLocaleString("fr-FR", { maximumFractionDigits: 3 })}
+                              </span>{" "}
+                              <span className="text-muted-foreground">{row.unit}</span>
+                            </>
+                          )}
+                        </TableCell>
+                        <TableCell className="w-24 text-left whitespace-nowrap">
+                          {row.type === "ARTICLE" && typeof row.wastePercent === "number" ? (
+                            row.wastePercent > 0 ? (
+                              <span className="text-sm font-medium text-foreground">
+                                {row.wastePercent.toLocaleString("fr-FR")}%
+                              </span>
                             ) : (
-                              <>
-                                <span className="text-sm font-medium text-foreground">
-                                  {row.quantity.toLocaleString("fr-FR", { maximumFractionDigits: 3 })}
-                                </span>{" "}
-                                <span className="text-muted-foreground">{row.unit}</span>
-                              </>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-left whitespace-nowrap">
-                            <Badge
-                              variant="secondary"
-                              className="bg-muted text-foreground text-sm font-medium"
-                            >
-                              {formatCurrency(row.cost)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="pr-3 text-right">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={`Modifier ${row.name}`}
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    onEditIngredient(row.id)
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" sideOffset={6}>
-                                Modifier l’ingrédient
-                              </TooltipContent>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  {!isLoading && !ingredientRows.length && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                        Ajoutez vos premiers ingrédients.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </div>
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="w-28 text-left whitespace-nowrap">
+                          <Badge
+                            variant="secondary"
+                            className="bg-muted text-foreground text-sm font-medium"
+                          >
+                            {formatCurrency(row.cost)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="pr-3 text-right">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Modifier ${row.name}`}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  onEditIngredient(row.id)
+                                }}
+                              >
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={6}>
+                              Modifier l’ingrédient
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                {!isLoading && !ingredientRows.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      Ajoutez vos premiers ingrédients.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
 
         <div className="flex items-center justify-between rounded-md border bg-sidebar dark:bg-background px-4 py-3">

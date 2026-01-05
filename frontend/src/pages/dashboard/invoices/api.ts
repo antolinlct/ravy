@@ -849,7 +849,7 @@ export const useSuppliersData = (estId?: string | null) => {
       if (suppliersRes.status === "rejected") {
         setError("Impossible de charger les fournisseurs.")
       }
-    } catch (err) {
+    } catch {
       setError("Impossible de charger les fournisseurs.")
       setSuppliers([])
       setSupplierOptions([])

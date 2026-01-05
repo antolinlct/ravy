@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react"
-import { FilePlus } from "lucide-react"
+import { FilePlus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -52,7 +52,7 @@ type ReportCreateDialogProps = {
       revenueTotal: string
     }
     salesByRecipe: Record<string, string>
-  }) => Promise<void>
+  }) => Promise<{ id?: string | null } | void>
 }
 
 export default function ReportCreateDialog({
@@ -151,7 +151,7 @@ export default function ReportCreateDialog({
         revenueFood: "",
         revenueTotal: "",
       })
-    } catch (error) {
+    } catch {
       toast.error("Impossible de creer le rapport financier.")
     } finally {
       setIsSubmitting(false)
@@ -458,9 +458,11 @@ export default function ReportCreateDialog({
           </Button>
           <Button
             onClick={handleCreateAttempt}
+            disabled={!isFormReady || isSubmitting}
             aria-disabled={!isFormReady || isSubmitting}
-            className={!isFormReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}
+            className={`gap-2 ${!isFormReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}`}
           >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Créer un rapport
           </Button>
         </DialogFooter>

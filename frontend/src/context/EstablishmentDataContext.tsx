@@ -21,11 +21,12 @@
  */
 
 "use client"
+/* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useEstablishment } from "./EstablishmentContext"
 
-type EstablishmentValue = any
+type EstablishmentValue = Record<string, unknown> | null
 
 type ContextValue = {
   data: EstablishmentValue

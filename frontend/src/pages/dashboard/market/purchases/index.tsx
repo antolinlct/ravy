@@ -874,7 +874,6 @@ export default function MarketPurchasesPage() {
   const marketDefaultColDef = useMemo<ColDef<MarketGridRow>>(
     () => ({
       cellClass: "flex items-center",
-      suppressMenu: true,
       sortable: true,
     }),
     []
@@ -1057,7 +1056,7 @@ export default function MarketPurchasesPage() {
         )
       },
     }),
-    [getProductLastUpdated]
+    [getProductLastDate, getProductLastUpdated]
   )
   const interestColumn = useMemo<ColDef<MarketGridRow>>(
     () => ({
@@ -1148,7 +1147,6 @@ export default function MarketPurchasesPage() {
       suppressHeaderMenuButton: true,
       suppressHeaderFilterButton: true,
       suppressHeaderContextMenu: true,
-      suppressMenu: true,
       resizable: false,
       cellClass:
         "flex items-center justify-center px-0 [&_.ag-cell-value]:!flex [&_.ag-cell-value]:!w-full [&_.ag-cell-value]:!justify-center [&_.ag-cell-value]:!overflow-visible [&_.ag-cell-value]:!text-clip",

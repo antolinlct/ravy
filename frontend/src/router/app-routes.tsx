@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/router/app-routes.tsx
 import type { RouteObject } from "react-router-dom";
 

@@ -1,19 +1,33 @@
 import { useMemo, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import {
   BookMarked,
   BanknoteArrowDown,
   BanknoteArrowUp,
   Info,
+  Loader2,
+  Trash2,
   Users,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { type ChartConfig } from "@/components/ui/chart"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { type TooltipProps } from "recharts"
 import ConsultantAvatar from "@/assets/avatar.png"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import {
+  deleteFinancialReport,
   getReportMonthDate,
   normalizePercent,
   submitFinancialReport,
@@ -36,7 +50,10 @@ const formatMonthLabel = (date: Date) => {
 
 export default function PerformancesReportsDetailsPage() {
   const { id: reportId } = useParams()
+  const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const {
     report,
     reports,
@@ -805,6 +822,21 @@ export default function PerformancesReportsDetailsPage() {
     await reload()
   }
 
+  const handleDeleteReport = async () => {
+    if (!report?.id) return
+    setIsDeleting(true)
+    try {
+      await deleteFinancialReport(report.id)
+      toast.success("Rapport supprimé.")
+      navigate("/dashboard/performance/reports")
+    } catch {
+      toast.error("Impossible de supprimer le rapport.")
+    } finally {
+      setIsDeleting(false)
+      setDeleteOpen(false)
+    }
+  }
+
   if (isLoading && !report) {
     return <p className="text-sm text-muted-foreground">Chargement du rapport...</p>
   }
@@ -879,6 +911,7 @@ export default function PerformancesReportsDetailsPage() {
         title={`Rapport ${reportMonth}`}
         subtitle={`Dernière modification : ${reportUpdatedLabel}`}
         backHref="/dashboard/performance/reports"
+        onDelete={() => setDeleteOpen(true)}
         editDialog={
           <ReportEditDialog
             reportMonth={reportMonth}
@@ -891,6 +924,23 @@ export default function PerformancesReportsDetailsPage() {
           />
         }
       />
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce rapport ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est definitive. Les données du rapport seront supprimées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReport} disabled={isDeleting} className="gap-2">
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <ReportPerformanceMetrics
         title="Performances générales"
         subtitle={reportMonth}

@@ -8,6 +8,7 @@
 "use client"
 
 import { useEffect } from "react"
+import type { Session } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabaseClient"
 import { useUser } from "./UserContext"
 import { useUserData } from "./UserDataContext"
@@ -23,7 +24,7 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
-    async function sync(session: any | null) {
+    async function sync(session: Session | null) {
       if (!isMounted) return
 
       if (!session) {

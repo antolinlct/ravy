@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react"
-import { FilePenLine } from "lucide-react"
+import { FilePenLine, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -49,7 +49,7 @@ type ReportEditDialogProps = {
     targetMonth: Date
     financialInputs: FinancialInputs
     salesByRecipe: Record<string, string>
-  }) => Promise<void>
+  }) => Promise<{ id?: string | null } | void>
 }
 
 export default function ReportEditDialog({
@@ -119,7 +119,7 @@ export default function ReportEditDialog({
       )
       setEditOpen(false)
       setShowEditValidation(false)
-    } catch (error) {
+    } catch {
       toast.error("Impossible de modifier le rapport financier.")
     } finally {
       setIsSubmitting(false)
@@ -422,13 +422,15 @@ export default function ReportEditDialog({
           <Button variant="ghost" onClick={() => setEditOpen(false)}>
             Annuler
           </Button>
-                <Button
-                  onClick={handleEditAttempt}
-                  aria-disabled={!isEditReady || isSubmitting}
-                  className={!isEditReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}
-                >
-                  Modifier le rapport
-                </Button>
+          <Button
+            onClick={handleEditAttempt}
+            disabled={!isEditReady || isSubmitting}
+            aria-disabled={!isEditReady || isSubmitting}
+            className={`gap-2 ${!isEditReady || isSubmitting ? "cursor-not-allowed opacity-50" : ""}`}
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Modifier le rapport
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

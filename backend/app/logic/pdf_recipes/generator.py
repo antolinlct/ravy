@@ -375,14 +375,26 @@ def render_recipe_pdf(
         )
         _section_title(pdf, label)
         if type_label == "ARTICLE":
-            headers = ["Fournisseur", "Nom", "Quantité", "Perte", "Coût net"]
-            col_widths = [40, 60, 25, 20, 35]
+            if include_financials:
+                headers = ["Fournisseur", "Nom", "Quantité", "Perte", "Coût net"]
+                col_widths = [40, 60, 25, 20, 35]
+            else:
+                headers = ["Fournisseur", "Nom", "Quantité", "Perte"]
+                col_widths = [45, 70, 30, 25]
         elif type_label == "SUBRECIPE":
-            headers = ["Nom", "Quantité", "Poids portion", "Coût net"]
-            col_widths = [70, 35, 35, 30]
+            if include_financials:
+                headers = ["Nom", "Quantité", "Poids portion", "Coût net"]
+                col_widths = [70, 35, 35, 30]
+            else:
+                headers = ["Nom", "Quantité", "Poids portion"]
+                col_widths = [80, 40, 40]
         else:
-            headers = ["Nom", "Coût net"]
-            col_widths = [90, 50]
+            if include_financials:
+                headers = ["Nom", "Coût net"]
+                col_widths = [90, 50]
+            else:
+                headers = ["Nom"]
+                col_widths = [140]
         data_rows: List[List[str]] = []
         for row in rows:
             qty = row.get("quantity")
@@ -407,33 +419,31 @@ def render_recipe_pdf(
                     if loss is None or abs(float(loss)) < 1e-9
                     else f"{loss:.1f} %".replace(".", ",")
                 )
-                data_rows.append(
-                    [
-                        str(supplier),
-                        str(row.get("name") or "-"),
-                        qty_display,
-                        loss_display,
-                        _format_currency(total_cost) if include_financials else "-",
-                    ]
-                )
+                row_cells = [
+                    str(supplier),
+                    str(row.get("name") or "-"),
+                    qty_display,
+                    loss_display,
+                ]
+                if include_financials:
+                    row_cells.append(_format_currency(total_cost))
+                data_rows.append(row_cells)
             elif type_label == "SUBRECIPE":
                 portion_weight = _to_float(row.get("portion_weight"))
                 portion_label = "-" if portion_weight is None else f"{portion_weight:.0f} g"
-                data_rows.append(
-                    [
-                        str(row.get("name") or "-"),
-                        qty_display,
-                        portion_label,
-                        _format_currency(total_cost) if include_financials else "-",
-                    ]
-                )
+                row_cells = [
+                    str(row.get("name") or "-"),
+                    qty_display,
+                    portion_label,
+                ]
+                if include_financials:
+                    row_cells.append(_format_currency(total_cost))
+                data_rows.append(row_cells)
             else:
-                data_rows.append(
-                    [
-                        str(row.get("name") or "-"),
-                        _format_currency(total_cost) if include_financials else "-",
-                    ]
-                )
+                row_cells = [str(row.get("name") or "-")]
+                if include_financials:
+                    row_cells.append(_format_currency(total_cost))
+                data_rows.append(row_cells)
         _table(pdf, headers, data_rows, col_widths=col_widths)
 
     output = pdf.output(dest="S")

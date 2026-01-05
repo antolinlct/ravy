@@ -50,25 +50,31 @@ import { useUserData } from "@/context/UserDataContext"
 import { useUser } from "@/context/UserContext"
 import { supabase } from "@/lib/supabaseClient"
 
+type UserProfile = {
+  full_name?: string | null
+  fullName?: string | null
+  name?: string | null
+  email?: string | null
+  avatar_url?: string | null
+  avatar?: string | null
+}
 
 export function NavUser() {
-  const profile = useUserData()
+  const profile = useUserData() as UserProfile | null
   const user = useUser()
   const { isMobile, state } = useSidebar()
   const isCollapsed = !isMobile && state === "collapsed"
   const displayName =
-    (profile as any)?.full_name ||
-    (profile as any)?.fullName ||
-    (profile as any)?.name ||
+    profile?.full_name ||
+    profile?.fullName ||
+    profile?.name ||
     user?.fullName ||
     user?.email ||
     "Utilisateur"
   const displayEmail =
-    (profile as any)?.email || user?.email || "Email non disponible"
+    profile?.email || user?.email || "Email non disponible"
   const avatarUrl =
-    (profile as any)?.avatar_url ||
-    (profile as any)?.avatar ||
-    ""
+    profile?.avatar_url || profile?.avatar || ""
 
   const fallbackInitials = React.useMemo(() => {
     const source =

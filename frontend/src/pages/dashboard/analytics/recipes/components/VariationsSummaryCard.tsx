@@ -27,10 +27,18 @@ export const VariationsSummaryCard = ({
   const variationsTickerRef = useRef<HTMLDivElement | null>(null)
   const variationsTickerTrackRef = useRef<HTMLDivElement | null>(null)
 
+  const shouldAnimate = variations.length > 3
+
   useEffect(() => {
     const root = variationsTickerRef.current
     const track = variationsTickerTrackRef.current
-    if (!root || !track) return
+    if (!root || !track || !shouldAnimate) {
+      if (track) {
+        track.style.willChange = ""
+        track.style.transform = ""
+      }
+      return
+    }
 
     let frameId = 0
     let lastTime = 0
@@ -63,7 +71,7 @@ export const VariationsSummaryCard = ({
       track.style.willChange = ""
       track.style.transform = ""
     }
-  }, [variations.length])
+  }, [shouldAnimate, variations.length])
 
   return (
     <Tooltip>
@@ -91,7 +99,7 @@ export const VariationsSummaryCard = ({
                     ref={variationsTickerTrackRef}
                     className="absolute left-0 top-0 flex w-max items-center gap-3 pr-6"
                   >
-                    {[...variations, ...variations].map((item, index) => {
+                    {(shouldAnimate ? [...variations, ...variations] : variations).map((item, index) => {
                       const change = item.changePercent
                       const isDown = typeof change === "number" && change < 0
                       const changeLabel =

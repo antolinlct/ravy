@@ -40,7 +40,9 @@ function resolveLogoUrl(logoPath: string | null | undefined) {
   return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`
 }
 
-function extractLogoPath(source: any) {
+function extractLogoPath(
+  source: { logo_path?: unknown; logo_url?: unknown; logoUrl?: unknown } | null | undefined
+) {
   if (!source) return null
   const raw = source.logo_path ?? source.logo_url ?? source.logoUrl
   return typeof raw === "string" ? raw : null

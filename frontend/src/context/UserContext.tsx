@@ -24,7 +24,9 @@
  */
 
 "use client"
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from "react"
+import type { Session } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabaseClient"
 
 interface UserData {
@@ -42,7 +44,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true
 
-    async function hydrateFromSession(session: any | null) {
+    async function hydrateFromSession(session: Session | null) {
       if (!isMounted || !session?.user) return
 
       const u = session.user

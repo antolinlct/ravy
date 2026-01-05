@@ -130,7 +130,7 @@ export default function PreferencesSettingsPage() {
     (smsTrigger ?? baselineSms.smsTrigger) !== baselineSms.smsTrigger
 
   function smsSummary() {
-    if (!Boolean(activeSms ?? baselineSms.activeSms)) return ""
+    if (!(activeSms ?? baselineSms.activeSms)) return ""
     const typeLabel =
       (typeSms ?? baselineSms.typeSms) === "FOOD & BEVERAGES"
         ? "fournisseurs alimentaires (solides & liquides)"
@@ -346,13 +346,13 @@ export default function PreferencesSettingsPage() {
                 </p>
               </div>
               <Switch
-                checked={Boolean(activeSms ?? baselineSms.activeSms ?? false)}
+                checked={activeSms ?? baselineSms.activeSms ?? false}
                 onCheckedChange={setActiveSms}
                 disabled={activeSms === null}
               />
             </div>
 
-            {Boolean(activeSms ?? baselineSms.activeSms) && (
+            {(activeSms ?? baselineSms.activeSms) && (
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm font-medium">Type de SMS</p>
@@ -396,7 +396,7 @@ export default function PreferencesSettingsPage() {
 
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
-                {Boolean(activeSms ?? baselineSms.activeSms)
+                {activeSms ?? baselineSms.activeSms
                   ? smsSummary()
                   : "SMS désactivés pour cet établissement."}
               </p>

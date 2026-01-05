@@ -273,8 +273,9 @@ export default function AdminLogsPage() {
         toast.error("Impossible de charger les logs.")
         setLogs([])
       } finally {
-        if (!active) return
-        setLogsLoading(false)
+        if (active) {
+          setLogsLoading(false)
+        }
       }
     }
 

@@ -98,7 +98,7 @@ export const RecipeMarginDetailCard = ({
               </div>
               <div className="lg:col-span-4 flex h-full flex-col justify-end">
                 <div className="lg:border-l lg:pl-6">
-                  <div className="mb-4 rounded-md border bg-card p-3">
+                  <div className="mb-4 rounded-md border border-muted/40 bg-background p-3 shadow-none">
                     <p className="text-base font-semibold text-primary">{marginTitle}</p>
                     <div className="mt-2 flex items-end justify-between gap-2">
                       <span className="text-lg font-semibold tabular-nums">

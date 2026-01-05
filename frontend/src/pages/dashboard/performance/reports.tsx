@@ -213,15 +213,18 @@ export default function PerformancesReportsPage() {
       if (!estId) {
         throw new Error("Aucun etablissement selectionne.")
       }
-      await submitFinancialReport({
+      const created = await submitFinancialReport({
         establishmentId: estId,
         targetMonth,
         financialInputs,
         salesByRecipe,
       })
       await reload()
+      if (created?.id) {
+        navigate(`/dashboard/performance/reports/${created.id}`)
+      }
     },
-    [estId, reload]
+    [estId, navigate, reload]
   )
 
   return (

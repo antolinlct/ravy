@@ -125,6 +125,9 @@ def _duplicate_recipe_payload(base_recipe: Any, new_name: str) -> Dict[str, Any]
         value = _safe_get(base_recipe, key)
         payload[key] = _as_decimal(value) if key in decimal_fields else value
 
+    # Toujours désactiver la recette dupliquée par défaut
+    payload["active"] = False
+
     return payload
 
 
@@ -153,6 +156,17 @@ def _duplicate_ingredient_payload(ingredient: Any, new_recipe_id: UUID) -> Dict[
     for key in fields_to_copy:
         value = _safe_get(ingredient, key)
         payload[key] = _as_decimal(value) if key in decimal_fields else value
+
+    ingredient_type = payload.get("type")
+
+    # Conserver les pertes pour les articles
+    if ingredient_type == "ARTICLE":
+        payload["percentage_loss"] = _as_decimal(_safe_get(ingredient, "percentage_loss"))
+
+    # Conserver le coût fixe pour les ingrédients FIXED (contraintes DB)
+    if ingredient_type == "FIXED":
+        payload["unit_cost"] = _as_decimal(_safe_get(ingredient, "unit_cost"))
+        payload["gross_unit_price"] = _as_decimal(_safe_get(ingredient, "gross_unit_price"))
 
     return payload
 

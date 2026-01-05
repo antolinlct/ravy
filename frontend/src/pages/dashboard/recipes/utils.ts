@@ -43,6 +43,27 @@ export const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   })
 
+export const getUniqueRecipeName = (
+  baseName: string,
+  existingNames: Array<string | null | undefined>
+) => {
+  const trimmed = baseName.trim()
+  if (!trimmed) return baseName
+  const taken = new Set(
+    existingNames
+      .filter((name): name is string => typeof name === "string" && Boolean(name.trim()))
+      .map((name) => name.trim().toLowerCase())
+  )
+  if (!taken.has(trimmed.toLowerCase())) return trimmed
+  let index = 2
+  let candidate = `${trimmed} (${index})`
+  while (taken.has(candidate.toLowerCase())) {
+    index += 1
+    candidate = `${trimmed} (${index})`
+  }
+  return candidate
+}
+
 export const parseNumber = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) return 0

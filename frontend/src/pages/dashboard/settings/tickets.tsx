@@ -61,6 +61,16 @@ type Ticket = {
   invoice_path?: string | null
 }
 
+type ApiSupportTicket = {
+  id?: string | null
+  ticket_id?: string | null
+  object?: string | null
+  status?: Ticket["status"] | null
+  created_at?: string | null
+  description?: string | null
+  invoice_path?: string | null
+}
+
 export default function TicketSupportPage() {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [data, setData] = React.useState<Ticket[]>([])
@@ -92,7 +102,7 @@ export default function TicketSupportPage() {
         const list = await res.json()
         if (!Array.isArray(list)) return
 
-        const mapped: Ticket[] = list.map((t: any) => {
+        const mapped: Ticket[] = list.map((t: ApiSupportTicket) => {
           const status = (t.status as Ticket["status"]) ?? "open"
           const statusLabel =
             status === "in progress"
@@ -166,7 +176,7 @@ export default function TicketSupportPage() {
     setDialogOpen(true)
   }
 
-  function openViewDialog(ticket: Ticket) {
+  const openViewDialog = React.useCallback((ticket: Ticket) => {
     setSelected(ticket)
     setForm({
       subject: ticket.subject,
@@ -176,7 +186,7 @@ export default function TicketSupportPage() {
     setFormError("")
     setFile(null)
     setDialogOpen(true)
-  }
+  }, [])
 
   function generateTicketId() {
     const random = Math.floor(Math.random() * 1_000_000)
@@ -261,7 +271,7 @@ export default function TicketSupportPage() {
     }
   }
 
-  async function cancelTicket(ticket: Ticket) {
+  const cancelTicket = React.useCallback(async (ticket: Ticket) => {
     if (!ticket.backendId) {
       toast.error("Impossible d'annuler ce ticket.")
       return
@@ -296,9 +306,9 @@ export default function TicketSupportPage() {
     } catch {
       toast.error("Annulation impossible.")
     }
-  }
+  }, [])
 
-  async function restoreTicket(ticket: Ticket) {
+  const restoreTicket = React.useCallback(async (ticket: Ticket) => {
     if (!ticket.backendId) {
       toast.error("Impossible de rétablir ce ticket.")
       return
@@ -333,7 +343,7 @@ export default function TicketSupportPage() {
     } catch {
       toast.error("Rétablissement impossible.")
     }
-  }
+  }, [])
 
   async function downloadTicketFile() {
     if (!selected?.invoice_path) return

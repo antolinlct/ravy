@@ -30,6 +30,8 @@ import {
   fetchRecipes,
   fetchSuppliers,
   fetchVatRates,
+  getCachedRecipes,
+  upsertCachedRecipe,
   removeCachedRecipe,
   recomputeIngredient,
   recomputeRecipe,
@@ -62,6 +64,7 @@ import {
   parseNumber,
   parseInstructionsState,
   sameNumber,
+  getUniqueRecipeName,
   toInstructionsHtml,
   toPlainText,
   toRecipeDetail,
@@ -167,6 +170,7 @@ export default function RecipeDetailPage() {
   const [deleteSaving, setDeleteSaving] = useState(false)
   const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [duplicateName, setDuplicateName] = useState("")
+  const [duplicateSaving, setDuplicateSaving] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [renameValue, setRenameValue] = useState(recipe.name)
 
@@ -357,14 +361,7 @@ export default function RecipeDetailPage() {
     } catch {
       toast.error("Impossible de mettre à jour la recette.")
     }
-  }, [
-    removeTechnicalImageFromStorage,
-    recipe.id,
-    technicalImageFile,
-    technicalImagePath,
-    updateRecipe,
-    setPreviewFromPath,
-  ])
+  }, [removeTechnicalImageFromStorage, recipe.id, technicalImageFile, technicalImagePath, setPreviewFromPath])
 
   const uploadTechnicalImage = async (): Promise<string | null> => {
     if (!technicalImageFile) return technicalImagePath
@@ -442,7 +439,17 @@ export default function RecipeDetailPage() {
     })
     setNavConfirmOpen(false)
     setPendingNav(null)
-  }, [hasLoaded, recipe.id])
+  }, [
+    hasLoaded,
+    recipe.active,
+    recipe.categoryId,
+    recipe.portionWeightGrams,
+    recipe.portions,
+    recipe.priceInclTax,
+    recipe.saleable,
+    recipe.subcategoryId,
+    recipe.vatId,
+  ])
 
   useEffect(() => {
     setDownloadEditorState(parseInstructionsState(recipe.technicalDataSheetInstructions ?? null))
@@ -591,7 +598,7 @@ export default function RecipeDetailPage() {
       setRecipe(nextRecipe)
       setIngredients(mappedIngredients)
       setHasLoaded(true)
-    } catch (error) {
+    } catch {
       setLoadError("Impossible de charger les données de la recette.")
       setHasLoaded(true)
     }
@@ -810,7 +817,7 @@ export default function RecipeDetailPage() {
         return { ...prev, containsSubRecipe: hasSubrecipe }
       })
     },
-    [estId, updateRecipe]
+    [estId]
   )
 
   const buildIngredientFromDraft = useCallback(
@@ -1175,7 +1182,8 @@ export default function RecipeDetailPage() {
       })
       await recomputeRecipe({ recipe_id: recipe.id, establishment_id: estId })
       const refreshed = await fetchRecipeById(recipe.id)
-      const normalized = toRecipeDetail((refreshed ?? updated) as ApiRecipe)
+      const rawRecipe = (refreshed ?? updated) as ApiRecipe
+      const normalized = toRecipeDetail(rawRecipe)
       setRecipe((prev) => ({
         ...prev,
         ...normalized,
@@ -1184,6 +1192,9 @@ export default function RecipeDetailPage() {
         portionWeightGrams: portionWeightValue,
         updatedAt: normalized.updatedAt,
       }))
+      if (rawRecipe?.id) {
+        upsertCachedRecipe(estId, rawRecipe)
+      }
       setBaselineParams({
         vatId: recipe.vatId,
         priceInclTax: recipe.saleable ? priceInclTaxValue : null,
@@ -1222,9 +1233,32 @@ export default function RecipeDetailPage() {
     ]
   )
 
+  const getExistingRecipeNames = useCallback(async () => {
+    if (!estId) return []
+    const cached = getCachedRecipes(estId)
+    if (cached?.length) {
+      return cached.map((item) => item.name)
+    }
+    try {
+      const list = await fetchRecipes(estId, { useCache: true })
+      return list.map((item) => item.name)
+    } catch {
+      return []
+    }
+  }, [estId])
+
   const openDuplicate = () => {
-    setDuplicateName(`Copie de ${recipe.name}`)
-    setDuplicateOpen(true)
+    const baseName = `Copie de ${recipe.name}`
+    if (!estId) {
+      setDuplicateName(baseName)
+      setDuplicateOpen(true)
+      return
+    }
+    void (async () => {
+      const existingNames = await getExistingRecipeNames()
+      setDuplicateName(getUniqueRecipeName(baseName, existingNames))
+      setDuplicateOpen(true)
+    })()
   }
 
   const openDownload = () => {
@@ -1545,23 +1579,66 @@ export default function RecipeDetailPage() {
     setDownloadOpen(open)
   }
 
-  const confirmDuplicate = () => {
+  const confirmDuplicate = async () => {
     const nextName = duplicateName.trim()
-    if (!nextName || !estId) return
+    if (!nextName) return
+    if (!estId) {
+      toast.error("Sélectionnez un établissement pour dupliquer la recette.")
+      return
+    }
+    if (duplicateSaving) return
+    setDuplicateSaving(true)
+    const existingNames = await getExistingRecipeNames()
+    const resolvedName = getUniqueRecipeName(nextName, existingNames)
+    if (resolvedName !== nextName) {
+      setDuplicateName(resolvedName)
+      toast(`Nom déjà utilisé, renommé en "${resolvedName}".`)
+    }
     duplicateRecipe({
       recipe_id: recipe.id,
       establishment_id: estId,
-      new_name: nextName,
+      new_name: resolvedName,
     })
-      .then((result) => {
+      .then(async (result) => {
         const nextId = result?.new_recipe_id
         if (!nextId) {
           toast.error("Impossible de dupliquer la recette.")
           return
         }
+        let cachedRecipe = null as ApiRecipe | null
+        try {
+          cachedRecipe = await fetchRecipeById(nextId)
+        } catch {
+          cachedRecipe = null
+        }
+        if (cachedRecipe) {
+          upsertCachedRecipe(
+            String(cachedRecipe.establishment_id ?? estId),
+            cachedRecipe
+          )
+        } else {
+          upsertCachedRecipe(estId, {
+            id: nextId,
+            establishment_id: estId,
+            name: resolvedName,
+            active: false,
+            saleable: recipe.saleable,
+            portion: recipe.portions,
+            portion_weight: recipe.portionWeightGrams,
+            price_incl_tax: recipe.priceInclTax,
+            category_id: recipe.categoryId || null,
+            subcategory_id: recipe.subcategoryId || null,
+            vat_id: recipe.vatId || null,
+            purchase_cost_per_portion: recipe.purchaseCostPerPortion ?? null,
+            updated_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            technical_data_sheet_instructions: recipe.technicalDataSheetInstructions ?? "",
+            technical_data_sheet_image_path: recipe.technicalDataSheetImagePath ?? null,
+          })
+        }
         toast.success(
           <>
-            Recette <span className="font-semibold">{nextName}</span> dupliquée
+            Recette <span className="font-semibold">{resolvedName}</span> dupliquée
           </>
         )
         setDuplicateOpen(false)
@@ -1574,6 +1651,9 @@ export default function RecipeDetailPage() {
       })
       .catch(() => {
         toast.error("Impossible de dupliquer la recette.")
+      })
+      .finally(() => {
+        setDuplicateSaving(false)
       })
   }
 
@@ -1774,11 +1854,15 @@ export default function RecipeDetailPage() {
 
       <RecipeDuplicateDialog
         open={duplicateOpen}
-        onOpenChange={setDuplicateOpen}
+        onOpenChange={(open) => {
+          setDuplicateOpen(open)
+          if (!open) setDuplicateSaving(false)
+        }}
         recipeName={recipe.name}
         duplicateName={duplicateName}
         onDuplicateNameChange={setDuplicateName}
         onConfirm={confirmDuplicate}
+        isDuplicating={duplicateSaving}
       />
 
       <RecipeRenameDialog

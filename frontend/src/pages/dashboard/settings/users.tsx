@@ -51,6 +51,18 @@ type AccessRow = {
   status: string
 }
 
+type ApiUserEstablishment = {
+  id?: string | null
+  user_id?: string | null
+  role?: string | null
+}
+
+type ApiUserProfile = {
+  first_name?: string | null
+  last_name?: string | null
+  phone_sms?: string | null
+}
+
 export default function UsersSupportPage() {
   const { estId } = useEstablishment()
   const [inviteOpen, setInviteOpen] = useState(false)
@@ -112,8 +124,8 @@ export default function UsersSupportPage() {
 
       toast.success("Invitation envoyée.")
       setInviteOpen(false)
-    } catch (err: any) {
-      const message = err?.message || "Impossible d'envoyer l'invitation."
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Impossible d'envoyer l'invitation."
       setError(message)
       toast.error(message)
     } finally {
@@ -137,23 +149,17 @@ export default function UsersSupportPage() {
           setRows([])
           return
         }
-        const withIds = data || []
-        const userIds = withIds
-          .map((i: any) => i.user_id)
-          .filter(Boolean) as string[]
+        const withIds = (data || []) as ApiUserEstablishment[]
+        const userIds = withIds.map((item) => item.user_id).filter(Boolean) as string[]
 
-        const profileMap: Record<string, { first_name?: string; last_name?: string; phone_sms?: string }> = {}
+        const profileMap: Record<string, ApiUserProfile> = {}
         await Promise.all(
           userIds.map(async (uid) => {
             try {
               const profileRes = await fetch(`${API_URL}/user_profiles/${uid}`)
               if (profileRes.ok) {
-                const profile = await profileRes.json()
-                profileMap[uid] = {
-                  first_name: profile?.first_name,
-                  last_name: profile?.last_name,
-                  phone_sms: profile?.phone_sms,
-                }
+                const profile = (await profileRes.json()) as ApiUserProfile
+                profileMap[uid] = profile
               }
             } catch {
               /* ignore profile errors */
@@ -161,7 +167,7 @@ export default function UsersSupportPage() {
           })
         )
 
-        const mapped: AccessRow[] = withIds.map((item: any) => {
+        const mapped: AccessRow[] = withIds.map((item) => {
           const uid = item.user_id
           const profile = uid ? profileMap[uid] : undefined
           const fullName =
@@ -178,8 +184,11 @@ export default function UsersSupportPage() {
           }
         })
         setRows(mapped)
-      } catch (err: any) {
-        if (active) setListError(err?.message || "Erreur lors du chargement.")
+      } catch (err) {
+        if (active) {
+          const message = err instanceof Error ? err.message : "Erreur lors du chargement."
+          setListError(message)
+        }
       } finally {
         if (active) setListLoading(false)
       }

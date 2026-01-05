@@ -55,6 +55,8 @@ export type RecipeIngredientRow = {
   id: string
   name: string
   type: "ARTICLE" | "SUBRECIPE" | "FIXED"
+  masterArticleId?: string | null
+  subrecipeId?: string | null
   quantity?: number | null
   unit?: string | null
   portions?: number | null

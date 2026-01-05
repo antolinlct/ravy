@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { resolveRecipeMarginRatio, useRecipeCatalog, useRecipeDetailData, useRecipeMetrics } from "./api"
 import type { IntervalKey } from "@/components/blocks/area-chart"
@@ -7,16 +7,25 @@ import { AnalyticsPageHeader } from "./components/AnalyticsPageHeader"
 import { RecipeSelectionCard } from "./components/RecipeSelectionCard"
 import { RecipeMarginDetailCard } from "./components/RecipeMarginDetailCard"
 import { RecipeCostCard } from "./components/RecipeCostCard"
+import { RecipeCostSkeletonCard, RecipeMarginSkeletonCard } from "./components/RecipeAnalysisSkeletons"
+import type { RecipeIngredientRow } from "./types"
 
 export default function RecipeAnalyticsDetailPage() {
   const navigate = useNavigate()
+  const { id: routeRecipeId } = useParams<{ id?: string }>()
   const { estId } = useEstablishment()
   const [selectedCategory, setSelectedCategory] = useState("__all__")
   const [selectedSubCategory, setSelectedSubCategory] = useState("__all__")
-  const [selectedRecipeId, setSelectedRecipeId] = useState("")
+  const [selectedRecipeId, setSelectedRecipeId] = useState(routeRecipeId ?? "")
   const [costInterval, setCostInterval] = useState<IntervalKey>("week")
   const [costZoomRange, setCostZoomRange] = useState<{ start?: Date; end?: Date }>({})
-  const [analysisRange, setAnalysisRange] = useState<{ start?: Date; end?: Date }>({})
+  const [analysisRange, setAnalysisRange] = useState<{ start?: Date; end?: Date }>(() => {
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 30)
+    start.setHours(0, 0, 0, 0)
+    return { start, end }
+  })
   const minAnalysisDate = useMemo(() => new Date("2022-01-01"), [])
   const euroFormatter = useMemo(
     () =>
@@ -39,8 +48,13 @@ export default function RecipeAnalyticsDetailPage() {
   )
 
   const { recipes, categories, subcategories } = useRecipeCatalog(estId)
-  const { ingredients, period, marginSeries: rawMarginSeries, costSeries: rawCostSeries } =
-    useRecipeDetailData(estId, selectedRecipeId || null, analysisRange.start, analysisRange.end)
+  const {
+    ingredients,
+    period,
+    marginSeries: rawMarginSeries,
+    costSeries: rawCostSeries,
+    isLoading: isDetailLoading,
+  } = useRecipeDetailData(estId, selectedRecipeId || null, analysisRange.start, analysisRange.end)
 
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ value: category.id, label: category.name })),
@@ -75,14 +89,25 @@ export default function RecipeAnalyticsDetailPage() {
   )
 
   useEffect(() => {
+    if (!routeRecipeId) return
+    if (routeRecipeId !== selectedRecipeId) {
+      setSelectedRecipeId(routeRecipeId)
+    }
+  }, [routeRecipeId, selectedRecipeId])
+
+  useEffect(() => {
     if (!recipesByCategoryAndSub.length) {
       setSelectedRecipeId("")
       return
     }
     if (!recipesByCategoryAndSub.some((recipe) => recipe.id === selectedRecipeId)) {
-      setSelectedRecipeId(recipesByCategoryAndSub[0].id)
+      const nextId = recipesByCategoryAndSub[0].id
+      setSelectedRecipeId(nextId)
+      if (routeRecipeId !== nextId) {
+        navigate(`/dashboard/analytics/recipes/${nextId}`, { replace: true })
+      }
     }
-  }, [recipesByCategoryAndSub, selectedRecipeId])
+  }, [navigate, recipesByCategoryAndSub, routeRecipeId, selectedRecipeId])
 
   useEffect(() => {
     if (analysisRange.start || analysisRange.end) return
@@ -274,8 +299,25 @@ export default function RecipeAnalyticsDetailPage() {
     return typeof lastPoint?.value === "number" ? lastPoint.value : null
   }, [filteredCostPerPortionSeries])
 
+  const handleIngredientNavigate = useCallback(
+    (row: RecipeIngredientRow) => {
+      if (row.type === "ARTICLE" && row.masterArticleId) {
+        window.scrollTo({ top: 0, behavior: "smooth" })
+        navigate(`/dashboard/analytics/products/${row.masterArticleId}`)
+        return
+      }
+      if (row.type === "SUBRECIPE" && row.subrecipeId) {
+        window.scrollTo({ top: 0, behavior: "smooth" })
+        navigate(`/dashboard/analytics/recipes/${row.subrecipeId}`)
+      }
+    },
+    [navigate]
+  )
+
   const hasSelection = Boolean(selectedRecipeId)
   const showMarginCard = !hasSelection || selectedRecipe?.saleable !== false
+  const showDetailSkeleton = hasSelection && isDetailLoading
+  const activeRecipeId = selectedRecipeId || recipesByCategoryAndSub[0]?.id
 
   useEffect(() => {
     setCostZoomRange({})
@@ -290,8 +332,8 @@ export default function RecipeAnalyticsDetailPage() {
         onNavigate={(tab) => {
           if (tab === "general") {
             navigate("/dashboard/analytics/recipes")
-          } else {
-            navigate("/dashboard/analytics/recipes/detail")
+          } else if (activeRecipeId) {
+            navigate(`/dashboard/analytics/recipes/${activeRecipeId}`)
           }
         }}
       />
@@ -305,54 +347,68 @@ export default function RecipeAnalyticsDetailPage() {
         onSubCategoryChange={setSelectedSubCategory}
         recipeOptions={recipesByCategoryAndSub.map((recipe) => ({ id: recipe.id, name: recipe.name }))}
         selectedRecipeId={selectedRecipeId}
-        onRecipeSelect={setSelectedRecipeId}
+        onRecipeSelect={(value) => {
+          setSelectedRecipeId(value)
+          if (value && value !== routeRecipeId) {
+            navigate(`/dashboard/analytics/recipes/${value}`)
+          }
+        }}
         minAnalysisDate={minAnalysisDate}
         range={analysisRange}
         onRangeChange={setAnalysisRange}
       />
 
-      {showMarginCard ? (
-        <RecipeMarginDetailCard
+      {showMarginCard
+        ? showDetailSkeleton
+          ? <RecipeMarginSkeletonCard />
+          : (
+              <RecipeMarginDetailCard
+                hasSelection={hasSelection}
+                selectedRecipeName={selectedRecipe?.name ?? "-"}
+                filteredMarginSeries={filteredMarginSeries}
+                costInterval={costInterval}
+                onIntervalChange={setCostInterval}
+                analysisRange={analysisRange}
+                onZoomChange={setCostZoomRange}
+                marginTitle={marginTitle}
+                latestMarginValue={latestMarginValue}
+                marginDelta={marginDelta}
+                marginDeltaIsPositive={marginDeltaIsPositive}
+                marginDeltaLabel={marginDeltaLabel}
+                targetMargin={targetMargin}
+                targetMarginDelta={targetMarginDelta}
+                categoryMargin={categoryMargin}
+                categoryMarginDelta={categoryMarginDelta}
+                monthlySales={monthlySales}
+                monthlySalesDelta={monthlySalesDelta}
+                monthlyRevenue={monthlyRevenue}
+                monthlyRevenueShare={monthlyRevenueShare}
+                formatPoints={formatPoints}
+                euroFormatter={euroFormatter}
+                percentFormatter={percentFormatter}
+              />
+            )
+        : null}
+
+      {showDetailSkeleton ? (
+        <RecipeCostSkeletonCard />
+      ) : (
+        <RecipeCostCard
           hasSelection={hasSelection}
           selectedRecipeName={selectedRecipe?.name ?? "-"}
-          filteredMarginSeries={filteredMarginSeries}
-          costInterval={costInterval}
-          onIntervalChange={setCostInterval}
-          analysisRange={analysisRange}
-          onZoomChange={setCostZoomRange}
-          marginTitle={marginTitle}
-          latestMarginValue={latestMarginValue}
-          marginDelta={marginDelta}
-          marginDeltaIsPositive={marginDeltaIsPositive}
-          marginDeltaLabel={marginDeltaLabel}
-          targetMargin={targetMargin}
-          targetMarginDelta={targetMarginDelta}
-          categoryMargin={categoryMargin}
-          categoryMarginDelta={categoryMarginDelta}
-          monthlySales={monthlySales}
-          monthlySalesDelta={monthlySalesDelta}
-          monthlyRevenue={monthlyRevenue}
-          monthlyRevenueShare={monthlyRevenueShare}
-          formatPoints={formatPoints}
+          filteredCostPerPortionSeries={filteredCostPerPortionSeries}
+          costTitle={costTitle}
+          costPerPortionLatest={costPerPortionLatest}
+          costPerPortionDelta={costPerPortionDelta}
+          costPerPortionDeltaLabel={costPerPortionDeltaLabel}
+          analysisStartLabel={analysisStartLabel}
+          analysisEndLabel={analysisEndLabel}
+          sortedIngredientRows={sortedIngredientRows}
+          onIngredientNavigate={handleIngredientNavigate}
           euroFormatter={euroFormatter}
           percentFormatter={percentFormatter}
         />
-      ) : null}
-
-      <RecipeCostCard
-        hasSelection={hasSelection}
-        selectedRecipeName={selectedRecipe?.name ?? "-"}
-        filteredCostPerPortionSeries={filteredCostPerPortionSeries}
-        costTitle={costTitle}
-        costPerPortionLatest={costPerPortionLatest}
-        costPerPortionDelta={costPerPortionDelta}
-        costPerPortionDeltaLabel={costPerPortionDeltaLabel}
-        analysisStartLabel={analysisStartLabel}
-        analysisEndLabel={analysisEndLabel}
-        sortedIngredientRows={sortedIngredientRows}
-        euroFormatter={euroFormatter}
-        percentFormatter={percentFormatter}
-      />
+      )}
     </div>
   )
 }

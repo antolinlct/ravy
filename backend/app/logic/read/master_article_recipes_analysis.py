@@ -84,7 +84,7 @@ def master_article_impact_analysis(
     # --- 4. Récupérer les recettes concernées ---
     recipes_resp = (
         supabase.table("recipes")
-        .select("id, name, price_excl_tax, purchase_cost_per_portion, portions")
+        .select("id, name, price_excl_tax, purchase_cost_per_portion, portion")
         .in_("id", all_recipe_ids)
         .eq("establishment_id", establishment_id)
         .execute()
@@ -94,7 +94,7 @@ def master_article_impact_analysis(
     # --- 5. Historique de prix du master_article sur la période ---
     hist_resp = (
         supabase.table("history_ingredients")
-        .select("unit_price, date")
+        .select("unit_cost, date")
         .eq("master_article_id", master_article_id)
         .eq("establishment_id", establishment_id)
         .gte("date", str(start_date))
@@ -107,12 +107,13 @@ def master_article_impact_analysis(
     variation_ingredient_euro = None
     variation_ingredient_percent = None
     if len(history) >= 2:
-        first_price = history[0]["unit_price"]
-        last_price = history[-1]["unit_price"]
-        variation_ingredient_euro = round(last_price - first_price, 3)
-        variation_ingredient_percent = round(
-            ((last_price - first_price) / first_price * 100) if first_price else 0, 2
-        )
+        first_price = history[0].get("unit_cost")
+        last_price = history[-1].get("unit_cost")
+        if first_price is not None and last_price is not None:
+            variation_ingredient_euro = round(last_price - first_price, 3)
+            variation_ingredient_percent = round(
+                ((last_price - first_price) / first_price * 100) if first_price else 0, 2
+            )
 
     # --- 6. Calculs par recette ---
     results = []
@@ -121,7 +122,7 @@ def master_article_impact_analysis(
         recipe_id = recipe["id"]
         recipe_price_ht = recipe.get("price_excl_tax") or 0
         purchase_cost_per_portion = recipe.get("purchase_cost_per_portion") or 0
-        portions = recipe.get("portions") or 1
+        portions = recipe.get("portion") or 1
 
         # Ingrédients directs et indirects pour cette recette
         ing_direct = [i for i in direct_ingredients if i["recipe_id"] == recipe_id]
@@ -168,14 +169,18 @@ def master_article_impact_analysis(
 
         # Variation du coût par portion
         if len(history) >= 2:
-            first_price = history[0]["unit_price"]
-            last_price = history[-1]["unit_price"]
-            var_cost_euro = round((last_price - first_price) / portions, 3)
-            var_cost_percent = (
-                round(((last_price - first_price) / first_price * 100), 2)
-                if first_price
-                else 0
-            )
+            first_price = history[0].get("unit_cost")
+            last_price = history[-1].get("unit_cost")
+            if first_price is not None and last_price is not None:
+                var_cost_euro = round((last_price - first_price) / portions, 3)
+                var_cost_percent = (
+                    round(((last_price - first_price) / first_price * 100), 2)
+                    if first_price
+                    else 0
+                )
+            else:
+                var_cost_euro = 0
+                var_cost_percent = 0
         else:
             var_cost_euro = 0
             var_cost_percent = 0

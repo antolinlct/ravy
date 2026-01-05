@@ -76,9 +76,6 @@ export const useMarketOverviewData = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const startKey = useMemo(() => toIsoDate(startDate), [startDate])
-  const endKey = useMemo(() => toIsoDate(endDate), [endDate])
-
   useEffect(() => {
     if (!establishmentId) {
       setData(null)
@@ -109,7 +106,7 @@ export const useMarketOverviewData = ({
     return () => {
       active = false
     }
-  }, [endKey, establishmentId, startKey, supplierId])
+  }, [establishmentId, startDate, endDate, supplierId])
 
   const derived = useMemo(() => {
     const supplierOptions: MarketSupplierOption[] = []

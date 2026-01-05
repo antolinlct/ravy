@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Check, ChevronsUpDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -285,26 +285,32 @@ export function MercurialeDetailView({
     return map
   }, [previousMercuriale, allArticles])
 
-  const computeVariation = (masterId: string, priceValue: string) => {
-    const currentPrice = parseOptionalNumber(priceValue)
-    if (currentPrice == null) return null
-    if (!previousMercuriale) return null
-    const previousPrice = previousPricesByMasterId.get(masterId) ?? null
-    if (previousPrice == null || previousPrice === 0) return null
-    return (currentPrice - previousPrice) / previousPrice
-  }
+  const computeVariation = useCallback(
+    (masterId: string, priceValue: string) => {
+      const currentPrice = parseOptionalNumber(priceValue)
+      if (currentPrice == null) return null
+      if (!previousMercuriale) return null
+      const previousPrice = previousPricesByMasterId.get(masterId) ?? null
+      if (previousPrice == null || previousPrice === 0) return null
+      return (currentPrice - previousPrice) / previousPrice
+    },
+    [previousMercuriale, previousPricesByMasterId]
+  )
 
-  const computeVariationValue = (masterId: string, price?: number | null) => {
-    if (price == null) return null
-    if (!previousMercuriale) return null
-    const previousPrice = previousPricesByMasterId.get(masterId) ?? null
-    if (previousPrice == null || previousPrice === 0) return null
-    return (price - previousPrice) / previousPrice
-  }
+  const computeVariationValue = useCallback(
+    (masterId: string, price?: number | null) => {
+      if (price == null) return null
+      if (!previousMercuriale) return null
+      const previousPrice = previousPricesByMasterId.get(masterId) ?? null
+      if (previousPrice == null || previousPrice === 0) return null
+      return (price - previousPrice) / previousPrice
+    },
+    [previousMercuriale, previousPricesByMasterId]
+  )
 
   const computedVariation = useMemo(
     () => computeVariation(articleMasterId, articleStandard),
-    [articleMasterId, articleStandard, previousMercuriale, previousPricesByMasterId]
+    [articleMasterId, articleStandard, computeVariation]
   )
 
   const variationLabel =
@@ -315,12 +321,7 @@ export function MercurialeDetailView({
 
   const editComputedVariation = useMemo(
     () => computeVariation(articleEditMasterId, articleEditStandard),
-    [
-      articleEditMasterId,
-      articleEditStandard,
-      previousMercuriale,
-      previousPricesByMasterId,
-    ]
+    [articleEditMasterId, articleEditStandard, computeVariation]
   )
 
   const editVariationLabel =
