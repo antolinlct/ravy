@@ -17,161 +17,27 @@ export default function LandingPage() {
         <section className="flex flex-col items-center gap-8 text-center">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold sm:text-5xl">
-              Tu conçois une landing page SaaS B2B pour RAVY, outil de pilotage
-              des achats en restauration.
+              RAVY : le cockpit d&apos;achat qui rend chaque établissement plus rentable.
             </h1>
-            <p className="text-lg font-semibold">Objectif :</p>
-            <div className="space-y-1 text-base sm:text-lg">
-              <p>conversion maximale</p>
-              <p>lecture fluide</p>
-              <p>forte charge émotionnelle</p>
-              <p>aucun sur-design</p>
-              <p>composants shadcn uniquement</p>
-              <p>thème global appliqué plus tard</p>
-            </div>
+            <p className="text-lg font-semibold sm:text-xl">
+              3 minutes pour déclencher un audit gratuit, repérer les fuites de marge et agir dès cette semaine.
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button size="lg">Lancer un audit gratuit</Button>
             <Button size="lg" variant="outline">
-              Voir comment RAVY agit
+              Voir un audit type
             </Button>
           </div>
           <div className="flex flex-col items-center gap-3">
             <div className="flex flex-wrap justify-center gap-2 text-sm">
-              <Badge variant="secondary">🚨 RÈGLES FINALES</Badge>
-              <Badge variant="secondary">Pas de jargon technique</Badge>
-              <Badge variant="secondary">Lisible en 3 minutes</Badge>
+              <Badge variant="secondary">312 établissements actifs</Badge>
+              <Badge variant="secondary">Pilotage achats en temps réel</Badge>
+              <Badge variant="secondary">Sans engagement</Badge>
             </div>
-            <p className="text-sm font-medium">
-              312 établissements actifs suivent leurs achats en direct
+            <p className="text-sm font-medium text-muted-foreground">
+              Objectif : sécuriser vos marges, sans sur-design ni jargon.
             </p>
-          </div>
-          <div className="space-y-2 text-left text-sm sm:text-base">
-            <p>🧱 CONTRAINTES UI (STRICTES)</p>
-            <p>Utiliser uniquement les composants shadcn par défaut</p>
-            <p>Aucune surcharge de styles custom</p>
-            <p>Pas d’animations complexes</p>
-            <p>Pas de gradients spécifiques</p>
-            <p>Pas d’icônes décoratives inutiles</p>
-            <p>Layout clair, aéré, lisible</p>
-            <p>Mobile-first</p>
-            <p>Hiérarchie visuelle par :</p>
-            <p>spacing</p>
-            <p>taille de texte</p>
-            <p>contraste simple</p>
-            <p>CTA toujours visible et répété</p>
-            <p>Composants autorisés :</p>
-            <p>Button</p>
-            <p>Card</p>
-            <p>Badge</p>
-            <p>Separator</p>
-            <p>Alert</p>
-            <p>Accordion</p>
-            <p>Avatar</p>
-            <p>Tabs (si pertinent)</p>
-            <p>Container / Section (via divs propres)</p>
-            <p>Dialog (si utile pour audit)</p>
-            <p>🧠 INTENTION UX</p>
-            <p>Cette landing doit :</p>
-            <p>se lire comme un manifeste</p>
-            <p>provoquer une prise de conscience</p>
-            <p>créer de la FOMO</p>
-            <p>pousser vers 1 action unique :</p>
-            <p>👉 Lancer un audit gratuit</p>
-            <p>Le design doit s’effacer au profit du message.</p>
-            <p>🧩 STRUCTURE DE LA PAGE (ORDRE STRICT)</p>
-            <p>1. HERO — choc immédiat</p>
-            <p>Titre XXL</p>
-            <p>Sous-titre fort</p>
-            <p>2 CTA (primaire + secondaire)</p>
-            <p>Badges de preuve sociale</p>
-            <p>Compteur “établissements actifs”</p>
-            <p>👉 Layout : texte centré, très aéré</p>
-            <p>2. PREUVE SOCIALE IMMÉDIATE</p>
-            <p>Avatars + nombre</p>
-            <p>Texte court “X établissements actifs”</p>
-            <p>Badge “Objectif presque atteint”</p>
-            <p>👉 Utiliser Avatar + Badge</p>
-            <p>3. ACTIVITÉ EN TEMPS RÉEL (FOMO)</p>
-            <p>Carte avec liste d’actions live</p>
-            <p>Texte type “Il y a X min…”</p>
-            <p>👉 Card avec items simples</p>
-            <p>4. DOULEUR — section narrative</p>
-            <p>Titre fort</p>
-            <p>4 blocs texte courts</p>
-            <p>Pas de listes à puces</p>
-            <p>Lecture verticale</p>
-            <p>👉 Card ou simples sections texte</p>
-            <p>5. COMMENT ÇA MARCHE (3 ÉTAPES)</p>
-            <p>3 cards alignées</p>
-            <p>Numéro + titre + phrase</p>
-            <p>Très simple</p>
-            <p>6. CE QUE RAVY DÉTECTE</p>
-            <p>Alert SMS (exemple)</p>
-            <p>Historique</p>
-            <p>Comparaison marché</p>
-            <p>Lien recettes</p>
-            <p>👉 Alert pour les exemples</p>
-            <p>7. EXEMPLE CONCRET</p>
-            <p>Une Card dédiée</p>
-            <p>Chiffres clairs</p>
-            <p>Avant / Après</p>
-            <p>Impact mensuel</p>
-            <p>8. TÉMOIGNAGES</p>
-            <p>3 Card max</p>
-            <p>Courts</p>
-            <p>Citation + prénom + type de resto</p>
-            <p>9. AVANT / APRÈS</p>
-            <p>2 colonnes</p>
-            <p>Ancien monde vs RAVY</p>
-            <p>Texte brut</p>
-            <p>10. OFFRES / PRICING</p>
-            <p>3 Card</p>
-            <p>Mise en avant du plan central</p>
-            <p>CTA clair</p>
-            <p>“Sans engagement” visible</p>
-            <p>11. QUESTION FINALE (PRESSION)</p>
-            <p>Texte simple</p>
-            <p>Une seule question</p>
-            <p>CTA juste après</p>
-            <p>12. FAQ</p>
-            <p>Accordion</p>
-            <p>4–5 questions max</p>
-            <p>13. CTA FINAL</p>
-            <p>Répétition du CTA</p>
-            <p>Phrase forte</p>
-            <p>Rien d’autre</p>
-            <p>✍️ TEXTE À INTÉGRER (VERSION FINALE)</p>
-            <p>👉 UTILISE EXACTEMENT CE TEXTE, SANS LE MODIFIER</p>
-            <p>(⚠️ colle ici intégralement le texte de la landing que je t’ai fourni juste avant, section par section, dans l’ordre)</p>
-            <p>🚨 RÈGLES FINALES</p>
-            <p>Pas de jargon technique</p>
-            <p>Pas de “features list” froide</p>
-            <p>Tout doit pousser vers audit gratuit</p>
-            <p>Pas de menu complexe</p>
-            <p>Pas de footer lourd</p>
-            <p>Lisible en 3 minutes max</p>
-            <p>🎯 RÉSULTAT ATTENDU</p>
-            <p>Une landing :</p>
-            <p>crédible</p>
-            <p>tendue</p>
-            <p>lisible</p>
-            <p>activable immédiatement</p>
-            <p>prête à scaler via LinkedIn</p>
-            <p>🚨 RÈGLES FINALES</p>
-            <p>Pas de jargon technique</p>
-            <p>Pas de “features list” froide</p>
-            <p>Tout doit pousser vers audit gratuit</p>
-            <p>Pas de menu complexe</p>
-            <p>Pas de footer lourd</p>
-            <p>Lisible en 3 minutes max</p>
-            <p>🎯 RÉSULTAT ATTENDU</p>
-            <p>Une landing :</p>
-            <p>crédible</p>
-            <p>tendue</p>
-            <p>lisible</p>
-            <p>activable immédiatement</p>
-            <p>prête à scaler via LinkedIn</p>
           </div>
         </section>
 
