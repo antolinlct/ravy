@@ -123,7 +123,7 @@ const historyCacheByEst = new Map<string, CacheEntry<ApiHistoryRecipe[]>>()
 const marginCacheByEst = new Map<string, CacheEntry<ApiRecipeMargin[]>>()
 const analysisCache = new Map<string, CacheEntry<ApiRecipeAnalysisResponse>>()
 
-const isFresh = <T>(entry: CacheEntry<T> | null, ttl: number) =>
+const isFresh = <T>(entry: CacheEntry<T> | null | undefined, ttl: number) =>
   Boolean(entry && Date.now() - entry.fetchedAt < ttl)
 
 const makeAnalysisKey = (

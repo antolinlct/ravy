@@ -46,7 +46,7 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
         if (!API_URL) return
 
         const res = await fetch(
-          `${API_URL}/user_establishment?user_id=${session.user.id}`
+          `${API_URL}/user_establishment/?user_id=${session.user.id}`
         )
 
         if (res.ok) {

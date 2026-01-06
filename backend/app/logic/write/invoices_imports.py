@@ -5,11 +5,16 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
+import logging
+import time
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
 
 # Services concernés par la logic
 
+from fastapi.encoders import jsonable_encoder
+
+from app.core.supabase_client import supabase
 from app.services import (
     alert_logs_service,
     articles_service,
@@ -51,6 +56,18 @@ from app.logic.write.shared.live_score import (
     LiveScoreError,
     create_or_update_live_score,
 )
+
+logger = logging.getLogger(__name__)
+try:
+    from app.services.telegram.gordon_service import GordonTelegram
+
+    _telegram_client = GordonTelegram()
+
+    def _notify_invoice_rejection(message: str) -> None:
+        _telegram_client.send_text(message, html=False)
+except Exception:
+    def _notify_invoice_rejection(message: str) -> None:
+        return
 
 
 class LogicError(Exception):
@@ -142,6 +159,20 @@ def _reject_invoice_safely(import_job: Any, reason: str) -> None:
         _create_invoice_rejected(import_job, reason)
     except Exception:
         # La création d'une facture rejetée ne doit pas masquer l'erreur initiale
+        pass
+    try:
+        job_id = _safe_get(import_job, "id")
+        establishment_id = _safe_get(import_job, "establishment_id")
+        file_path = _safe_get(import_job, "file_path")
+        message = (
+            "Import facture rejeté ☠︎\n"
+            f"Job: {job_id}\n"
+            f"Etablissement: {establishment_id}\n"
+            f"Raison: {reason}"
+        )
+        _notify_invoice_rejection(message)
+    except Exception:
+        # La notif Telegram ne doit jamais interrompre l'import
         pass
 
 
@@ -260,6 +291,11 @@ def _unique(sequence: Iterable[UUID]) -> List[UUID]:
     return ordered
 
 
+def _chunked(values: Sequence[str], size: int = 500) -> Iterable[List[str]]:
+    for idx in range(0, len(values), size):
+        yield list(values[idx : idx + size])
+
+
 # ---------------------------------------------------------------------------
 # Logique principale
 # ---------------------------------------------------------------------------
@@ -275,6 +311,45 @@ def import_invoice_from_import_job(import_job_id: UUID) -> None:
 
 
 def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> None:
+    establishment_id: Optional[UUID] = None
+    lines_block: List[Any] = []
+    articles_created: List[SharedArticleEntry] = []
+    master_article_ids: List[UUID] = []
+    ingredients_all: List[Any] = []
+    recipes_all: List[Any] = []
+    ingredient_ids_article: List[UUID] = []
+    ingredient_ids_subrecipes: List[UUID] = []
+    variations_created: List[Any] = []
+    all_recipes_for_margins: List[UUID] = []
+    timing_start = time.perf_counter()
+    timing_last = timing_start
+    timing_segments: List[Tuple[str, float]] = []
+
+    def _mark_timing(label: str) -> None:
+        nonlocal timing_last
+        now = time.perf_counter()
+        timing_segments.append((label, now - timing_last))
+        timing_last = now
+
+    def _log_timings(status: str) -> None:
+        try:
+            total = time.perf_counter() - timing_start
+            segments = " | ".join(
+                f"{label}={duration:.3f}s" for label, duration in timing_segments
+            )
+            message = (
+                "[invoice_import] "
+                f"status={status} job={import_job_id} establishment={establishment_id} "
+                f"lines={len(lines_block)} articles={len(articles_created)} masters={len(master_article_ids)} "
+                f"ingredients={len(ingredients_all)} recipes={len(recipes_all)} "
+                f"impacted_recipes={len(all_recipes_for_margins)} variations={len(variations_created)} "
+                f"total={total:.3f}s {segments}"
+            )
+            print(message)
+            logger.info(message)
+        except Exception:
+            return
+
     if not import_job:
         raise LogicError("Import job introuvable")
 
@@ -307,6 +382,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
 
     raw_supplier_name = supplier_block.get("raw_name")
     cleaned_supplier_name = _apply_regex(regex_supplier, raw_supplier_name, "supplier_name") or raw_supplier_name or "Fournisseur"
+    _mark_timing("validate_payload")
 
     market_supplier: Optional[Any] = None
     market_supplier_id: Optional[UUID] = None
@@ -372,7 +448,8 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
         supplier_id = _safe_get(supplier, "id")
         if not supplier_id:
             raise LogicError("Supplier sans identifiant")
-        
+    _mark_timing("resolve_supplier")
+
     ht  = _as_decimal(invoice_block.get("total_excl_tax"))
     ttc = _as_decimal(invoice_block.get("total_incl_tax"))
     tva = _as_decimal(invoice_block.get("total_vat"))
@@ -405,8 +482,12 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
     invoice_id = _safe_get(invoice, "id")
     if not invoice or not invoice_id:
         raise LogicError("Création de la facture impossible")
+
+    _mark_timing("create_invoice")
     
     if is_credit_note:
+        _mark_timing("credit_note_exit")
+        _log_timings("credit_note")
         import_jobs_service.update_import_job(import_job_id, {"status": "completed"})
         return # ON S'ARRETE LA SI C'EST UNE FACTURE D'AVOIR
 
@@ -424,9 +505,11 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
         raise LogicError(str(exc)) from exc
 
     master_article_ids = _unique(articles_result["master_article_ids"])
+    master_article_ids_str = {str(master_id) for master_id in master_article_ids if master_id}
     articles_by_master = articles_result["articles_by_master"]
     articles_created = articles_result["articles_created"]
     master_articles_cache = articles_result["master_articles_cache"]
+    _mark_timing("create_articles")
 
 
 #REMONTE TOUS LES INGREDIENTS & RECETTES D'UN RESTAURANT (LIMIT 10000)
@@ -439,6 +522,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
         filters={"establishment_id": establishment_id},
         limit=5000,
     )
+    _mark_timing("load_ingredients_recipes")
 
 # CREATION DU CACHE O(1) POUR UNE RECHERCHE (TRÈS) RAPIDE
     recipes_cache: Dict[UUID, Any] = {}
@@ -464,7 +548,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
             and master_id
             and recipe_id
         ):
-            recipes_by_master[master_id].add(recipe_id)
+            recipes_by_master[str(master_id)].add(recipe_id)
 
 # LISTE DES INGREDIENTS IMPACTÉS
     # 1) Ingrédients ARTICLE impactés par les master_articles de la facture
@@ -472,12 +556,13 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
         _safe_get(ing, "id")
         for ing in ingredients_all
         if _safe_get(ing, "type") == "ARTICLE"
-        and _safe_get(ing, "master_article_id") in master_article_ids
+        and str(_safe_get(ing, "master_article_id")) in master_article_ids_str
         and _safe_get(ing, "id")
     ]
 
     impacted_article_recipes: Set[UUID] = set()
     impacted_sub_recipes: Set[UUID] = set()
+    impacted_article_recipes_str: Set[str] = set()
 
     # 1.a) Mise à jour des ingrédients ARTICLE + historiques
     if ingredient_ids_article:
@@ -511,13 +596,17 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
 
             impacted_article_recipes |= set(recipes_result_article.get("all_recipes", set()))
             impacted_sub_recipes |= set(recipes_result_article.get("recipes_with_subrecipes", set()))
+            impacted_article_recipes_str = {
+                str(recipe_id) for recipe_id in impacted_article_recipes if recipe_id
+            }
+    _mark_timing("update_ingredients_articles")
 
     # 2) Ingrédients SUBRECIPE dont la sous-recette fait partie des recettes impactées
     ingredient_ids_subrecipes = [
         _safe_get(ing, "id")
         for ing in ingredients_all
         if _safe_get(ing, "type") == "SUBRECIPE"
-        and _safe_get(ing, "subrecipe_id") in impacted_article_recipes
+        and str(_safe_get(ing, "subrecipe_id")) in impacted_article_recipes_str
         and _safe_get(ing, "id")
     ]
 
@@ -553,6 +642,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
 
             impacted_article_recipes |= set(recipes_result_sub.get("all_recipes", set()))
             impacted_sub_recipes |= set(recipes_result_sub.get("recipes_with_subrecipes", set()))
+    _mark_timing("update_ingredients_subrecipes")
 
     # 3) Recalcul des marges sur l’ensemble des recettes impactées
     all_recipes_for_margins = list(impacted_article_recipes | impacted_sub_recipes)
@@ -563,29 +653,52 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
             recipe_ids=all_recipes_for_margins,
             target_date=invoice_date,
         )
+    _mark_timing("recompute_margins")
 
 
     # CREATION DES VARIATIONS POUR LES SMS
-    variations_created = []
+    variations_created: List[Any] = []
+    variation_payloads: List[Dict[str, Any]] = []
+    previous_article_by_master: Dict[UUID, Any] = {}
+
+    candidate_master_ids = _unique(
+        [
+            entry.master_article_id
+            for entry in articles_created
+            if entry.master_article_id and entry.unit_price is not None
+        ]
+    )
+
+    if candidate_master_ids:
+        candidate_master_ids_str = [str(mid) for mid in candidate_master_ids]
+        for chunk in _chunked(candidate_master_ids_str):
+            response = (
+                supabase.table("articles")
+                .select("id, unit_price, date, master_article_id")
+                .eq("establishment_id", str(establishment_id))
+                .in_("master_article_id", chunk)
+                .lte("date", invoice_date.isoformat())
+                .order("date", desc=True)
+                .execute()
+            )
+            for row in response.data or []:
+                raw_master_id = row.get("master_article_id")
+                if not raw_master_id:
+                    continue
+                try:
+                    master_id = UUID(str(raw_master_id))
+                except ValueError:
+                    continue
+                if master_id in previous_article_by_master:
+                    continue
+                candidate_date = _as_date(row.get("date"))
+                if candidate_date and candidate_date < invoice_date:
+                    previous_article_by_master[master_id] = row
+
     for entry in articles_created:
         if entry.unit_price is None or entry.master_article_id is None:
             continue
-        previous_candidates = articles_service.get_all_articles(
-            filters={
-                "establishment_id": establishment_id,
-                "master_article_id": entry.master_article_id,
-                "date_lte": invoice_date.isoformat(),
-                "order_by": "date",
-                "direction": "desc",
-            },
-            limit=5,
-        )
-        previous_article = None
-        for candidate in previous_candidates:
-            candidate_date = _as_date(_safe_get(candidate, "date"))
-            if candidate_date and candidate_date < invoice_date:
-                previous_article = candidate
-                break
+        previous_article = previous_article_by_master.get(entry.master_article_id)
         if not previous_article:
             continue
         old_price = _as_decimal(_safe_get(previous_article, "unit_price"))
@@ -594,7 +707,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
         percentage = ((entry.unit_price - old_price) / old_price) * Decimal("100")
         if percentage == 0:
             continue
-        variation = variations_service.create_variations(
+        variation_payloads.append(
             {
                 "establishment_id": establishment_id,
                 "master_article_id": entry.master_article_id,
@@ -605,8 +718,20 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
                 "date": invoice_date,
             }
         )
-        if variation:
-            variations_created.append(variation)
+
+    if variation_payloads:
+        prepared = jsonable_encoder(
+            [{k: v for k, v in payload.items() if v is not None and k != "id"} for payload in variation_payloads]
+        )
+        try:
+            response = supabase.table("variations").insert(prepared).execute()
+            variations_created = response.data or []
+        except Exception:
+            for payload in variation_payloads:
+                variation = variations_service.create_variations(payload)
+                if variation:
+                    variations_created.append(variation)
+    _mark_timing("create_variations")
 
     # ON CHECK SI LE USER PEUT OU VEUT RECEVOIR DES SMS POUR CE SUPPLIER
     can_send_sms = bool(variations_created) and _safe_get(establishment, "active_sms")
@@ -674,7 +799,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
                 impacted_direct = set()
                 for variation in filtered_variations:
                     master_id = _safe_get(variation, "master_article_id")
-                    impacted_direct.update(recipes_by_master.get(master_id, set()))
+                    impacted_direct.update(recipes_by_master.get(str(master_id), set()))
                 # 2. Recettes impactées indirectement via les sous-recettes
                 impacted_indirect = set(impacted_sub_recipes)
                 # 3. Fusion des deux univers
@@ -740,6 +865,7 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
                                 _safe_get(variation, "id"),
                                 {"alert_logs_id": alert_id},
                             )
+    _mark_timing("sms_alerts")
 
     has_financial_report = bool(
         financial_reports_service.get_all_financial_reports(
@@ -753,5 +879,8 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
             create_or_update_live_score(establishment_id=establishment_id)
         except LiveScoreError:
             pass
+    _mark_timing("live_score")
 
     import_jobs_service.update_import_job(import_job_id, {"status": "completed"})
+    _mark_timing("complete_job")
+    _log_timings("completed")

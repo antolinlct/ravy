@@ -180,7 +180,7 @@ const toISODate = (value?: Date) => {
 
 const sumInvoiceRows = (rows: ApiInvoiceRow[]) => {
   const sum = (values: Array<number | null | undefined>) =>
-    values.reduce((acc, value) => acc + (toNumber(value) ?? 0), 0)
+    values.reduce<number>((acc, value) => acc + (toNumber(value) ?? 0), 0)
   return {
     sum_ht: sum(rows.map((row) => row.total_ht ?? row.total_excl_tax)),
     sum_tva: sum(rows.map((row) => row.total_tva ?? row.total_tax)),

@@ -7,9 +7,9 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
 
+from app.core.supabase_client import supabase
 from app.services import (
     history_recipes_service,
-    ingredients_service,
     recipes_service,
 )
 
@@ -141,6 +141,11 @@ def _compute_manual_version(histories: Sequence[Any]) -> Decimal:
     return Decimal("1")
 
 
+def _chunked(values: Sequence[str], size: int = 500) -> Iterable[List[str]]:
+    for idx in range(0, len(values), size):
+        yield list(values[idx : idx + size])
+
+
 # ============================================================
 # Fonction principale
 # ============================================================
@@ -160,6 +165,50 @@ def update_recipes_and_history_recipes(
     recipe_ids_list = (
         list(recipe_ids) if isinstance(recipe_ids, (list, tuple, set)) else [recipe_ids]
     )
+    establishment_id_str = str(establishment_id)
+    recipe_ids_set = {str(rid) for rid in recipe_ids_list if rid}
+
+    recipes_by_id: Dict[str, Any] = {}
+    if recipe_ids_set:
+        for chunk in _chunked(sorted(recipe_ids_set)):
+            response = (
+                supabase.table("recipes")
+                .select("*")
+                .in_("id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .execute()
+            )
+            for row in response.data or []:
+                recipes_by_id[str(row.get("id"))] = row
+
+    ingredients_by_recipe_id: Dict[str, List[Any]] = {rid: [] for rid in recipe_ids_set}
+    if recipe_ids_set:
+        for chunk in _chunked(sorted(recipe_ids_set)):
+            response = (
+                supabase.table("ingredients")
+                .select("*")
+                .in_("recipe_id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .execute()
+            )
+            for row in response.data or []:
+                recipe_key = str(row.get("recipe_id"))
+                ingredients_by_recipe_id.setdefault(recipe_key, []).append(row)
+
+    histories_by_recipe_id: Dict[str, List[Any]] = {rid: [] for rid in recipe_ids_set}
+    if recipe_ids_set:
+        for chunk in _chunked(sorted(recipe_ids_set)):
+            response = (
+                supabase.table("history_recipes")
+                .select("*")
+                .in_("recipe_id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .order("date", desc=False)
+                .execute()
+            )
+            for row in response.data or []:
+                recipe_key = str(row.get("recipe_id"))
+                histories_by_recipe_id.setdefault(recipe_key, []).append(row)
 
     # ON COMMENCE PAR DÉFINIR UN ENSEMBLE DE VARIABLES QU'ON APPLIQUERA EN FONCTION DU CAS
 
@@ -167,17 +216,11 @@ def update_recipes_and_history_recipes(
     recipes_with_subrecipes: Set[UUID] = set()
 
     for recipe_id in recipe_ids_list:
-        recipe = recipes_service.get_recipes_by_id(recipe_id)
-        if not recipe or _safe_get(recipe, "establishment_id") != establishment_id:
+        recipe = recipes_by_id.get(str(recipe_id)) or recipes_service.get_recipes_by_id(recipe_id)
+        if not recipe or str(_safe_get(recipe, "establishment_id")) != establishment_id_str:
             continue
 
-        ingredients = ingredients_service.get_all_ingredients(
-            filters={
-                "recipe_id": recipe_id,
-                "establishment_id": establishment_id,
-            },
-            limit=1000,
-        )
+        ingredients = list(ingredients_by_recipe_id.get(str(recipe_id), []))
         contains_sub_recipe = any(_safe_get(ing, "type") == "SUBRECIPE" for ing in ingredients)
 
         purchase_cost_total = Decimal("0")
@@ -195,15 +238,7 @@ def update_recipes_and_history_recipes(
             if price_excl_tax and price_excl_tax != 0:
                 margin = ((price_excl_tax - purchase_cost_per_portion) / price_excl_tax) * Decimal("100")
 
-        histories = history_recipes_service.get_all_history_recipes(
-            filters={
-                "recipe_id": recipe_id,
-                "establishment_id": establishment_id,
-                "order_by": "date",
-                "direction": "asc",
-            },
-            limit=1000,
-        )
+        histories = list(histories_by_recipe_id.get(str(recipe_id), []))
         past_or_same, future_histories = _split_histories(histories, target_date_norm)
 
         same_day_histories = [

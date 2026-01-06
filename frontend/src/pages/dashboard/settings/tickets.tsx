@@ -51,7 +51,7 @@ import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
 
 type Ticket = {
-  backendId: string
+  backendId: string | null
   id: string
   subject: string
   status: "open" | "in progress" | "resolved" | "error" | "canceled"
@@ -120,7 +120,7 @@ export default function TicketSupportPage() {
             : ""
 
           return {
-            backendId: t.id,
+            backendId: t.id ?? null,
             id: t.ticket_id || "",
             subject: t.object || "Sans objet",
             status,
@@ -252,7 +252,7 @@ export default function TicketSupportPage() {
         const date = createdDate.toLocaleDateString("fr-FR")
         setData((prev) => [
           {
-            backendId: created.id || "",
+            backendId: created.id ?? null,
             id: created.ticket_id || ticketId,
             subject: created.object || payload.object,
             status: created.status || "open",

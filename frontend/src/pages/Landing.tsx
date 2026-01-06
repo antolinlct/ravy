@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { 
   AlertTriangle, 
   TrendingDown, 
@@ -7,7 +8,6 @@ import {
   Search, 
   CheckCircle2, 
   XCircle, 
-  ArrowRight, 
   Clock, 
   Menu,
   X,
@@ -20,7 +20,6 @@ import {
   Calculator,
   Handshake,
   ArrowUpRight,
-  Bell,
   Upload,
   ScanLine,
   MessageSquareWarning,
@@ -29,54 +28,80 @@ import {
   Quote,
   Zap,
   HelpCircle,
-  ChefHat,
-  Utensils
 } from 'lucide-react';
 
 // --- COMPOSANTS UI (Style Shadcn) ---
 
-const Button = ({ children, variant = "default", size = "default", className = "", ...props }) => {
-  const baseStyle = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
-  
-  const variants = {
-    default: "bg-slate-900 text-slate-50 hover:bg-slate-900/90 shadow-sm",
-    destructive: "bg-red-500 text-slate-50 hover:bg-red-500/90 shadow-sm",
-    outline: "border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900",
-    ghost: "hover:bg-slate-100 hover:text-slate-900",
-    link: "text-slate-900 underline-offset-4 hover:underline",
-    blue: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20"
-  };
+type ButtonVariant = "default" | "destructive" | "outline" | "ghost" | "link" | "blue";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
 
-  const sizes = {
-    default: "h-10 px-4 py-2",
-    sm: "h-9 rounded-md px-3",
-    lg: "h-11 rounded-md px-8",
-    icon: "h-10 w-10"
-  };
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  children: ReactNode;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+};
+
+const buttonVariants: Record<ButtonVariant, string> = {
+  default: "bg-slate-900 text-slate-50 hover:bg-slate-900/90 shadow-sm",
+  destructive: "bg-red-500 text-slate-50 hover:bg-red-500/90 shadow-sm",
+  outline: "border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900",
+  ghost: "hover:bg-slate-100 hover:text-slate-900",
+  link: "text-slate-900 underline-offset-4 hover:underline",
+  blue: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm shadow-blue-600/20"
+};
+
+const buttonSizes: Record<ButtonSize, string> = {
+  default: "h-10 px-4 py-2",
+  sm: "h-9 rounded-md px-3",
+  lg: "h-11 rounded-md px-8",
+  icon: "h-10 w-10"
+};
+
+const Button = ({ children, variant = "default", size = "default", className = "", ...props }: ButtonProps) => {
+  const baseStyle = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
   return (
-    <button className={`${baseStyle} ${variants[variant]} ${sizes[size]} ${className}`} {...props}>
+    <button className={`${baseStyle} ${buttonVariants[variant]} ${buttonSizes[size]} ${className}`} {...props}>
       {children}
     </button>
   );
 };
 
-const Card = ({ children, className = "" }) => (
-  <div className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm ${className}`}>{children}</div>
+type CardProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode;
+  className?: string;
+};
+
+const Card = ({ children, className = "", ...props }: CardProps) => (
+  <div className={`rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm ${className}`} {...props}>
+    {children}
+  </div>
 );
 
-const Badge = ({ children, variant = "default", className = "" }) => {
-  const styles = {
-    default: "border-transparent bg-slate-900 text-slate-50 hover:bg-slate-900/80",
-    destructive: "border-transparent bg-red-500 text-slate-50 hover:bg-red-500/80",
-    outline: "text-slate-950 border-slate-200",
-    secondary: "border-transparent bg-slate-100 text-slate-900 hover:bg-slate-100/80",
-    green: "border-transparent bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80",
-    red: "border-transparent bg-red-100 text-red-700 hover:bg-red-200/80",
-    blue: "border-transparent bg-blue-100 text-blue-700 hover:bg-blue-200/80"
-  };
+type BadgeVariant = "default" | "destructive" | "outline" | "secondary" | "green" | "red" | "blue";
+type BadgeProps = HTMLAttributes<HTMLDivElement> & {
+  children: ReactNode;
+  variant?: BadgeVariant;
+  className?: string;
+};
+
+const badgeStyles: Record<BadgeVariant, string> = {
+  default: "border-transparent bg-slate-900 text-slate-50 hover:bg-slate-900/80",
+  destructive: "border-transparent bg-red-500 text-slate-50 hover:bg-red-500/80",
+  outline: "text-slate-950 border-slate-200",
+  secondary: "border-transparent bg-slate-100 text-slate-900 hover:bg-slate-100/80",
+  green: "border-transparent bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80",
+  red: "border-transparent bg-red-100 text-red-700 hover:bg-red-200/80",
+  blue: "border-transparent bg-blue-100 text-blue-700 hover:bg-blue-200/80"
+};
+
+const Badge = ({ children, variant = "default", className = "", ...props }: BadgeProps) => {
   return (
-    <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${styles[variant]} ${className}`}>
+    <div
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${badgeStyles[variant]} ${className}`}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -97,7 +122,7 @@ const App = () => {
   const [turnover, setTurnover] = useState(60000); 
   const [activeStep, setActiveStep] = useState(0);
   const [isHoveringSteps, setIsHoveringSteps] = useState(false);
-  const [activeFaq, setActiveFaq] = useState(null);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -148,7 +173,7 @@ const App = () => {
     return () => clearInterval(stepInterval);
   }, [isHoveringSteps]);
 
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
   };
 
@@ -159,7 +184,7 @@ const App = () => {
     {
       id: 0,
       title: "1. Envoie ta facture",
-      description: "Glisse un PDF sur l'app ou transfère simplement le mail de ton fournisseur. Zéro saisie.",
+      description: "Glisse un PDF sur l'app ou transfère simplement l’e-mail de ton fournisseur. Zéro saisie.",
       icon: <Upload size={20} />,
     },
     {
@@ -179,7 +204,7 @@ const App = () => {
   const faqs = [
     {
       question: "Dois-je passer mes nuits à tout saisir ?",
-      answer: "Surtout pas. Ravy est conçu pour éliminer la saisie. Vous transférez vos factures par mail ou en photo, et notre IA s'occupe de tout classer et analyser. Votre seul travail : prendre les décisions."
+      answer: "Surtout pas. Ravy est conçu pour éliminer la saisie. Vous transférez vos factures par e-mail ou en photo, et notre IA s'occupe de tout classer et analyser. Votre seul travail : prendre les décisions."
     },
     {
       question: "Je ne suis pas ingénieur, est-ce compliqué ?",
@@ -294,7 +319,7 @@ const App = () => {
                   <div className="w-6 h-6 rounded-full bg-orange-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-orange-600">K</div>
                 </div>
                 <div className="text-sm">
-                   <span className="font-bold text-slate-900">7 restaurateurs</span> ont fait leur audit aujourd'hui.<br/>
+                   <span className="font-bold text-slate-900">7 restaurateurs</span> ont fait leur audit aujourd’hui.<br/>
                    <span className="text-red-500 font-semibold flex items-center gap-1 text-xs">
                      <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -326,8 +351,8 @@ const App = () => {
                  <div className="p-5 space-y-4">
                     <div className="flex justify-between items-end">
                        <div>
-                          <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Marge Brute</p>
-                          <p className="text-2xl font-bold text-slate-900">72.4% <span className="text-green-500 text-sm font-medium">+1.2%</span></p>
+                          <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Marge brute</p>
+                          <p className="text-2xl font-bold text-slate-900">72,4 % <span className="text-green-500 text-sm font-medium">+1,2 %</span></p>
                        </div>
                        <div className="h-8 w-24 bg-green-50 rounded flex items-end gap-1 px-1 pb-1">
                           <div className="w-1/4 h-2/3 bg-green-300 rounded-sm"></div>
@@ -341,9 +366,9 @@ const App = () => {
                        <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                             <span className="text-slate-600">Coût Matière</span>
+                             <span className="text-slate-600">Coût matière</span>
                           </div>
-                          <span className="font-mono font-bold text-slate-800">27.6%</span>
+                          <span className="font-mono font-bold text-slate-800">27,6 %</span>
                        </div>
                        <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
@@ -364,10 +389,10 @@ const App = () => {
                     </div>
                     <div>
                        <p className="text-xs text-red-500 font-bold uppercase mb-1 flex items-center gap-1">
-                         <TrendingDown size={12} /> Alerte Hausse
+                         <TrendingDown size={12} /> Alerte hausse
                        </p>
-                       <p className="text-sm font-bold text-slate-900 leading-tight mb-1">Crème Liquide 35%</p>
-                       <p className="text-xs text-slate-500">Metro • <span className="text-red-600 font-mono font-bold">+14%</span> vs N-1</p>
+                       <p className="text-sm font-bold text-slate-900 leading-tight mb-1">Crème liquide 35 %</p>
+                       <p className="text-xs text-slate-500">Metro • <span className="text-red-600 font-mono font-bold">+14 %</span> vs N-1</p>
                     </div>
                  </div>
               </div>
@@ -378,7 +403,7 @@ const App = () => {
                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-600">
                         <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=100&q=80" alt="Burger" className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-xs font-bold text-white uppercase tracking-wide">Analyse Plat</span>
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">Analyse plat</span>
                  </div>
                  <div className="flex justify-between items-center mb-1">
                     <span className="text-sm text-slate-300 font-medium">Burger du Chef</span>
@@ -463,7 +488,7 @@ const App = () => {
               <span className="text-slate-400">Votre gestion ne doit pas l'être.</span>
             </h2>
             <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
-              Le problème n'est pas vos partenaires. C'est l'absence d'outils pour suivre un marché qui bouge trop vite pour être piloté à la main.
+              Le problème ne vient pas de vos partenaires. C'est l'absence d'outils pour suivre un marché qui bouge trop vite pour être piloté à la main.
             </p>
           </div>
 
@@ -513,18 +538,18 @@ const App = () => {
                      <span className="text-white font-bold">Burger Signature</span>
                    </div>
                    <div className="flex justify-between border-b border-slate-700/50 pb-3">
-                     <span className="text-slate-400">Nouveau Coût Réel</span>
-                     <span className="text-red-400 font-bold">5,15 € <span className="text-[10px] ml-1 bg-red-500/10 px-1 rounded">+22%</span></span>
+                     <span className="text-slate-400">Nouveau coût réel</span>
+                     <span className="text-red-400 font-bold">5,15 € <span className="text-[10px] ml-1 bg-red-500/10 px-1 rounded">+22 %</span></span>
                    </div>
                    <div className="flex justify-between border-b border-slate-700/50 pb-3">
-                     <span className="text-slate-400">Prix vente</span>
+                     <span className="text-slate-400">Prix de vente</span>
                      <span className="text-slate-300">18,00 € (Inchangé)</span>
                    </div>
                    
                    <div className="pt-4 mt-2">
                      <div className="flex justify-between items-end">
                         <div className="text-left">
-                          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Impact Annuel</p>
+                          <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Impact annuel</p>
                           <p className="text-3xl font-bold text-red-500 leading-none">-8 550 €</p>
                         </div>
                         <div className="text-right">
@@ -543,11 +568,11 @@ const App = () => {
                    <Clock size={24} />
                  </div>
                  <div>
-                   <h3 className="text-xl font-bold mb-3 text-white">Adieu, Dimanche soir.</h3>
+                   <h3 className="text-xl font-bold mb-3 text-white">Adieu, dimanche soir.</h3>
                    <p className="text-slate-400 leading-relaxed text-sm md:text-base">
                      Pendant que vos amis profitent de leur famille, vous êtes devant Excel à saisir des factures à la main.
                      <br/><br/>
-                     <span className="text-white">Vous n'avez pas ouvert un restaurant pour devenir comptable à 23h le dimanche.</span> Automatisez ce qui peut l'être.
+                     <span className="text-white">Vous n'avez pas ouvert un restaurant pour devenir comptable à 23 h le dimanche.</span> Automatisez ce qui peut l'être.
                    </p>
                  </div>
                </div>
@@ -560,7 +585,7 @@ const App = () => {
                    <Handshake size={24} />
                  </div>
                  <div>
-                   <h3 className="text-xl font-bold mb-3 text-white">Devenez un Partenaire Pro</h3>
+                   <h3 className="text-xl font-bold mb-3 text-white">Devenez un partenaire pro</h3>
                    <p className="text-slate-400 leading-relaxed text-sm md:text-base">
                      Les fournisseurs respectent les gestionnaires qui connaissent leurs chiffres. Ne négociez plus à l'intuition.
                      <br/><br/>
@@ -578,7 +603,7 @@ const App = () => {
       <section id="fonctionnement" className="py-24 bg-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-             <Badge variant="secondary" className="mb-4">Simple & Rapide</Badge>
+             <Badge variant="secondary" className="mb-4">Simple & rapide</Badge>
              <h2 className="text-4xl font-bold text-slate-900 mb-4">Comment ça marche (vraiment)</h2>
              <p className="text-lg text-slate-600">3 étapes. 2 minutes. Zéro excuse.</p>
           </div>
@@ -590,7 +615,7 @@ const App = () => {
               {/* Connector Line */}
               <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-slate-100 z-0" />
               
-              {steps.map((step, index) => {
+              {steps.map((step) => {
                 const isActive = activeStep === step.id;
                 
                 return (
@@ -639,7 +664,7 @@ const App = () => {
                                    </div>
                                 </div>
                                 <h4 className="text-xl font-bold text-slate-900 mb-2">Déposez vos factures</h4>
-                                <p className="text-slate-500 mb-6">ou transférez-les par email</p>
+                                <p className="text-slate-500 mb-6">ou transférez-les par e-mail</p>
                                 
                                 {/* Email Pill */}
                                 <div className="bg-slate-100 px-4 py-2 rounded-full border border-slate-200 flex items-center gap-2 text-xs font-mono text-slate-600">
@@ -680,7 +705,7 @@ const App = () => {
                                 {/* Items */}
                                 {[
                                   { name: "Mozzarella Di Bufala", price: "45.20", hl: false },
-                                  { name: "Crème Liquide 35%", price: "22.80", hl: true, alert: true },
+                                  { name: "Crème liquide 35 %", price: "22.80", hl: true, alert: true },
                                   { name: "Farine T55 25kg", price: "18.50", hl: false },
                                   { name: "Jambon Parme DOP", price: "64.90", hl: true },
                                   { name: "Huile Olive Vierge", price: "32.10", hl: false },
@@ -704,7 +729,7 @@ const App = () => {
                              {/* AI Processing Badge */}
                              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 shadow-lg animate-in slide-in-from-bottom-4 fade-in duration-500 delay-1000">
                                 <ScanLine size={14} className="text-blue-400 animate-spin-slow" />
-                                Extraction : 100%
+                                Extraction : 100 %
                              </div>
                          </div>
                       </div>
@@ -744,7 +769,7 @@ const App = () => {
                                            <span className="text-[10px] text-slate-400">Maintenant</span>
                                         </div>
                                         <p className="text-xs text-slate-700 font-medium leading-tight">
-                                           🚨 Alerte Prix : La Crème 35% a pris <span className="text-red-500 font-bold">+14%</span>.
+                                           🚨 Alerte prix : la crème 35 % a pris <span className="text-red-500 font-bold">+14 %</span>.
                                         </p>
                                      </div>
                                   </div>
@@ -784,14 +809,14 @@ const App = () => {
                 Découvrez combien de marge vous pouvez récupérer
               </h2>
               <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-                Nos utilisateurs augmentent leur marge nette de 5% en moyenne en optimisant leurs achats et en évitant les erreurs.
+                Nos utilisateurs augmentent leur marge nette de 5 % en moyenne en optimisant leurs achats et en évitant les erreurs.
                 <br/>Utilisez le simulateur pour voir l'impact sur votre établissement.
               </p>
 
               <div className="space-y-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                   <div className="flex justify-between items-end mb-4">
-                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wide">Votre Chiffre d'Affaires Mensuel</label>
+                    <label className="text-sm font-bold text-slate-700 uppercase tracking-wide">Votre chiffre d'affaires mensuel</label>
                     <span className="text-2xl font-bold text-slate-900 font-mono">{formatCurrency(turnover)}</span>
                   </div>
                   <input 
@@ -810,7 +835,7 @@ const App = () => {
                 </div>
                 
                 <p className="text-xs text-slate-500 italic">
-                  *Basé sur une économie moyenne constatée de 5% sur le volume d'achat global (environ 30% du CA).
+                  *Basé sur une économie moyenne constatée de 5 % sur le volume d’achats global (environ 30 % du CA).
                 </p>
               </div>
             </div>
@@ -877,7 +902,7 @@ const App = () => {
               <div className="flex text-yellow-400">
                 {[1,2,3,4,5].map(i => <Star key={i} size={20} fill="currentColor" />)}
               </div>
-              <span className="text-slate-600 font-medium">4.9/5 par des restaurateurs indépendants</span>
+              <span className="text-slate-600 font-medium">4,9/5 par des restaurateurs indépendants</span>
             </div>
           </div>
 
@@ -889,7 +914,7 @@ const App = () => {
               <div className="mb-6 flex items-center gap-3">
                  <Badge variant="green" className="bg-green-100 text-green-700 border-green-200">
                    <TrendingUp size={12} className="mr-1" />
-                   -4% Coût Matière
+                   -4 % Coût matière
                  </Badge>
               </div>
 
@@ -924,7 +949,7 @@ const App = () => {
               </div>
 
               <p className="text-slate-800 font-medium text-lg leading-relaxed mb-8 flex-grow">
-                "La première alerte m’a fait mal au coeur. La deuxième m’a soulagée. Je contrôle enfin mon business, je dors mieux."
+                "La première alerte m’a fait mal au cœur. La deuxième m’a soulagée. Je contrôle enfin mon business, je dors mieux."
               </p>
 
               <div className="mt-auto flex items-center gap-4 border-t border-slate-100 pt-6">
@@ -973,7 +998,7 @@ const App = () => {
       <section className="py-24 bg-white">
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="text-center mb-20">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">L'ancien monde vs. La méthode Ravy</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">L'ancien monde vs la méthode Ravy</h2>
             <p className="text-lg text-slate-600">Pourquoi continuer à gérer votre restaurant comme en 1990 ?</p>
           </div>
 
@@ -1045,8 +1070,8 @@ const App = () => {
                     <CheckCircle2 size={20} className="text-green-400" />
                   </div>
                   <div>
-                    <p className="font-bold text-white text-lg">Import 100% Automatisé</p>
-                    <p className="text-sm text-slate-400">Photo, PDF ou transfert de mail. L'IA extrait tout en secondes.</p>
+                    <p className="font-bold text-white text-lg">Import 100 % automatisé</p>
+                    <p className="text-sm text-slate-400">Photo, PDF ou transfert d’e-mail. L'IA extrait tout en quelques secondes.</p>
                   </div>
                 </li>
                 <li className="flex gap-4">
@@ -1054,7 +1079,7 @@ const App = () => {
                     <CheckCircle2 size={20} className="text-green-400" />
                   </div>
                   <div>
-                    <p className="font-bold text-white text-lg">Marges Réelles & Dynamiques</p>
+                    <p className="font-bold text-white text-lg">Marges réelles & dynamiques</p>
                     <p className="text-sm text-slate-400">Vos recettes se mettent à jour seules à chaque nouvelle facture.</p>
                   </div>
                 </li>
@@ -1063,7 +1088,7 @@ const App = () => {
                     <CheckCircle2 size={20} className="text-green-400" />
                   </div>
                   <div>
-                    <p className="font-bold text-white text-lg">Alertes Prédictives</p>
+                    <p className="font-bold text-white text-lg">Alertes prédictives</p>
                     <p className="text-sm text-slate-400">Notifié par SMS avant de servir un plat qui ne marge plus.</p>
                   </div>
                 </li>
@@ -1101,7 +1126,7 @@ const App = () => {
                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-1 rounded border border-green-100">
                   <Zap size={10} /> Rentabilisé en 1 jour
                 </div>
-                <p className="text-xs text-slate-400 mt-2">Moins cher qu'un café/jour</p>
+                <p className="text-xs text-slate-400 mt-2">Moins cher qu’un café par jour</p>
               </div>
 
               <div className="space-y-4 mb-8 flex-1 relative z-10">
@@ -1140,7 +1165,7 @@ const App = () => {
                   <span className="text-slate-500 ml-1">/ mois</span>
                 </div>
                 <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                  <Zap size={10} /> Rentabilisé en 48h
+                  <Zap size={10} /> Rentabilisé en 48 h
                 </div>
                 <p className="text-xs text-slate-400 mt-2">Le prix d'un service raté</p>
               </div>

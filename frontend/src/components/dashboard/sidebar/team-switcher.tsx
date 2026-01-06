@@ -28,6 +28,15 @@ import { OnboardingModal } from "@/features/onboarding/OnboardingModal"
 const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
 
+type EstablishmentData = {
+  id?: string | null
+  name?: string | null
+  logo_path?: string | null
+  logoUrl?: string | null
+  logo_url?: string | null
+  plan?: string | null
+}
+
 function normalizeLogoPath(raw: string | null | undefined) {
   if (!raw) return null
   return raw.replace(/^logos\//, "")
@@ -64,7 +73,7 @@ export function TeamSwitcher({
 }) {
   const { isMobile, state } = useSidebar()
   const { estId, select } = useEstablishment()
-  const establishment = useEstablishmentData()
+  const establishment = useEstablishmentData() as EstablishmentData | null
   const userEstablishments = useUserEstablishments()
   const [userTeams, setUserTeams] = React.useState<Team[]>([])
   const [showOnboarding, setShowOnboarding] = React.useState(false)
@@ -118,12 +127,16 @@ export function TeamSwitcher({
 
       return [
         {
-          id: estId ?? establishment?.id ?? "establishment",
-          name: establishment?.name?.trim() || "Établissement",
+          id:
+            estId ??
+            (typeof establishment?.id === "string" ? establishment.id : null) ??
+            "establishment",
+          name:
+            typeof establishment?.name === "string"
+              ? establishment.name.trim() || "Établissement"
+              : "Établissement",
           logoUrl: resolveLogoUrl(logoPath),
-          plan:
-            (establishment?.plan as string | null | undefined) ??
-            null,
+          plan: establishment?.plan ?? null,
         },
       ]
     }
@@ -169,12 +182,12 @@ export function TeamSwitcher({
 
     return {
       ...activeTeam,
-      name: establishment?.name?.trim() || activeTeam.name,
+      name:
+        typeof establishment?.name === "string"
+          ? establishment.name.trim() || activeTeam.name
+          : activeTeam.name,
       logoUrl: resolveLogoUrl(logoPath) ?? activeTeam.logoUrl,
-      plan:
-        (establishment?.plan as string | null | undefined) ??
-        activeTeam.plan ??
-        null,
+      plan: establishment?.plan ?? activeTeam.plan ?? null,
     }
   }, [activeTeam, establishment])
 

@@ -249,7 +249,7 @@ const fetchInvoiceSummary = async (
 }
 
 const fetchVariations = async (establishmentId: string): Promise<VariationRow[]> => {
-  const { data } = await api.get("/variations", {
+  const { data } = await api.get("/variations/", {
     params: {
       establishment_id: establishmentId,
       order_by: "date",
@@ -261,7 +261,7 @@ const fetchVariations = async (establishmentId: string): Promise<VariationRow[]>
 }
 
 const fetchFinancialReport = async (establishmentId: string): Promise<FinancialReportRow | null> => {
-  const { data } = await api.get("/financial_reports", {
+  const { data } = await api.get("/financial_reports/", {
     params: {
       establishment_id: establishmentId,
       order_by: "month",
@@ -277,7 +277,7 @@ const fetchFinancialIngredients = async (
   establishmentId: string,
   reportId?: string
 ): Promise<FinancialIngredientRow[]> => {
-  const { data } = await api.get("/financial_ingredients", {
+  const { data } = await api.get("/financial_ingredients/", {
     params: {
       establishment_id: establishmentId,
       financial_report_id: reportId,
@@ -292,7 +292,7 @@ const fetchFinancialIngredients = async (
 }
 
 const fetchMasterArticles = async (establishmentId: string): Promise<MasterArticleRow[]> => {
-  const { data } = await api.get("/master_articles", {
+  const { data } = await api.get("/master_articles/", {
     params: {
       establishment_id: establishmentId,
       order_by: "unformatted_name",
@@ -304,7 +304,7 @@ const fetchMasterArticles = async (establishmentId: string): Promise<MasterArtic
 }
 
 const fetchSuppliers = async (establishmentId: string): Promise<SupplierRow[]> => {
-  const { data } = await api.get("/suppliers", {
+  const { data } = await api.get("/suppliers/", {
     params: {
       establishment_id: establishmentId,
       order_by: "name",
@@ -316,7 +316,7 @@ const fetchSuppliers = async (establishmentId: string): Promise<SupplierRow[]> =
 }
 
 const fetchRecipes = async (establishmentId: string): Promise<RecipeRow[]> => {
-  const { data } = await api.get("/recipes", {
+  const { data } = await api.get("/recipes/", {
     params: {
       establishment_id: establishmentId,
       order_by: "name",
@@ -328,7 +328,7 @@ const fetchRecipes = async (establishmentId: string): Promise<RecipeRow[]> => {
 }
 
 const fetchRecipeMargins = async (establishmentId: string): Promise<RecipeMarginRow[]> => {
-  const { data } = await api.get("/recipe_margin", {
+  const { data } = await api.get("/recipe_margin/", {
     params: {
       establishment_id: establishmentId,
       order_by: "date",
@@ -357,17 +357,46 @@ export function useDashboardHomeData() {
     setError(null)
 
     try {
-      const report = await fetchFinancialReport(estId)
-      const [variations, masterArticles, suppliers, recipes, recipeMargins] = await Promise.all([
-        fetchVariations(estId),
-        fetchMasterArticles(estId),
-        fetchSuppliers(estId),
-        fetchRecipes(estId),
-        fetchRecipeMargins(estId),
+      const errors: string[] = []
+      const safe = async <T>(label: string, fn: () => Promise<T>, fallback: T) => {
+        try {
+          return await fn()
+        } catch {
+          errors.push(label)
+          return fallback
+        }
+      }
+
+      const report = await safe("financial_report", () => fetchFinancialReport(estId), null)
+
+      const [
+        variations,
+        masterArticles,
+        suppliers,
+        recipes,
+        recipeMargins,
+        invoiceSummary,
+      ] = await Promise.all([
+        safe("variations", () => fetchVariations(estId), [] as VariationRow[]),
+        safe("master_articles", () => fetchMasterArticles(estId), [] as MasterArticleRow[]),
+        safe("suppliers", () => fetchSuppliers(estId), [] as SupplierRow[]),
+        safe("recipes", () => fetchRecipes(estId), [] as RecipeRow[]),
+        safe("recipe_margin", () => fetchRecipeMargins(estId), [] as RecipeMarginRow[]),
+        safe("invoices_sum", () => fetchInvoiceSummary(estId, report?.month), {
+          count: 0,
+          sumHt: 0,
+          sumTva: 0,
+          sumTtc: 0,
+        } as InvoiceSummary),
       ])
 
-      const invoiceSummary = await fetchInvoiceSummary(estId, report?.month)
-      const financialIngredients = report ? await fetchFinancialIngredients(estId, report.id) : []
+      const financialIngredients = report
+        ? await safe(
+            "financial_ingredients",
+            () => fetchFinancialIngredients(estId, report.id),
+            [] as FinancialIngredientRow[]
+          )
+        : []
 
       const masterById = new Map(masterArticles.map((item) => [item.id, item]))
       const supplierById = new Map(suppliers.map((item) => [item.id, item]))
@@ -392,6 +421,9 @@ export function useDashboardHomeData() {
         topLowMargin,
         reportMonth: report?.month,
       })
+      if (errors.length) {
+        setError(`Certaines données n'ont pas pu être chargées (${errors.join(", ")}).`)
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur de chargement"
       setError(message)

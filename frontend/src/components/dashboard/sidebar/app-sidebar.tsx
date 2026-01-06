@@ -32,6 +32,15 @@ import { useEstablishmentData } from "@/context/EstablishmentDataContext"
 const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
 
+type EstablishmentData = {
+  id?: string | null
+  name?: string | null
+  logo_path?: string | null
+  logoUrl?: string | null
+  logo_url?: string | null
+  plan?: string | null
+}
+
 function normalizeLogoPath(raw: string | null | undefined) {
   if (!raw) return null
   return raw.replace(/^logos\//, "")
@@ -153,7 +162,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { estId } = useEstablishment()
-  const establishment = useEstablishmentData()
+  const establishment = useEstablishmentData() as EstablishmentData | null
   const [userId, setUserId] = React.useState<string | null>(null)
   const [establishments, setEstablishments] = React.useState<
     { id: string; name?: string; logo_path?: string | null }[]
@@ -164,7 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const API_URL = import.meta.env.VITE_API_URL
     if (!API_URL) return
 
-    const linkRes = await fetch(`${API_URL}/user_establishment?user_id=${uid}`)
+    const linkRes = await fetch(`${API_URL}/user_establishment/?user_id=${uid}`)
     if (!linkRes.ok) return
 
     const links = await linkRes.json()
@@ -223,18 +232,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         : estId || establishment
           ? [
               {
-                id: estId ?? establishment?.id ?? "establishment",
-                name: establishment?.name?.trim() || "Établissement",
+                id:
+                  estId ??
+                  (typeof establishment?.id === "string" ? establishment.id : null) ??
+                  "establishment",
+                name:
+                  typeof establishment?.name === "string"
+                    ? establishment.name.trim() || "Établissement"
+                    : "Établissement",
                 logoUrl: getLogoUrl(
                   normalizeLogoPath(
-                    (establishment?.logo_path as string | null | undefined) ??
-                      (establishment?.logoUrl as string | null | undefined) ??
-                      (establishment?.logo_url as string | null | undefined)
+                    establishment?.logo_path ??
+                      establishment?.logoUrl ??
+                      establishment?.logo_url
                   )
                 ),
-                plan:
-                  (establishment?.plan as string | null | undefined) ??
-                  null,
+                plan: establishment?.plan ?? null,
               },
             ]
           : [],

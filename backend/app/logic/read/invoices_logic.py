@@ -101,8 +101,8 @@ def invoices_sum(
         for inv in invoices
     )
 
-    def _quantize(value: Decimal, exp: str = "0.01") -> float:
-        return float(value.quantize(Decimal(exp), rounding=ROUND_HALF_UP))
+    def _quantize(value: Any, exp: str = "0.01") -> float:
+        return float(_safe_decimal(value).quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
     # --- 7. Résultat final ---
     return {

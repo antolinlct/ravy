@@ -333,7 +333,10 @@ const CustomTooltip = ({
   className,
 }: {
   active?: boolean
-  payload?: Array<{ value?: number | string; payload?: AreaChartPoint }>
+  payload?: Array<{
+    value?: number | string | Array<number | string>
+    payload?: AreaChartPoint
+  }>
   label?: string
   valueLabel?: React.ReactNode
   formatDisplayDate: (d: Date, opts?: { withYear?: boolean }) => string
@@ -345,10 +348,18 @@ const CustomTooltip = ({
   const point = payload[0]?.payload as AreaChartPoint
   const d = point ? parsePointDate(point) : null
   const displayDate = d ? formatDisplayDate(d) : label
-  const rawValue =
-    typeof payload[0]?.value === "number"
-      ? payload[0].value
-      : Number(payload[0]?.value)
+  const rawValue = (() => {
+    const value = payload[0]?.value
+    if (Array.isArray(value)) {
+      const first = value.find(
+        (item) => typeof item === "number" || typeof item === "string"
+      )
+      const parsed = Number(first)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+  })()
 
   return (
     <div
@@ -363,7 +374,7 @@ const CustomTooltip = ({
         <p className="text-sm text-muted-foreground mt-1">{valueLabel}</p>
       ) : null}
       <p className="text-lg font-semibold">
-        {Number.isFinite(rawValue) ? formatValue(rawValue, point) : "--"}
+        {rawValue !== null ? formatValue(rawValue, point) : "--"}
       </p>
     </div>
   )
@@ -764,12 +775,13 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
       const idx = payload?.index
       const point = idx !== undefined ? zoomedSeries[idx] : null
       const d = point ? parsePointDate(point) : null
+      const labelText = payload?.value !== undefined ? String(payload.value) : ""
       const text =
         d && xTickFormatter
-          ? xTickFormatter(d, payload?.value, idx ?? 0, point as TPoint)
+          ? xTickFormatter(d, labelText, idx ?? 0, point as TPoint)
           : d
             ? displayDateFormatter(d, { withYear: false })
-            : payload?.value
+            : labelText
       const isActive =
         activeIndex !== null && idx !== undefined && idx === activeIndex
       return (

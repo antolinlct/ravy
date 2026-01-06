@@ -7,6 +7,9 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 from uuid import UUID
 
+from fastapi.encoders import jsonable_encoder
+
+from app.core.supabase_client import supabase
 from app.logic.write.shared.recipes_history_recipes import update_recipes_and_history_recipes
 from app.services import (
     articles_service,
@@ -114,6 +117,11 @@ def _split_histories(
     return same_day, h_prev, h_next
 
 
+def _chunked(values: Sequence[str], size: int = 500) -> Iterable[List[str]]:
+    for idx in range(0, len(values), size):
+        yield list(values[idx : idx + size])
+
+
 def _compute_loss_and_cost(
     gross_unit_price: Decimal, quantity: Decimal, percentage_loss: Optional[Decimal]
 ) -> Tuple[Decimal, Decimal, Optional[Decimal]]:
@@ -162,18 +170,85 @@ def update_ingredients_and_history_ingredients(
         raise LogicError("Trigger invalide pour la mise à jour des ingrédients")
 
     target_date_norm = _as_date(target_date) or date.today() # prend la date fournis ou par défaut la date du jour arrondis au jour.
+    establishment_id_str = str(establishment_id)
+
+    ingredient_ids_set = {str(iid) for iid in ingredient_ids}
+
+    # Précharger tous les ingrédients concernés en un minimum d'appels
+    ingredients_by_id: Dict[str, Any] = {}
+    if ingredient_ids_set:
+        for chunk in _chunked(sorted(ingredient_ids_set)):
+            response = (
+                supabase.table("ingredients")
+                .select("*")
+                .in_("id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .execute()
+            )
+            for row in response.data or []:
+                ingredients_by_id[str(row.get("id"))] = row
+
+    # Précharger tous les historiques d'ingrédients
+    histories_by_ingredient_id: Dict[str, List[Any]] = {iid: [] for iid in ingredient_ids_set}
+    if ingredient_ids_set:
+        for chunk in _chunked(sorted(ingredient_ids_set)):
+            response = (
+                supabase.table("history_ingredients")
+                .select("*")
+                .in_("ingredient_id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .order("date", desc=False)
+                .execute()
+            )
+            for row in response.data or []:
+                histories_by_ingredient_id.setdefault(str(row.get("ingredient_id")), []).append(row)
+
+    def _sort_histories(histories: List[Any]) -> None:
+        histories.sort(key=lambda h: _as_date(_safe_get(h, "date")) or date.min)
 
     # VA CHERCHER LES HISTORIQUE D'UN INGREDIENT
     def _get_histories(ingredient_id: UUID) -> List[Any]:
-        return history_ingredients_service.get_all_history_ingredients(
-            filters={
-                "ingredient_id": ingredient_id,
-                "establishment_id": establishment_id,
-                "order_by": "date",
-                "direction": "asc",
-            },
-            limit=1000,
+        return histories_by_ingredient_id.get(str(ingredient_id), [])
+
+    def _upsert_history_cache(ingredient_id: UUID, history_row: Any) -> None:
+        if not history_row:
+            return
+        key = str(ingredient_id)
+        histories = histories_by_ingredient_id.setdefault(key, [])
+        history_id = _safe_get(history_row, "id")
+        if history_id is not None:
+            for idx, existing in enumerate(histories):
+                if _safe_get(existing, "id") == history_id:
+                    histories[idx] = history_row
+                    _sort_histories(histories)
+                    return
+        histories.append(history_row)
+        _sort_histories(histories)
+
+    pending_history_inserts: List[Dict[str, Any]] = []
+
+    def _flush_pending_history_inserts() -> None:
+        if not pending_history_inserts:
+            return
+        prepared = jsonable_encoder(
+            [
+                {k: v for k, v in payload.items() if v is not None and k != "id"}
+                for payload in pending_history_inserts
+            ]
         )
+        try:
+            response = supabase.table("history_ingredients").insert(prepared).execute()
+            for row in response.data or []:
+                ingredient_ref = _safe_get(row, "ingredient_id")
+                if ingredient_ref:
+                    _upsert_history_cache(ingredient_ref, row)
+        except Exception:
+            for payload in pending_history_inserts:
+                created = history_ingredients_service.create_history_ingredients(payload)
+                if created:
+                    _upsert_history_cache(_safe_get(payload, "ingredient_id"), created)
+        finally:
+            pending_history_inserts.clear()
 
     # VA CHERCHER LE NOMBRE DE PORTION DE LA RECETTE DE L'INGREDIENT, L'ENVOIE A _ENSURE_PORTION ET RETOURNE 1 SI VIDE AVEC ERREUR.
     def _portion_for_recipe(recipe_id: Optional[UUID]) -> Decimal:
@@ -194,11 +269,10 @@ def update_ingredients_and_history_ingredients(
         ingredients_service.update_ingredients(_safe_get(ingredient, "id"), ingredient_payload)
 
     # Chargement des ingrédients concernés
-    ingredient_ids_set = set(ingredient_ids)
     ingredients: List[Any] = []
     for iid in ingredient_ids_set: # Définitions des ingredients a travailler, on enlève les doubons.
-        ingredient = ingredients_service.get_ingredients_by_id(iid)
-        if ingredient and _safe_get(ingredient, "establishment_id") == establishment_id:
+        ingredient = ingredients_by_id.get(str(iid))
+        if ingredient and _safe_get(ingredient, "establishment_id") == establishment_id_str:
             ingredients.append(ingredient)
 
     ingredients_article = [ # Définitions des ingredients lot 1 type ARTICLE
@@ -214,6 +288,7 @@ def update_ingredients_and_history_ingredients(
     ingredients_fixed = [ing for ing in ingredients if _safe_get(ing, "type") == "FIXED"] # Définitions des ingredients lot 3 type FIXED
 
     recipes_cache: Dict[UUID, Any] = {}
+    subrecipe_histories_cache: Dict[str, List[Any]] = {}
 
     def _get_recipe(recipe_id: Optional[UUID]) -> Optional[Any]:
         if recipe_id is None:
@@ -225,9 +300,51 @@ def update_ingredients_and_history_ingredients(
             return None
         return recipe
 
+    if trigger == "manual" and ingredients_subrecipes:
+        subrecipe_ids = {
+            str(_safe_get(ing, "subrecipe_id"))
+            for ing in ingredients_subrecipes
+            if _safe_get(ing, "subrecipe_id") is not None
+        }
+        for chunk in _chunked(sorted(subrecipe_ids)):
+            response = (
+                supabase.table("history_recipes")
+                .select("*")
+                .in_("recipe_id", chunk)
+                .eq("establishment_id", establishment_id_str)
+                .order("date", desc=False)
+                .execute()
+            )
+            for row in response.data or []:
+                subrecipe_histories_cache.setdefault(str(row.get("recipe_id")), []).append(row)
+        for histories in subrecipe_histories_cache.values():
+            histories.sort(key=lambda h: _as_date(_safe_get(h, "date")) or date.min)
+
     recipes_directly_impacted: Set[UUID] = set()
     recipes_indirectly_impacted: Set[UUID] = set()
     ingredients_processed: Set[UUID] = set()
+
+    articles_by_master_id: Dict[str, Any] = {}
+    if trigger == "import" and invoice_id and ingredients_article:
+        master_ids = {
+            str(_safe_get(ing, "master_article_id"))
+            for ing in ingredients_article
+            if _safe_get(ing, "master_article_id") is not None
+        }
+        for chunk in _chunked(sorted(master_ids)):
+            response = (
+                supabase.table("articles")
+                .select("id, unit_price, date, master_article_id")
+                .eq("invoice_id", str(invoice_id))
+                .eq("establishment_id", establishment_id_str)
+                .in_("master_article_id", chunk)
+                .order("date", desc=True)
+                .execute()
+            )
+            for row in response.data or []:
+                master_id = str(row.get("master_article_id"))
+                if master_id and master_id not in articles_by_master_id:
+                    articles_by_master_id[master_id] = row
 
     # --------------------------------------------------------
     # ARTICLE – import
@@ -243,20 +360,10 @@ def update_ingredients_and_history_ingredients(
             if master_article_id is None:
                 continue
 
-            articles = articles_service.get_all_articles(
-                filters={
-                    "master_article_id": master_article_id,
-                    "invoice_id": invoice_id,
-                    "order_by": "date",
-                    "direction": "desc",
-                    "establishment_id": establishment_id,
-                },
-                limit=1000,
-            )
-            if not articles:
+            article = articles_by_master_id.get(str(master_article_id))
+            if not article:
                 continue
 
-            article = articles[0]
             gross_unit_price = _as_decimal(_safe_get(article, "unit_price"))
             if gross_unit_price is None:
                 continue
@@ -291,6 +398,7 @@ def update_ingredients_and_history_ingredients(
             portion = _portion_for_recipe(recipe_id)
             unit_cost_per_portion_recipe = unit_cost / portion
 
+            history_for_update = None
             if same_day_history:
                 # même date : on met à jour l'historique existant, pas de nouvelle ligne
                 history_payload = {
@@ -302,9 +410,11 @@ def update_ingredients_and_history_ingredients(
                     "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
                     "unit": unit,
                 }
-                history_ingredients_service.update_history_ingredients(
+                updated = history_ingredients_service.update_history_ingredients(
                     _safe_get(same_day_history, "id"), history_payload
                 )
+                _upsert_history_cache(ingredient_id, updated or same_day_history)
+                history_for_update = updated or same_day_history
             else:
                 # pas d'historique ce jour-là : on crée une nouvelle entrée avec version décimale
                 prev_version = _as_decimal(_safe_get(h_prev, "version_number")) if h_prev else None
@@ -339,12 +449,11 @@ def update_ingredients_and_history_ingredients(
                     "version_number": version_number,
                     "source_article_id": _safe_get(article, "id"),
                 }
-                history_ingredients_service.create_history_ingredients(history_payload)
+                pending_history_inserts.append(history_payload)
+                history_for_update = history_payload
 
-            # on remet l'ingrédient à jour sur l'historique le plus récent
-            latest_histories = _get_histories(ingredient_id)
-            if latest_histories:
-                _update_ingredient_from_history(ingredient, latest_histories[-1])
+            if history_for_update:
+                _update_ingredient_from_history(ingredient, history_for_update)
 
             if recipe_id:
                 recipes_directly_impacted.add(recipe_id)
@@ -425,10 +534,11 @@ def update_ingredients_and_history_ingredients(
                 if current_version is not None and current_version != current_version.to_integral_value():
                     history_payload["version_number"] = _compute_manual_version(histories)
 
-                history_ingredients_service.update_history_ingredients(
+                updated = history_ingredients_service.update_history_ingredients(
                     _safe_get(same_day_history, "id"), 
                     history_payload
                 )
+                _upsert_history_cache(ingredient_id, updated or same_day_history)
 
             else:
                 # 6) CREATE sinon → version entière suivante
@@ -444,7 +554,8 @@ def update_ingredients_and_history_ingredients(
                     **history_payload,
                 }
 
-                history_ingredients_service.create_history_ingredients(history_payload_full)
+                created = history_ingredients_service.create_history_ingredients(history_payload_full)
+                _upsert_history_cache(ingredient_id, created or history_payload_full)
 
             # 7) mettre à jour l'ingrédient avec le dernier historique
             latest_histories = _get_histories(ingredient_id)
@@ -500,7 +611,7 @@ def update_ingredients_and_history_ingredients(
                     "date": datetime.combine(target_date_norm, time()),
                     "version_number": version_number,
                 }
-                history_ingredients_service.create_history_ingredients(history_payload)
+                pending_history_inserts.append(history_payload)
             else:
                 future_histories_sorted = sorted(
                     future_histories,
@@ -513,7 +624,8 @@ def update_ingredients_and_history_ingredients(
                     "unit_cost": unit_cost,
                     "unit_cost_per_portion_recipe": unit_cost_per_portion_recipe,
                 }
-                history_ingredients_service.update_history_ingredients(_safe_get(target_history, "id"), history_payload)
+                updated = history_ingredients_service.update_history_ingredients(_safe_get(target_history, "id"), history_payload)
+                _upsert_history_cache(ingredient_id, updated or target_history)
 
             ingredient_payload = {
                 "gross_unit_price": gross_unit_price,
@@ -541,10 +653,12 @@ def update_ingredients_and_history_ingredients(
                 "order_by": "date",
                 "direction": "asc",
             }
-            subrecipe_histories = history_recipes_service.get_all_history_recipes(
-                filters=history_recipe_filters,
-                limit=1000,
-            )
+            subrecipe_histories = subrecipe_histories_cache.get(str(subrecipe_id))
+            if subrecipe_histories is None:
+                subrecipe_histories = history_recipes_service.get_all_history_recipes(
+                    filters=history_recipe_filters,
+                    limit=1000,
+                )
             last_history_subrecipe = subrecipe_histories[-1] if subrecipe_histories else None # Recherche d'historique recette dans la sous-recette
             gross_unit_price = _as_decimal(_safe_get(last_history_subrecipe, "purchase_cost_per_portion"))
             if last_history_subrecipe is None or gross_unit_price is None:
@@ -584,7 +698,8 @@ def update_ingredients_and_history_ingredients(
                     "date": datetime.combine( _as_date(_safe_get(last_history_subrecipe, "date")) or target_date_norm, time()),
                     "version_number": Decimal("1"),
                 }
-                history_ingredients_service.create_history_ingredients(history_payload)
+                created = history_ingredients_service.create_history_ingredients(history_payload)
+                _upsert_history_cache(ingredient_id, created or history_payload)
             else:
                 latest_history = histories[-1]
 
@@ -600,7 +715,8 @@ def update_ingredients_and_history_ingredients(
                 if current_version is not None and current_version != current_version.to_integral_value():
                     history_payload["version_number"] = _compute_manual_version(histories)
                 
-                history_ingredients_service.update_history_ingredients(_safe_get(latest_history, "id"), history_payload)
+                updated = history_ingredients_service.update_history_ingredients(_safe_get(latest_history, "id"), history_payload)
+                _upsert_history_cache(ingredient_id, updated or latest_history)
 
             ingredient_payload = {
                 "gross_unit_price": gross_unit_price,
@@ -640,13 +756,21 @@ def update_ingredients_and_history_ingredients(
                     "date": now_dt,
                     "version_number": version_number,
                 }
-                history_ingredients_service.create_history_ingredients(history_payload)
+                created = history_ingredients_service.create_history_ingredients(history_payload)
+                _upsert_history_cache(ingredient_id, created or history_payload)
             else:
-                history_ingredients_service.update_history_ingredients(_safe_get(same_day_history, "id"),{"unit_cost": _as_decimal(_safe_get(ingredient, "unit_cost"))},)
+                updated = history_ingredients_service.update_history_ingredients(
+                    _safe_get(same_day_history, "id"),
+                    {"unit_cost": _as_decimal(_safe_get(ingredient, "unit_cost"))},
+                )
+                _upsert_history_cache(ingredient_id, updated or same_day_history)
 
             if recipe_id:
                 recipes_directly_impacted.add(recipe_id)
             ingredients_processed.add(ingredient_id)
+
+    if trigger == "import":
+        _flush_pending_history_inserts()
 
     return {
         "recipes_directly_impacted": recipes_directly_impacted,

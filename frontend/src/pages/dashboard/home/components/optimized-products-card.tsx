@@ -29,6 +29,7 @@ export function OptimizedProductsCard({
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })
+  const hasSavings = totalMonthlySavings > 0
 
   useEffect(() => {
     const root = productsScrollRef.current
@@ -167,15 +168,18 @@ export function OptimizedProductsCard({
           />
         </div>
 
-        <Separator className="my-3" />
-
-        <p className="text-muted-foreground">
-          Economies totales possible :{" "}
-          <span className="text-green-500">
-            {monthlyEuroFormatter.format(Math.round(totalMonthlySavings))}€
-          </span>{" "}
-          / mois
-        </p>
+        {hasSavings ? (
+          <>
+            <Separator className="my-3" />
+            <p className="text-muted-foreground">
+              Economies totales possible :{" "}
+              <span className="text-green-500">
+                {monthlyEuroFormatter.format(Math.round(totalMonthlySavings))}€
+              </span>{" "}
+              / mois
+            </p>
+          </>
+        ) : null}
       </CardContent>
     </Card>
   )

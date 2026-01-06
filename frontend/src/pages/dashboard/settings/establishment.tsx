@@ -32,9 +32,21 @@ function resolveLogoUrl(raw?: string | null) {
   return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${clean}`
 }
 
+type EstablishmentData = {
+  name?: string | null
+  email?: string | null
+  phone?: string | null
+  phone_sms?: string | null
+  full_adresse?: string | null
+  address?: string | null
+  siren?: string | null
+  logo_path?: string | null
+  logoUrl?: string | null
+}
+
 export default function EstablishmentSettingsPage() {
   const { estId } = useEstablishment()
-  const establishment = useEstablishmentData()
+  const establishment = useEstablishmentData() as EstablishmentData | null
   const reloadEstablishmentData = useEstablishmentDataReload()
 
   const [name, setName] = useState("")

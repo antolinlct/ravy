@@ -11,6 +11,7 @@ Un worker :
 
 from __future__ import annotations
 
+import time
 import traceback
 from typing import Any, Iterable, Optional, Set
 from uuid import UUID
@@ -26,7 +27,10 @@ from app.services import import_job_service
 try:
     from app.services.telegram.gordon_service import GordonTelegram
 
-    send_telegram = GordonTelegram()  # simple alias
+    _telegram_client = GordonTelegram()
+
+    def send_telegram(message: str) -> None:
+        _telegram_client.send_text(message)
 except Exception:  # fallback if telegram is unavailable
     def send_telegram(message: str) -> None:
         print(f"[GORDON FALLBACK] {message}")
@@ -84,7 +88,8 @@ def _normalize_uuid(value: Any) -> Optional[UUID]:
 def list_running_establishment_ids() -> Set[Optional[UUID]]:
     """Return establishment ids currently processed by running jobs."""
     response = (
-        supabase.table("import_job")
+        supabase.schema("internal")
+        .table("import_job")
         .select("establishment_id")
         .eq("status", "running")
         .execute()
@@ -127,7 +132,8 @@ def claim_next_pending_import_job(
             continue
 
         update_response = (
-            supabase.table("import_job")
+            supabase.schema("internal")
+            .table("import_job")
             .update({"status": "running"})
             .eq("id", str(job_id))
             .eq("status", "pending")
@@ -153,6 +159,7 @@ class ImportInvoicesWorker(BaseWorker):
     def run(self) -> None:  # noqa: D401
         """Process pending import jobs until none are left."""
         send_telegram(f"→ [{self.display_id}] Awake ⚡︎")
+        processed_jobs = 0
 
         while True:
             running_establishments = list_running_establishment_ids()
@@ -161,13 +168,17 @@ class ImportInvoicesWorker(BaseWorker):
             )
 
             if not job:
-                msg = f"→ [{self.display_id}] Jobs done ☽"
+                if processed_jobs == 0:
+                    msg = f"→ [{self.display_id}] No jobs available ☽"
+                else:
+                    msg = f"→ [{self.display_id}] Jobs done ☽"
                 print(msg)
                 send_telegram(msg)
                 break
 
             job_id = _as_uuid(_safe_get(job, "id"))
             establishment_id = _as_uuid(_safe_get(job, "establishment_id"))
+            processed_jobs += 1
 
             if not job_id:
                 send_telegram(
@@ -175,6 +186,7 @@ class ImportInvoicesWorker(BaseWorker):
                 )
                 continue
 
+            job_started_at = time.perf_counter()
             send_telegram(
                 f"→ [{self.display_id}] started:{job_id} (etablissement={establishment_id})"
             )
@@ -182,7 +194,8 @@ class ImportInvoicesWorker(BaseWorker):
             try:
                 import_invoice_from_import_job(job_id)
                 import_job_service.update_import_job(job_id, {"status": "completed"})
-                send_telegram(f"→ [{self.display_id}] finished: {job_id} ")
+                elapsed = time.perf_counter() - job_started_at
+                send_telegram(f"→ [{self.display_id}] finished: {job_id} ({elapsed:.1f}s)")
             except Exception:
                 try:
                     import_job_service.update_import_job(job_id, {"status": "error"})
