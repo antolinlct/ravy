@@ -15,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Sheet,
   SheetContent,
@@ -45,6 +47,10 @@ type InvoicesTableCardProps = {
   invoices: InvoiceListItem[]
   supplierOptions: SupplierOption[]
   isLoading?: boolean
+  hasMore?: boolean
+  isLoadingMore?: boolean
+  onLoadMore?: () => void
+  pageSize?: number
   startDate?: Date
   endDate?: Date
   onDateRangeChange?: (value: DoubleDatePickerValue) => void
@@ -55,6 +61,10 @@ export default function InvoicesTableCard({
   invoices,
   supplierOptions,
   isLoading,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
+  pageSize,
   startDate,
   endDate,
   onDateRangeChange,
@@ -108,6 +118,19 @@ export default function InvoicesTableCard({
   const exportSelectedInvoices = useMemo(
     () => exportFilteredInvoices.filter((inv) => exportSelectedIds.has(inv.id)),
     [exportFilteredInvoices, exportSelectedIds]
+  )
+
+  const shouldScrollInvoices = sortedInvoices.length > 10
+  const totalTtc = useMemo(() => {
+    return sortedInvoices.reduce((acc, inv) => {
+      const ttcValue = inv.ttcValue ?? toCurrencyNumber(inv.ttc) ?? 0
+      return acc + ttcValue
+    }, 0)
+  }, [sortedInvoices])
+
+  const skeletonRows = useMemo(
+    () => Array.from({ length: 10 }, (_, index) => `skeleton-${index}`),
+    []
   )
 
   const exportTotalTtc = exportFilteredInvoices.reduce((acc, inv) => {
@@ -427,11 +450,11 @@ export default function InvoicesTableCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-6 pt-2">
-        <div className="overflow-hidden rounded-md border">
-          <Table>
+        <div className="rounded-md border">
+          <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow className="pl-3">
-                <TableHead className="pl-3 w-[45%] text-left">
+                <TableHead className="pl-3 w-[38%] text-left">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -442,7 +465,7 @@ export default function InvoicesTableCard({
                     {sortIcon("supplier")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-36 pl-3 text-left">
+                <TableHead className="w-36 px-4 text-left">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -453,7 +476,7 @@ export default function InvoicesTableCard({
                     {sortIcon("date")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-24 pr-3 text-left">
+                <TableHead className="w-24 px-4 text-left">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -464,7 +487,7 @@ export default function InvoicesTableCard({
                     {sortIcon("ht")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-24 pr-3 text-left">
+                <TableHead className="w-24 px-4 text-left">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -475,7 +498,7 @@ export default function InvoicesTableCard({
                     {sortIcon("tva")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-24 pr-3 text-left">
+                <TableHead className="w-24 px-4 text-left">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -486,66 +509,147 @@ export default function InvoicesTableCard({
                     {sortIcon("ttc")}
                   </Button>
                 </TableHead>
-                <TableHead className="w-8 pr-3 text-left" />
+                <TableHead className="w-8 pr-4 text-left" />
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {sortedInvoices.map((invoice) => (
-                <TableRow
-                  key={invoice.id}
-                  className="pl-3 cursor-pointer"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleRowNavigate(invoice)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      handleRowNavigate(invoice)
-                    }
-                  }}
-                >
-                  <TableCell className="pl-3 pr-3">
-                    <div className="space-y-1">
-                      <p className="font-medium leading-tight">{invoice.supplier}</p>
-                      <p className="text-xs text-muted-foreground">{invoice.reference}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="pl-3 whitespace-nowrap">
-                    <p>{invoice.date}</p>
-                  </TableCell>
-                  <TableCell className="text-left whitespace-nowrap pr-3">
-                    <Badge variant="secondary" className="inline-flex min-w-[72px] justify-center text-sm">
-                      {invoice.ht}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-left whitespace-nowrap pr-3">
-                    <span className="inline-flex min-w-[72px] justify-center text-sm">{invoice.tva}</span>
-                  </TableCell>
-                  <TableCell className="text-left whitespace-nowrap pr-3">
-                    <Badge className="inline-flex min-w-[72px] justify-center text-sm" variant="outline">
-                      {invoice.ttc}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right pr-3">
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Chargement des factures...
-                  </TableCell>
-                </TableRow>
-              ) : !filteredInvoices.length ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                    Aucune facture importée pour le moment.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
           </Table>
+          <ScrollArea className={shouldScrollInvoices ? "h-[550px]" : "max-h-[550px]"}>
+            <Table className="table-fixed w-full">
+              <TableBody>
+                {isLoading && !sortedInvoices.length
+                  ? skeletonRows.map((rowId) => (
+                      <TableRow key={rowId} className="pl-3">
+                        <TableCell className="pl-3 pr-3 w-[38%]">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-36 px-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-6 w-20" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-4 w-16" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-6 w-20" />
+                        </TableCell>
+                        <TableCell className="w-8 text-right pr-4">
+                          <Skeleton className="ml-auto h-4 w-4" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : sortedInvoices.map((invoice) => (
+                      <TableRow
+                        key={invoice.id}
+                        className="pl-3 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleRowNavigate(invoice)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault()
+                            handleRowNavigate(invoice)
+                          }
+                        }}
+                      >
+                        <TableCell className="pl-3 pr-3 w-[38%]">
+                          <div className="space-y-1">
+                            <p className="font-medium leading-tight">{invoice.supplier}</p>
+                            <p className="text-xs text-muted-foreground">{invoice.reference}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="w-36 px-4 whitespace-nowrap">
+                          <p>{invoice.date}</p>
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Badge
+                            variant="secondary"
+                            className="inline-flex min-w-[72px] justify-center text-sm"
+                          >
+                            {invoice.ht}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <span className="inline-flex min-w-[72px] justify-center text-sm">
+                            {invoice.tva}
+                          </span>
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Badge className="inline-flex min-w-[72px] justify-center text-sm" variant="outline">
+                            {invoice.ttc}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="w-8 text-right pr-4">
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                {isLoadingMore
+                  ? Array.from({ length: 2 }, (_, index) => (
+                      <TableRow key={`loading-more-${index}`} className="pl-3">
+                        <TableCell className="pl-3 pr-3 w-[38%]">
+                          <Skeleton className="h-4 w-32" />
+                        </TableCell>
+                        <TableCell className="w-36 px-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-6 w-20" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-4 w-16" />
+                        </TableCell>
+                        <TableCell className="w-24 px-4 text-left whitespace-nowrap">
+                          <Skeleton className="h-6 w-20" />
+                        </TableCell>
+                        <TableCell className="w-8 text-right pr-4">
+                          <Skeleton className="ml-auto h-4 w-4" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : null}
+                {!isLoading && !sortedInvoices.length ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                      Aucune facture importée pour le moment.
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>
+            {sortedInvoices.length} facture{sortedInvoices.length > 1 ? "s" : ""} - Total{" "}
+            {totalTtc.toLocaleString("fr-FR", {
+              style: "currency",
+              currency: "EUR",
+              minimumFractionDigits: 2,
+            })}{" "}
+            TTC
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onLoadMore?.()}
+            disabled={!hasMore || isLoadingMore}
+          >
+            {isLoadingMore
+              ? "Chargement..."
+              : hasMore
+                ? `Charger +${pageSize ?? 200}`
+                : "Toutes les factures sont chargées"}
+            {isLoadingMore ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowDownToLine className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </CardContent>
     </Card>

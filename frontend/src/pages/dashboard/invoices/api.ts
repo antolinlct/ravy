@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import api from "@/lib/axiosClient"
 import { supabase } from "@/lib/supabaseClient"
 import type {
@@ -41,6 +41,8 @@ const currencyFormatter = new Intl.NumberFormat("fr-FR", {
 const quantityFormatter = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 2,
 })
+
+const INVOICES_PAGE_SIZE = 200
 
 type ApiInvoice = {
   id: string
@@ -112,6 +114,12 @@ type ApiSupplierMergeRequest = {
 type ApiMarketSupplier = {
   id: string
   name?: string | null
+}
+
+export type InvoiceMeta = {
+  id: string
+  supplierId?: string | null
+  date?: string | null
 }
 
 export const supplierLabelOptions: LabelOption[] = [
@@ -381,21 +389,24 @@ export const useInvoicesListData = (
     },
   })
 
-  const invoicesQuery = useQuery({
+  const invoicesQuery = useInfiniteQuery({
     queryKey: ["invoices", "list", estId, fromKey, toKey],
     enabled: Boolean(estId),
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
       if (!estId) return []
       const invoiceParams: Record<string, string | number> = {
         establishment_id: estId,
-        limit: 200,
+        limit: INVOICES_PAGE_SIZE,
+        page: typeof pageParam === "number" ? pageParam : 1,
       }
       if (fromKey) invoiceParams.date_gte = fromKey
       if (toKey) invoiceParams.date_lte = toKey
       const response = await api.get<ApiInvoice[]>("/invoices/", { params: invoiceParams })
       return response.data ?? []
     },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length >= INVOICES_PAGE_SIZE ? allPages.length + 1 : undefined,
   })
 
   const supplierMap = useMemo(() => {
@@ -407,7 +418,7 @@ export const useInvoicesListData = (
   }, [suppliersQuery.data])
 
   const invoices = useMemo(() => {
-    const invoicesRaw = invoicesQuery.data ?? []
+    const invoicesRaw = invoicesQuery.data?.pages.flat() ?? []
     return invoicesRaw.map((inv) => {
       const supplier = inv.supplier_id ? supplierMap.get(inv.supplier_id) : undefined
       const totals = getInvoiceTotals(inv)
@@ -451,12 +462,26 @@ export const useInvoicesListData = (
       ? "Impossible de charger les factures."
       : null
 
+  const hasMore = Boolean(invoicesQuery.hasNextPage)
+  const isLoadingMore = invoicesQuery.isFetchingNextPage
+  const loadMore = useCallback(() => invoicesQuery.fetchNextPage(), [invoicesQuery.fetchNextPage])
+
   const refresh = useCallback(() => {
     suppliersQuery.refetch()
     invoicesQuery.refetch()
   }, [suppliersQuery, invoicesQuery])
 
-  return { invoices, supplierOptions, isLoading, error, refresh }
+  return {
+    invoices,
+    supplierOptions,
+    isLoading,
+    error,
+    refresh,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    pageSize: INVOICES_PAGE_SIZE,
+  }
 }
 
 const buildPriceHistory = (
@@ -619,8 +644,13 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
         },
         items: [],
       }
+      const invoiceMeta: InvoiceMeta = {
+        id: invoiceData.id,
+        supplierId: invoiceData.supplier_id ?? null,
+        date: invoiceData.date ?? null,
+      }
 
-      return { invoice, fallbackDate }
+      return { invoice, fallbackDate, invoiceMeta }
     },
   })
 
@@ -695,6 +725,8 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
     return { ...base, items: articlesQuery.data.items }
   }, [articlesQuery.data, baseInvoiceQuery.data])
 
+  const invoiceMeta = baseInvoiceQuery.data?.invoiceMeta ?? null
+
   const isLoading = baseInvoiceQuery.isLoading
   const isArticlesLoading = articlesQuery.isLoading || articlesQuery.isFetching
   const error = baseInvoiceQuery.error
@@ -708,7 +740,7 @@ export const useInvoiceDetailData = (invoiceId?: string | null, estId?: string |
     articlesQuery.refetch()
   }, [articlesQuery, baseInvoiceQuery])
 
-  return { invoice, isLoading, isArticlesLoading, error, refresh }
+  return { invoice, invoiceMeta, isLoading, isArticlesLoading, error, refresh }
 }
 
 export const updateSupplier = async (supplierId: string, payload: Partial<ApiSupplier>) => {

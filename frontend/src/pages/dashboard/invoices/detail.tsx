@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type WheelEventHandler } from "react"
 import { toast } from "sonner"
-import { useLocation, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import api from "@/lib/axiosClient"
+import { Skeleton } from "@/components/ui/skeleton"
 import InvoiceDetailHeader from "./components/detail/invoice-detail-header"
 import InvoiceDocumentCard from "./components/detail/invoice-document-card"
 import InvoiceSummaryCard from "./components/detail/invoice-summary-card"
@@ -32,9 +35,62 @@ const buildInvoiceFilenameBase = (invoice: { supplier: string; number: string; d
   return toSafeFilename(base)
 }
 
+const InvoiceDetailSkeleton = () => (
+  <div className="space-y-6">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-9 w-28" />
+      </div>
+    </div>
+    <div className="grid gap-4 lg:grid-cols-12 items-start">
+      <div className="lg:col-span-5 rounded-lg border bg-card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <Skeleton className="h-[520px] w-full rounded-md" />
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+      </div>
+      <div className="space-y-4 lg:col-span-7">
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+          <div className="grid gap-2">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)
+
 export default function InvoiceDetailPage() {
   const defaultZoom = 1
   const location = useLocation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { id } = useParams()
   const { estId } = useEstablishment()
   const invoiceId = useMemo(() => {
@@ -42,7 +98,7 @@ export default function InvoiceDetailPage() {
     const state = location.state as { invoiceId?: string } | null
     return state?.invoiceId ?? null
   }, [id, location.state])
-  const { invoice, isLoading, isArticlesLoading } = useInvoiceDetailData(
+  const { invoice, invoiceMeta, isLoading, isArticlesLoading } = useInvoiceDetailData(
     invoiceId,
     estId
   )
@@ -63,6 +119,11 @@ export default function InvoiceDetailPage() {
       setLocalInvoice(invoice)
     }
   }, [invoice])
+
+  useEffect(() => {
+    if (!invoiceId) return
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+  }, [invoiceId])
 
   const resolvedInvoice = localInvoice ?? invoice
   const isBeverageSupplier = resolvedInvoice?.supplierType === "beverage"
@@ -223,12 +284,58 @@ export default function InvoiceDetailPage() {
     }
   }
 
+  const resolveDeleteMeta = async () => {
+    if (invoiceMeta?.supplierId && invoiceMeta.date) {
+      return { supplierId: invoiceMeta.supplierId, date: invoiceMeta.date }
+    }
+    if (!invoiceId) return null
+    try {
+      const response = await api.get<{ supplier_id?: string | null; date?: string | null }>(
+        `/invoices/${invoiceId}`
+      )
+      const supplierId = response.data?.supplier_id
+      const date = response.data?.date
+      if (supplierId && date) {
+        return { supplierId, date }
+      }
+    } catch {
+      // ignore fetch errors; we'll show a fallback toast below
+    }
+    return null
+  }
+
+  const handleDeleteInvoice = async () => {
+    if (!estId || !invoiceId) {
+      toast.error("Impossible de supprimer la facture.")
+      return
+    }
+    const meta = await resolveDeleteMeta()
+    if (!meta) {
+      toast.error("Les informations de la facture sont incomplètes.")
+      return
+    }
+    try {
+      await api.post("/logic/write/delete-invoice", {
+        establishment_id: estId,
+        invoice_to_delete_id: invoiceId,
+        invoice_to_delete_date: meta.date,
+        supplier_id: meta.supplierId,
+      })
+      await queryClient.invalidateQueries({ queryKey: ["invoices", "list", estId] })
+      queryClient.removeQueries({ queryKey: ["invoice", invoiceId, estId] })
+      toast.success("Facture supprimée.")
+      navigate("/dashboard/invoices")
+    } catch {
+      toast.error("Impossible de supprimer la facture.")
+    }
+  }
+
   if (!invoiceId) {
     return <div className="text-sm text-muted-foreground">Aucune facture sélectionnée.</div>
   }
 
   if (isLoading && !resolvedInvoice) {
-    return <div className="text-sm text-muted-foreground">Chargement de la facture...</div>
+    return <InvoiceDetailSkeleton />
   }
   if (!resolvedInvoice) {
     return <div className="text-sm text-muted-foreground">Facture introuvable.</div>
@@ -240,7 +347,7 @@ export default function InvoiceDetailPage() {
         invoiceNumber={resolvedInvoice.number}
         lastModified={resolvedInvoice.lastModified}
         onDownload={handleDownloadDocument}
-        onDelete={() => toast.success("Facture supprimée.")}
+        onDelete={handleDeleteInvoice}
       />
 
       <div className="grid gap-4 lg:grid-cols-12 items-start">

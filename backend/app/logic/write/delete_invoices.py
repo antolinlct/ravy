@@ -21,8 +21,16 @@ from app.services import (
     master_articles_service,
     recipes_service,
     suppliers_service,
-    market_articles_service
+    market_articles_service,
+    variations_service,
+    establishments_service,
 )
+
+try:
+    from app.manufacturers.base_worker import send_telegram as _notify_invoice_deleted
+except Exception:
+    def _notify_invoice_deleted(message: str) -> None:
+        return
 
 
 class LogicError(Exception):
@@ -113,6 +121,22 @@ def _paginate_ingredients(*, filters: Dict[str, Any], page_size: int = 500) -> L
     return collected
 
 
+def _paginate_variations(*, filters: Dict[str, Any], page_size: int = 500) -> List[Any]:
+    page = 1
+    collected: List[Any] = []
+    while True:
+        batch = variations_service.get_all_variations(
+            filters=filters, limit=page_size, page=page
+        )
+        if not batch:
+            break
+        collected.extend(batch)
+        if len(batch) < page_size:
+            break
+        page += 1
+    return collected
+
+
 def _compute_unit_costs(
     *, gross_unit_price: Decimal, quantity: Decimal, percentage_loss: Optional[Decimal]
 ) -> Dict[str, Decimal | None]:
@@ -165,6 +189,12 @@ def delete_invoice(
         raise LogicError("Les paramètres requis sont manquants pour la suppression d'une facture")
 
     target_date = _as_date(invoice_to_delete_date) or date.today()
+    invoice_snapshot = invoices_service.get_invoices_by_id(invoice_to_delete_id)
+    invoice_number = _safe_get(invoice_snapshot, "invoice_number")
+    establishment_snapshot = establishments_service.get_establishments_by_id(establishment_id)
+    establishment_name = _safe_get(establishment_snapshot, "name")
+    supplier_snapshot = suppliers_service.get_suppliers_by_id(supplier_id)
+    supplier_name = _safe_get(supplier_snapshot, "name")
 
     # ------------------------------------------------------------------
     # Étape 1 : mise à jour / suppression des master_articles
@@ -216,14 +246,14 @@ def delete_invoice(
     # ------------------------------------------------------------------
     # Étape 1 bis : mise à jour des market_articles liés à cette facture
     # ------------------------------------------------------------------
-    market_articles_to_update = market_articles_service.get_all_market_articles(
+    market_articles_for_invoice = market_articles_service.get_all_market_articles(
         filters={
             "invoice_id": invoice_to_delete_id,
             "establishment_id": establishment_id,
         }
     )
 
-    for ma in market_articles_to_update:
+    for ma in market_articles_for_invoice:
         ma_id = _safe_get(ma, "id")
         if ma_id:
             market_articles_service.update_market_articles(
@@ -232,22 +262,9 @@ def delete_invoice(
             )
 
     # ------------------------------------------------------------------
-    # Étape 2 : mise à jour / suppression du supplier et supplier_alias
+    # Étape 2 : suppression du supplier (après suppression de la facture)
     # ------------------------------------------------------------------
     supplier_deleted = False
-    supplier_invoices = invoices_service.get_all_invoices(
-        filters={
-            "establishment_id": establishment_id,
-            "supplier_id": supplier_id,
-        }
-    )
-    remaining_supplier_invoices = [
-        inv for inv in supplier_invoices if _safe_get(inv, "id") != invoice_to_delete_id
-    ]
-
-    if not remaining_supplier_invoices:
-        suppliers_service.delete_suppliers(supplier_id)
-        supplier_deleted = True
 
     # ------------------------------------------------------------------
     # Étape 3 : mise à jour / suppression des ingredients & history_ingredients
@@ -377,7 +394,7 @@ def delete_invoice(
             _paginate_ingredients(
                 filters={
                     "establishment_id": establishment_id,
-                    "type": "SUBRECIPES",
+                    "type": "SUBRECIPE",
                     "subrecipe_id": recipe_id,
                 }
             )
@@ -452,7 +469,42 @@ def delete_invoice(
     # ------------------------------------------------------------------
     # Étape 8 : suppression des résidus articles et invoices
     # ------------------------------------------------------------------
+    variations_to_delete = _paginate_variations(
+        filters={"invoice_id": invoice_to_delete_id}
+    )
+    for variation in variations_to_delete:
+        variations_service.delete_variations(_safe_get(variation, "id", variation))
+    for market_article in market_articles_for_invoice:
+        market_article_id = _safe_get(market_article, "id", market_article)
+        if market_article_id:
+            market_articles_service.delete_market_articles(market_article_id)
     invoices_service.delete_invoices(invoice_to_delete_id)
+
+    supplier_invoices = invoices_service.get_all_invoices(
+        filters={
+            "establishment_id": establishment_id,
+            "supplier_id": supplier_id,
+        }
+    )
+    if not supplier_invoices:
+        suppliers_service.delete_suppliers(supplier_id)
+        supplier_deleted = True
+    invoice_label = (
+        f"Facture N° {invoice_number}" if invoice_number else str(invoice_to_delete_id)
+    )
+    supplier_label = supplier_name or str(supplier_id)
+    _notify_invoice_deleted(
+        "\n".join(
+            [
+                "Facture supprimée ✘",
+                f"---",
+                f"{establishment_name or establishment_id}",
+                f"{supplier_label}",
+                f"{invoice_label}",
+                f"{target_date.isoformat()}",
+            ]
+        )
+    )
 
     return {
         "deleted_master_articles": {mid for mid, deleted in master_deleted_map.items() if deleted},

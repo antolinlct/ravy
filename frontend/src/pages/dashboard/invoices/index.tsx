@@ -15,7 +15,8 @@ export default function InvoicesPage() {
     return { startDate, endDate }
   })
 
-  const { invoices, supplierOptions, isLoading } = useInvoicesListData(
+  const { invoices, supplierOptions, isLoading, hasMore, isLoadingMore, loadMore, pageSize } =
+    useInvoicesListData(
     estId,
     dateRange.startDate,
     dateRange.endDate
@@ -30,6 +31,10 @@ export default function InvoicesPage() {
           invoices={invoices}
           supplierOptions={supplierOptions}
           isLoading={isLoading}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={loadMore}
+          pageSize={pageSize}
           startDate={dateRange.startDate}
           endDate={dateRange.endDate}
           onDateRangeChange={setDateRange}
