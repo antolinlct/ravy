@@ -18,6 +18,7 @@ import { NavMain } from "@/components/dashboard/sidebar/nav-main"
 // import { NavProjects } from "@/components/dashboard/sidebar/nav-projects" <- UTILE QUE SI PROJETS DE PRESENTS
 import { NavUser } from "@/components/dashboard/sidebar/nav-user"
 import { TeamSwitcher } from "@/components/dashboard/sidebar/team-switcher"
+import { extractLogoPath, getSignedLogoUrl } from "@/lib/logoStorage"
 import { supabase } from "@/lib/supabaseClient"
 import {
   Sidebar,
@@ -29,9 +30,6 @@ import {
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { useEstablishmentData } from "@/context/EstablishmentDataContext"
 
-const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
-
 type EstablishmentData = {
   id?: string | null
   name?: string | null
@@ -39,18 +37,6 @@ type EstablishmentData = {
   logoUrl?: string | null
   logo_url?: string | null
   plan?: string | null
-}
-
-function normalizeLogoPath(raw: string | null | undefined) {
-  if (!raw) return null
-  return raw.replace(/^logos\//, "")
-}
-
-function getLogoUrl(logoPath: string | null | undefined) {
-  if (!logoPath) return null
-  if (/^https?:\/\//i.test(logoPath)) return logoPath
-  if (!SUPABASE_URL) return null
-  return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`
 }
 
 // This is sample data.
@@ -165,8 +151,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const establishment = useEstablishmentData() as EstablishmentData | null
   const [userId, setUserId] = React.useState<string | null>(null)
   const [establishments, setEstablishments] = React.useState<
-    { id: string; name?: string; logo_path?: string | null }[]
+    { id: string; name?: string; logo_path?: string | null; logoUrl?: string | null }[]
   >([])
+  const [activeLogoUrl, setActiveLogoUrl] = React.useState<string | null>(null)
 
   const loadEstablishments = React.useCallback(async (uid: string | null) => {
     if (!uid) return
@@ -195,12 +182,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       })
     )
 
-    setEstablishments(
-      fetched.filter(
-        (est): est is { id: string; name?: string; logo_path?: string | null } =>
-          Boolean(est?.id)
-      )
+    const valid = fetched.filter(
+      (est): est is { id: string; name?: string; logo_path?: string | null; logoUrl?: string | null; logo_url?: string | null } =>
+        Boolean(est?.id)
     )
+
+    const enriched = await Promise.all(
+      valid.map(async (est) => {
+        const rawLogo =
+          est.logo_path ?? est.logoUrl ?? est.logo_url ?? null
+        const logoPath =
+          extractLogoPath(rawLogo) ?? (typeof rawLogo === "string" ? rawLogo : null)
+        const logoUrl = await getSignedLogoUrl(rawLogo ?? logoPath)
+
+        return {
+          id: est.id,
+          name: est.name,
+          logo_path: logoPath,
+          logoUrl,
+        }
+      })
+    )
+
+    setEstablishments(enriched)
   }, [])
 
   React.useEffect(() => {
@@ -220,39 +224,59 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, [loadEstablishments])
 
-  const teams = React.useMemo(
-    () =>
-      establishments.length > 0
-        ? establishments.map((est) => ({
-            id: est.id,
-            name: est.name?.trim() || "Établissement",
-            logoUrl: getLogoUrl(normalizeLogoPath(est.logo_path)),
-            plan: null,
-          }))
-        : estId || establishment
-          ? [
-              {
-                id:
-                  estId ??
-                  (typeof establishment?.id === "string" ? establishment.id : null) ??
-                  "establishment",
-                name:
-                  typeof establishment?.name === "string"
-                    ? establishment.name.trim() || "Établissement"
-                    : "Établissement",
-                logoUrl: getLogoUrl(
-                  normalizeLogoPath(
-                    establishment?.logo_path ??
-                      establishment?.logoUrl ??
-                      establishment?.logo_url
-                  )
-                ),
-                plan: establishment?.plan ?? null,
-              },
-            ]
-          : [],
-    [estId, establishment, establishments]
-  )
+  React.useEffect(() => {
+    let isActive = true
+    const rawLogo =
+      establishment?.logo_path ?? establishment?.logoUrl ?? establishment?.logo_url ?? null
+
+    if (!rawLogo) {
+      setActiveLogoUrl(null)
+      return () => {
+        isActive = false
+      }
+    }
+
+    getSignedLogoUrl(rawLogo).then((url) => {
+      if (isActive) {
+        setActiveLogoUrl(url)
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [establishment])
+
+  const teams = React.useMemo(() => {
+    const activeId =
+      estId ?? (typeof establishment?.id === "string" ? establishment.id : null)
+
+    if (establishments.length > 0) {
+      return establishments.map((est) => ({
+        id: est.id,
+        name: est.name?.trim() || "Établissement",
+        logoUrl:
+          est.id === activeId ? activeLogoUrl ?? est.logoUrl ?? null : est.logoUrl ?? null,
+        plan: null,
+      }))
+    }
+
+    if (estId || establishment) {
+      return [
+        {
+          id: activeId ?? "establishment",
+          name:
+            typeof establishment?.name === "string"
+              ? establishment.name.trim() || "Établissement"
+              : "Établissement",
+          logoUrl: activeLogoUrl,
+          plan: establishment?.plan ?? null,
+        },
+      ]
+    }
+
+    return []
+  }, [activeLogoUrl, estId, establishment, establishments])
 
   return (
     <Sidebar collapsible="icon" {...props}>

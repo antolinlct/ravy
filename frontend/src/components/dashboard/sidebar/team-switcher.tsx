@@ -24,9 +24,7 @@ import { useEstablishment } from "@/context/EstablishmentContext"
 import { useEstablishmentData } from "@/context/EstablishmentDataContext"
 import { useUserEstablishments } from "@/context/UserEstablishmentsContext"
 import { OnboardingModal } from "@/features/onboarding/OnboardingModal"
-
-const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
+import { getSignedLogoUrl } from "@/lib/logoStorage"
 
 type EstablishmentData = {
   id?: string | null
@@ -37,19 +35,7 @@ type EstablishmentData = {
   plan?: string | null
 }
 
-function normalizeLogoPath(raw: string | null | undefined) {
-  if (!raw) return null
-  return raw.replace(/^logos\//, "")
-}
-
-function resolveLogoUrl(logoPath: string | null | undefined) {
-  if (!logoPath) return null
-  if (/^https?:\/\//i.test(logoPath)) return logoPath
-  if (!SUPABASE_URL) return null
-  return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${logoPath}`
-}
-
-function extractLogoPath(
+function getRawLogoValue(
   source: { logo_path?: unknown; logo_url?: unknown; logoUrl?: unknown } | null | undefined
 ) {
   if (!source) return null
@@ -76,6 +62,7 @@ export function TeamSwitcher({
   const establishment = useEstablishmentData() as EstablishmentData | null
   const userEstablishments = useUserEstablishments()
   const [userTeams, setUserTeams] = React.useState<Team[]>([])
+  const [activeLogoUrl, setActiveLogoUrl] = React.useState<string | null>(null)
   const [showOnboarding, setShowOnboarding] = React.useState(false)
   const isCollapsed = !isMobile && state === "collapsed"
 
@@ -99,17 +86,23 @@ export function TeamSwitcher({
       })
     )
 
-    const mapped = fetched
-      .filter((est): est is { id: string; name?: string; logo_path?: string | null } => Boolean(est?.id))
-      .map((est) => {
-        const logoPath = normalizeLogoPath(extractLogoPath(est))
+    const valid = fetched.filter(
+      (est): est is { id: string; name?: string; logo_path?: string | null; logoUrl?: string | null; logo_url?: string | null } =>
+        Boolean(est?.id)
+    )
+
+    const mapped = await Promise.all(
+      valid.map(async (est) => {
+        const rawLogo = getRawLogoValue(est)
+        const logoUrl = await getSignedLogoUrl(rawLogo)
         return {
           id: est.id,
           name: est.name?.trim() || "Établissement",
-          logoUrl: resolveLogoUrl(logoPath),
+          logoUrl,
           plan: null,
         }
       })
+    )
 
     setUserTeams(mapped)
   }, [userEstablishments?.list])
@@ -118,31 +111,59 @@ export function TeamSwitcher({
     loadUserTeams()
   }, [loadUserTeams])
 
+  React.useEffect(() => {
+    let isActive = true
+    const rawLogo = getRawLogoValue(establishment)
+
+    if (!rawLogo) {
+      setActiveLogoUrl(null)
+      return () => {
+        isActive = false
+      }
+    }
+
+    getSignedLogoUrl(rawLogo).then((url) => {
+      if (isActive) {
+        setActiveLogoUrl(url)
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
+  }, [establishment])
+
   const derivedTeams = React.useMemo(() => {
+    const activeId =
+      estId ??
+      (typeof establishment?.id === "string" ? establishment.id : null) ??
+      userTeams[0]?.id ??
+      null
+
     if (teams?.length) return teams
-    if (userTeams.length) return userTeams
+    if (userTeams.length) {
+      return userTeams.map((team) => ({
+        ...team,
+        logoUrl: team.id === activeId ? activeLogoUrl ?? team.logoUrl : team.logoUrl,
+      }))
+    }
 
     if (estId || establishment) {
-      const logoPath = normalizeLogoPath(extractLogoPath(establishment))
-
       return [
         {
-          id:
-            estId ??
-            (typeof establishment?.id === "string" ? establishment.id : null) ??
-            "establishment",
+          id: activeId ?? "establishment",
           name:
             typeof establishment?.name === "string"
               ? establishment.name.trim() || "Établissement"
               : "Établissement",
-          logoUrl: resolveLogoUrl(logoPath),
+          logoUrl: activeLogoUrl,
           plan: establishment?.plan ?? null,
         },
       ]
     }
 
     return []
-  }, [teams, userTeams, estId, establishment])
+  }, [teams, userTeams, estId, establishment, activeLogoUrl])
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -178,18 +199,16 @@ export function TeamSwitcher({
   const displayTeam = React.useMemo(() => {
     if (!activeTeam) return null
 
-    const logoPath = normalizeLogoPath(extractLogoPath(establishment))
-
     return {
       ...activeTeam,
       name:
         typeof establishment?.name === "string"
           ? establishment.name.trim() || activeTeam.name
           : activeTeam.name,
-      logoUrl: resolveLogoUrl(logoPath) ?? activeTeam.logoUrl,
+      logoUrl: activeLogoUrl ?? activeTeam.logoUrl,
       plan: establishment?.plan ?? activeTeam.plan ?? null,
     }
-  }, [activeTeam, establishment])
+  }, [activeLogoUrl, activeTeam, establishment])
 
   if (!displayTeam) {
     return null

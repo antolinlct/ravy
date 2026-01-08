@@ -122,29 +122,6 @@ export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
 
       const user = authData.user
 
-      let logoPath: string | null = null
-
-      if (logoFile) {
-        const safeName = logoFile.name.replace(/\s+/g, "-")
-        const path = `${user.id}/${Date.now()}-${safeName}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(LOGO_BUCKET)
-          .upload(path, logoFile, {
-            upsert: true,
-            cacheControl: "3600",
-            contentType: logoFile.type || "application/octet-stream",
-          })
-
-        if (uploadError) {
-          console.error("Logo upload error:", uploadError)
-          setError("Impossible de téléverser le logo.")
-          setLoading(false)
-          return
-        }
-
-        logoPath = uploadData?.fullPath ?? uploadData?.path ?? null
-      }
-
       const establishmentRes = await fetch(`${API_URL}/establishments/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -156,7 +133,7 @@ export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
           average_daily_covers: Number(formData.average_daily_covers),
           average_annual_revenue: Number(formData.average_annual_revenue),
           siren: formData.siren,
-          logo_path: logoPath,
+          logo_path: null,
           country_id: "1df9614d-c68b-4891-adfa-61e75246cd28",
           slug: formData.name
             .trim()
@@ -193,6 +170,38 @@ export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
         const err = await linkRes.json().catch(() => ({}))
         setError(err?.detail || "Impossible d'associer l'établissement.")
         return
+      }
+
+      let logoPath: string | null = null
+
+      if (logoFile) {
+        const safeName = logoFile.name.replace(/\s+/g, "-")
+        const path = `${establishmentId}/${Date.now()}-${safeName}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(LOGO_BUCKET)
+          .upload(path, logoFile, {
+            upsert: true,
+            cacheControl: "3600",
+            contentType: logoFile.type || "application/octet-stream",
+          })
+
+        if (uploadError) {
+          console.error("Logo upload error:", uploadError)
+        } else {
+          logoPath = uploadData?.path ?? uploadData?.fullPath ?? path
+        }
+      }
+
+      if (logoPath) {
+        const updateRes = await fetch(`${API_URL}/establishments/${establishmentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ logo_path: logoPath }),
+        })
+
+        if (!updateRes.ok) {
+          console.error("Establishment logo update failed:", updateRes.status)
+        }
       }
 
       onDone(establishmentId)

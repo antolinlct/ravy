@@ -373,3 +373,8 @@
 .cap-right::after {
   right: 0;  /* barre verticale à l’extérieur */
 }
+
+/* LUCIDE ICONS GLOBAL WIDTH */
+.lucide {
+  stroke-width: 1.75;
+}

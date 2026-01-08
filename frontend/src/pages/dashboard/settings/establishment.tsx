@@ -18,19 +18,11 @@ import {
   useEstablishmentData,
   useEstablishmentDataReload,
 } from "@/context/EstablishmentDataContext"
+import { extractLogoPath, getSignedLogoUrl } from "@/lib/logoStorage"
 import { supabase } from "@/lib/supabaseClient"
 import { Building, IdCard, Mail, X } from "lucide-react"
 
 const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ""
-
-function resolveLogoUrl(raw?: string | null) {
-  if (!raw) return null
-  if (/^https?:\/\//i.test(raw)) return raw
-  if (!SUPABASE_URL) return null
-  const clean = raw.replace(/^logos\//, "")
-  return `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${clean}`
-}
 
 type EstablishmentData = {
   name?: string | null
@@ -41,6 +33,7 @@ type EstablishmentData = {
   address?: string | null
   siren?: string | null
   logo_path?: string | null
+  logo_url?: string | null
   logoUrl?: string | null
 }
 
@@ -71,21 +64,37 @@ export default function EstablishmentSettingsPage() {
   useEffect(() => {
     if (!establishment) return
 
+    const rawLogo =
+      establishment.logo_path ?? establishment.logoUrl ?? establishment.logo_url ?? null
+    const initialLogoPath =
+      extractLogoPath(rawLogo) ?? (typeof rawLogo === "string" ? rawLogo : null)
+
     setName(establishment.name || "")
     setEmail(establishment.email || "")
     setPhone(establishment.phone || establishment.phone_sms || "")
     setAddress(establishment.full_adresse || establishment.address || "")
     setSiren(establishment.siren || "")
-    setLogoPath(establishment.logo_path || establishment.logoUrl || null)
-    setPreviewUrl(resolveLogoUrl(establishment.logo_path || establishment.logoUrl) || null)
+    setLogoPath(initialLogoPath)
+    setPreviewUrl(null)
     setBaseline({
       name: establishment.name || "",
       email: establishment.email || "",
       phone: establishment.phone || establishment.phone_sms || "",
       address: establishment.full_adresse || establishment.address || "",
       siren: establishment.siren || "",
-      logoPath: establishment.logo_path || establishment.logoUrl || "",
+      logoPath: initialLogoPath ?? "",
     })
+
+    let isActive = true
+    getSignedLogoUrl(rawLogo).then((url) => {
+      if (isActive) {
+        setPreviewUrl(url)
+      }
+    })
+
+    return () => {
+      isActive = false
+    }
   }, [establishment])
 
   const hasChanges =
@@ -130,7 +139,8 @@ export default function EstablishmentSettingsPage() {
   async function handleLogoChange(file: File | null) {
     if (!file) {
       setLogoFile(null)
-      setPreviewUrl(resolveLogoUrl(logoPath) || null)
+      const signedUrl = await getSignedLogoUrl(logoPath)
+      setPreviewUrl(signedUrl)
       return
     }
 
@@ -163,7 +173,7 @@ export default function EstablishmentSettingsPage() {
       return null
     }
 
-    return data?.fullPath ?? data?.path ?? path
+    return data?.path ?? data?.fullPath ?? path
   }
 
   async function handleSave() {
@@ -203,16 +213,20 @@ export default function EstablishmentSettingsPage() {
         return
       }
 
+      const nextLogoPath = uploadedLogoPath ?? logoPath ?? null
+
       setBaseline({
         name,
         email,
         phone,
         address,
         siren,
-        logoPath: uploadedLogoPath ?? logoPath ?? "",
+        logoPath: nextLogoPath ?? "",
       })
+      setLogoPath(nextLogoPath)
       setLogoFile(null)
-      setPreviewUrl(resolveLogoUrl(uploadedLogoPath ?? logoPath) || null)
+      const signedUrl = await getSignedLogoUrl(nextLogoPath)
+      setPreviewUrl(signedUrl)
       toast.success("Établissement mis à jour.")
       await reloadEstablishmentData?.()
     } catch (err) {
