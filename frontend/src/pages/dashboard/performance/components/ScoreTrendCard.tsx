@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 type ScoreTrendPoint = {
   label: string
   value: number
-  date: string
+  date: string | Date
+  isLive?: boolean
 }
 
 type ScoreTrendCardProps = {
@@ -30,6 +31,24 @@ export default function ScoreTrendCard({
   series,
   formatMonthLabel,
 }: ScoreTrendCardProps) {
+  const yearNumber = Number(year)
+  const yearStart =
+    Number.isFinite(yearNumber) ? new Date(yearNumber, 0, 1) : undefined
+  const yearEnd =
+    Number.isFinite(yearNumber) ? new Date(yearNumber, 11, 31, 23, 59, 59) : undefined
+  const monthShortFormatter = new Intl.DateTimeFormat("fr-FR", { month: "short" })
+  const handleTickFormat = (
+    date: Date,
+    label: string,
+    _index: number,
+    point: ScoreTrendPoint
+  ) => {
+    if (point?.isLive) return "Live"
+    if (Number.isNaN(date.getTime())) return label
+    const shortLabel = monthShortFormatter.format(date)
+    return `${shortLabel.charAt(0).toUpperCase()}${shortLabel.slice(1)}`
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
@@ -76,14 +95,17 @@ export default function ScoreTrendCard({
             defaultInterval="month"
             enableZoom={false}
             enableWheelZoom={false}
+            aggregate={(points) => points}
+            startDate={yearStart}
+            endDate={yearEnd}
             height={240}
             margin={{ left: -40 }}
             tooltipLabel={metricLabels[metric]}
             displayDateFormatter={formatMonthLabel}
+            xTickFormatter={handleTickFormat}
             valueFormatter={(value) => `${Math.round(value)}`}
             tooltipValueFormatter={(value) => `${Math.round(value)}`}
             yTickFormatter={(value) => `${Math.round(value)}`}
-            xTickFormatter={(_date, label) => label}
             yTickCount={4}
           />
         </div>

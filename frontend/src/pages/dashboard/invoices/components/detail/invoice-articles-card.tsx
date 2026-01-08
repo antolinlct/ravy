@@ -4,6 +4,7 @@ import { AreaChart as AreaChartBlock } from "@/components/blocks/area-chart"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export default function InvoiceArticlesCard({
 }: InvoiceArticlesCardProps) {
   const [chartOpenIndex, setChartOpenIndex] = useState<number | null>(null)
   const [metricByItem, setMetricByItem] = useState<Record<string, string>>({})
+  const shouldScrollItems = invoice.items.length > 8
   const activeItem = useMemo(
     () => (chartOpenIndex !== null ? invoice.items[chartOpenIndex] : null),
     [chartOpenIndex, invoice.items]
@@ -245,105 +247,109 @@ export default function InvoiceArticlesCard({
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="overflow-auto max-h-[400px] rounded-md border [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/30 [&::-webkit-scrollbar-track]:bg-transparent">
-            <Table>
+          <div className="rounded-md border">
+            <Table className="table-fixed w-full" wrapperClassName="overflow-visible">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="px-4">Nom article</TableHead>
-                  <TableHead className="px-3 text-right">Prix unitaire</TableHead>
-                  <TableHead className="px-3 text-right">Var(±)</TableHead>
+                  <TableHead className="px-4 w-[45%]">Nom article</TableHead>
+                  <TableHead className="px-3 text-right w-[25%]">Prix unitaire</TableHead>
+                  <TableHead className="px-3 text-right w-[20%]">Var(±)</TableHead>
                   <TableHead className="px-3 text-right w-12">
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={`invoice-item-skeleton-${index}`}>
-                      <TableCell className="px-4">
-                        <Skeleton className="h-4 w-40" />
-                      </TableCell>
-                      <TableCell className="px-3 text-right">
-                        <Skeleton className="ml-auto h-4 w-20" />
-                      </TableCell>
-                      <TableCell className="px-3 text-right">
-                        <Skeleton className="ml-auto h-4 w-10" />
-                      </TableCell>
-                      <TableCell className="px-3 text-right">
-                        <Skeleton className="ml-auto h-7 w-7 rounded-full" />
+            </Table>
+            <ScrollArea className={shouldScrollItems ? "h-[300px]" : "max-h-[300px]"}>
+              <Table className="table-fixed w-full" wrapperClassName="overflow-visible">
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={`invoice-item-skeleton-${index}`}>
+                        <TableCell className="px-4 w-[45%]">
+                          <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell className="px-3 text-right w-[25%]">
+                          <Skeleton className="ml-auto h-4 w-20" />
+                        </TableCell>
+                        <TableCell className="px-3 text-right w-[20%]">
+                          <Skeleton className="ml-auto h-4 w-10" />
+                        </TableCell>
+                        <TableCell className="px-3 text-right w-12">
+                          <Skeleton className="ml-auto h-7 w-7 rounded-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : invoice.items.length ? (
+                    invoice.items.map((item, index) => {
+                      const isActive = chartOpenIndex === index
+                      const history = isActive ? activeHistory : []
+                      const historyLoading = isActive ? isHistoryLoading : false
+                      return (
+                        <Dialog
+                          key={item.name}
+                          open={chartOpenIndex === index}
+                          onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
+                        >
+                          <DialogTrigger asChild>
+                            <TableRow
+                              role="button"
+                              tabIndex={0}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => setChartOpenIndex(index)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault()
+                                  setChartOpenIndex(index)
+                                }
+                              }}
+                            >
+                              <TableCell className="px-4 w-[45%]">
+                                <span className="font-sm">{item.name}</span>
+                              </TableCell>
+                              <TableCell className="px-3 text-right w-[25%]">
+                                <div className="flex items-center justify-end gap-2">
+                                  <span className="text-sm font-semibold">{item.unitPrice}</span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">{item.unit}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-3 text-right w-[20%]">{renderDelta(item.delta)}</TableCell>
+                              <TableCell className="px-3 text-right w-12">
+                                <TooltipProvider delayDuration={100}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        aria-label={`Modifier ${item.name}`}
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          onEditItem(index)
+                                        }}
+                                      >
+                                        <Pencil color="#848484" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </TableCell>
+                            </TableRow>
+                          </DialogTrigger>
+                          {renderChartDialog(item, history, historyLoading)}
+                        </Dialog>
+                      )
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                        Aucun article disponible pour cette facture.
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : invoice.items.length ? (
-                  invoice.items.map((item, index) => {
-                    const isActive = chartOpenIndex === index
-                    const history = isActive ? activeHistory : []
-                    const historyLoading = isActive ? isHistoryLoading : false
-                    return (
-                    <Dialog
-                      key={item.name}
-                      open={chartOpenIndex === index}
-                      onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
-                    >
-                      <DialogTrigger asChild>
-                        <TableRow
-                          role="button"
-                          tabIndex={0}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setChartOpenIndex(index)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault()
-                              setChartOpenIndex(index)
-                            }
-                          }}
-                        >
-                          <TableCell className="px-4">
-                            <span className="font-sm">{item.name}</span>
-                          </TableCell>
-                          <TableCell className="px-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="text-sm font-semibold">{item.unitPrice}</span>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">{item.unit}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-3 text-right">{renderDelta(item.delta)}</TableCell>
-                          <TableCell className="px-3 text-right">
-                            <TooltipProvider delayDuration={100}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-7 w-7"
-                                    aria-label={`Modifier ${item.name}`}
-                                    onClick={(event) => {
-                                      event.stopPropagation()
-                                      onEditItem(index)
-                                    }}
-                                  >
-                                    <Pencil color="#848484" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                        </TableRow>
-                      </DialogTrigger>
-                      {renderChartDialog(item, history, historyLoading)}
-                    </Dialog>
-                    )
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      Aucun article disponible pour cette facture.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
           </div>
         </CardContent>
       </Card>
@@ -367,155 +373,163 @@ export default function InvoiceArticlesCard({
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="overflow-auto max-h-[360px] rounded-md border [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted/30 [&::-webkit-scrollbar-track]:bg-transparent">
-          <Table>
+        <div className="rounded-md border">
+          <Table className="table-fixed w-full" wrapperClassName="overflow-visible">
             <TableHeader>
               <TableRow>
-                <TableHead className="px-4 min-w-[220px]">Nom article</TableHead>
-                <TableHead className="px-3 text-right min-w-[140px]">Prix unitaire brut</TableHead>
+                <TableHead className="px-4 w-[28%] min-w-[220px]">Nom article</TableHead>
+                <TableHead className="px-3 text-right w-[16%] min-w-[140px]">
+                  Prix unitaire brut
+                </TableHead>
                 {isBeverageSupplier && (
                   <>
-                    <TableHead className="px-3 text-center min-w-[100px]">Réductions</TableHead>
-                    <TableHead className="px-3 text-center min-w-[110px]">Taxes</TableHead>
+                    <TableHead className="px-3 text-center w-[12%] min-w-[100px]">Réductions</TableHead>
+                    <TableHead className="px-3 text-center w-[12%] min-w-[110px]">Taxes</TableHead>
                   </>
                 )}
-                <TableHead className="px-3 text-right min-w-[140px]">Prix unitaire</TableHead>
-                <TableHead className="px-3 text-right min-w-[90px]">Var(±)</TableHead>
-                <TableHead className="px-3 text-right min-w-[90px]">Quantité</TableHead>
-                <TableHead className="px-3 text-right min-w-[120px]">Total</TableHead>
+                <TableHead className="px-3 text-right w-[16%] min-w-[140px]">Prix unitaire</TableHead>
+                <TableHead className="px-3 text-right w-[8%] min-w-[90px]">Var(±)</TableHead>
+                <TableHead className="px-3 text-right w-[8%] min-w-[90px]">Quantité</TableHead>
+                <TableHead className="px-3 text-right w-[12%] min-w-[120px]">Total</TableHead>
                 <TableHead className="px-3 text-right w-12">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, index) => (
-                  <TableRow key={`invoice-item-extended-skeleton-${index}`}>
-                    <TableCell className="px-4">
-                      <Skeleton className="h-4 w-44" />
-                    </TableCell>
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-4 w-20" />
-                    </TableCell>
-                    {isBeverageSupplier && (
-                      <>
-                        <TableCell className="px-3 text-right">
-                          <Skeleton className="ml-auto h-4 w-16" />
-                        </TableCell>
-                        <TableCell className="px-3 text-right">
-                          <Skeleton className="ml-auto h-4 w-16" />
-                        </TableCell>
-                      </>
-                    )}
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-4 w-20" />
-                    </TableCell>
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-4 w-10" />
-                    </TableCell>
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-4 w-12" />
-                    </TableCell>
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-4 w-16" />
-                    </TableCell>
-                    <TableCell className="px-3 text-right">
-                      <Skeleton className="ml-auto h-7 w-7 rounded-full" />
+          </Table>
+          <ScrollArea className={shouldScrollItems ? "h-[360px]" : "max-h-[360px]"}>
+            <Table className="table-fixed w-full" wrapperClassName="overflow-visible">
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <TableRow key={`invoice-item-extended-skeleton-${index}`}>
+                      <TableCell className="px-4 w-[28%] min-w-[220px]">
+                        <Skeleton className="h-4 w-44" />
+                      </TableCell>
+                      <TableCell className="px-3 text-right w-[16%] min-w-[140px]">
+                        <Skeleton className="ml-auto h-4 w-20" />
+                      </TableCell>
+                      {isBeverageSupplier && (
+                        <>
+                          <TableCell className="px-3 text-right w-[12%] min-w-[100px]">
+                            <Skeleton className="ml-auto h-4 w-16" />
+                          </TableCell>
+                          <TableCell className="px-3 text-right w-[12%] min-w-[110px]">
+                            <Skeleton className="ml-auto h-4 w-16" />
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell className="px-3 text-right w-[16%] min-w-[140px]">
+                        <Skeleton className="ml-auto h-4 w-20" />
+                      </TableCell>
+                      <TableCell className="px-3 text-right w-[8%] min-w-[90px]">
+                        <Skeleton className="ml-auto h-4 w-10" />
+                      </TableCell>
+                      <TableCell className="px-3 text-right w-[8%] min-w-[90px]">
+                        <Skeleton className="ml-auto h-4 w-12" />
+                      </TableCell>
+                      <TableCell className="px-3 text-right w-[12%] min-w-[120px]">
+                        <Skeleton className="ml-auto h-4 w-16" />
+                      </TableCell>
+                      <TableCell className="px-3 text-right w-12">
+                        <Skeleton className="ml-auto h-7 w-7 rounded-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : invoice.items.length ? (
+                  invoice.items.map((item, index) => {
+                    const isActive = chartOpenIndex === index
+                    const history = isActive ? activeHistory : []
+                    const historyLoading = isActive ? isHistoryLoading : false
+                    return (
+                      <Dialog
+                        key={`${item.name}-extended`}
+                        open={chartOpenIndex === index}
+                        onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
+                      >
+                        <DialogTrigger asChild>
+                          <TableRow
+                            role="button"
+                            tabIndex={0}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setChartOpenIndex(index)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                setChartOpenIndex(index)
+                              }
+                            }}
+                          >
+                            <TableCell className="px-4 w-[28%] min-w-[220px]">
+                              <span className="font-sm">{item.name}</span>
+                            </TableCell>
+                            <TableCell className="px-3 text-right text-sm font-sm w-[16%] min-w-[140px]">
+                              {computeUnitPriceGross(item)}
+                            </TableCell>
+                            {isBeverageSupplier && (
+                              <>
+                                <TableCell className="px-3 text-right text-sm text-muted-foreground w-[12%] min-w-[100px]">
+                                  {formatCurrencyDisplay(item.discount)}
+                                </TableCell>
+                                <TableCell className="px-3 text-center text-sm text-muted-foreground w-[12%] min-w-[110px]">
+                                  {formatCurrencyDisplay(item.dutiesTaxes)}
+                                </TableCell>
+                              </>
+                            )}
+                            <TableCell className="px-3 text-right w-[16%] min-w-[140px]">
+                              <div className="flex items-center justify-end gap-2">
+                                <span className="text-sm font-sm">{item.unitPrice}</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">{item.unit}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-3 text-right w-[8%] min-w-[90px]">
+                              {renderDelta(item.delta)}
+                            </TableCell>
+                            <TableCell className="px-3 text-right text-sm text-muted-foreground w-[8%] min-w-[90px]">
+                              {item.quantity ?? "—"}
+                            </TableCell>
+                            <TableCell className="px-3 text-right font-sm w-[12%] min-w-[120px]">
+                              {item.lineTotal ?? "—"}
+                            </TableCell>
+                            <TableCell className="px-3 text-right w-12">
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      aria-label={`Modifier ${item.name}`}
+                                      onClick={(event) => {
+                                        event.stopPropagation()
+                                        onEditItem(index)
+                                      }}
+                                    >
+                                      <Pencil color="var(--muted-foreground)" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                          </TableRow>
+                        </DialogTrigger>
+                        {renderChartDialog(item, history, historyLoading)}
+                      </Dialog>
+                    )
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={isBeverageSupplier ? 9 : 7}
+                      className="px-4 py-6 text-center text-sm text-muted-foreground"
+                    >
+                      Aucun article disponible pour cette facture.
                     </TableCell>
                   </TableRow>
-                ))
-              ) : invoice.items.length ? (
-                invoice.items.map((item, index) => {
-                  const isActive = chartOpenIndex === index
-                  const history = isActive ? activeHistory : []
-                  const historyLoading = isActive ? isHistoryLoading : false
-                  return (
-                  <Dialog
-                    key={`${item.name}-extended`}
-                    open={chartOpenIndex === index}
-                    onOpenChange={(open) => setChartOpenIndex(open ? index : null)}
-                  >
-                    <DialogTrigger asChild>
-                      <TableRow
-                        role="button"
-                        tabIndex={0}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setChartOpenIndex(index)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault()
-                            setChartOpenIndex(index)
-                          }
-                        }}
-                      >
-                        <TableCell className="px-4">
-                          <span className="font-sm">{item.name}</span>
-                        </TableCell>
-                        <TableCell className="px-3 text-right text-sm font-sm">
-                          {computeUnitPriceGross(item)}
-                        </TableCell>
-                        {isBeverageSupplier && (
-                          <>
-                            <TableCell className="px-3 text-right text-sm text-muted-foreground">
-                              {formatCurrencyDisplay(item.discount)}
-                            </TableCell>
-                            <TableCell className="px-3 text-center text-sm text-muted-foreground">
-                              {formatCurrencyDisplay(item.dutiesTaxes)}
-                            </TableCell>
-                          </>
-                        )}
-                        <TableCell className="px-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm font-sm">{item.unitPrice}</span>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">{item.unit}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3 text-right">{renderDelta(item.delta)}</TableCell>
-                        <TableCell className="px-3 text-right text-sm text-muted-foreground">
-                          {item.quantity ?? "—"}
-                        </TableCell>
-                        <TableCell className="px-3 text-right font-sm">
-                          {item.lineTotal ?? "—"}
-                        </TableCell>
-                        <TableCell className="px-3 text-right">
-                          <TooltipProvider delayDuration={100}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="h-7 w-7"
-                                  aria-label={`Modifier ${item.name}`}
-                                  onClick={(event) => {
-                                    event.stopPropagation()
-                                    onEditItem(index)
-                                  }}
-                                >
-                                  <Pencil color="var(--muted-foreground)" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                      </TableRow>
-                    </DialogTrigger>
-                    {renderChartDialog(item, history, historyLoading)}
-                  </Dialog>
-                  )
-                })
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={isBeverageSupplier ? 9 : 7}
-                    className="px-4 py-6 text-center text-sm text-muted-foreground"
-                  >
-                    Aucun article disponible pour cette facture.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
         </div>
       </CardContent>
     </Card>

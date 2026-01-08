@@ -1,21 +1,30 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow",
+      "relative border bg-card text-card-foreground",
       className
     )}
     {...props}
-  />
+  >
+    {/* Decorative corners */}
+    <span className="card-corner tl" />
+    <span className="card-corner tr" />
+    <span className="card-corner bl" />
+    <span className="card-corner br" />
+
+    {children}
+  </div>
 ))
 Card.displayName = "Card"
+
+/* Le reste ne change PAS */
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,
@@ -73,4 +82,11 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+}

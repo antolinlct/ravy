@@ -66,18 +66,18 @@ const InterestHeader = ({
             progressSort(event.shiftKey)
           }
         }}
-        className="inline-flex items-center gap-1 text-sm font-medium text-foreground"
+        className="inline-flex items-center gap-1 text-sm font-medium text-[#8492A5] dark:text-[#A1A1A1]"
       >
         <span>{label}</span>
         {enableSorting ? (
-          <SortIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+          <SortIcon className="h-3.5 w-3.5 text-[#8492A5] dark:text-[#A1A1A1]" aria-hidden />
         ) : null}
       </button>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center text-[#8492A5] transition-colors hover:text-[#8492A5] dark:text-[#A1A1A1] dark:hover:text-[#A1A1A1]"
             aria-label="Informations sur l'interet"
           >
             <Info className="h-3.5 w-3.5" aria-hidden />
@@ -1273,6 +1273,7 @@ export default function MarketPurchasesPage() {
         onToggleColumn={setColumnVisibility}
         onResetColumns={resetColumnVisibility}
         columnOptions={FULL_COLUMN_OPTIONS}
+        isLoading={isMarketLoading}
       />
       <MarketProductSheet
         open={isProductSheetOpen}

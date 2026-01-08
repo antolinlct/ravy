@@ -99,6 +99,9 @@ const toMonthKey = (value?: string | null): string | null => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
 }
 
+const toMonthStartString = (value: Date): string =>
+  `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-01`
+
 const normalizeReport = (report: FinancialReportRow): FinancialReportRow => ({
   ...report,
   ca_total_ht: toNumber(report.ca_total_ht),
@@ -173,9 +176,41 @@ const fetchFinancialReport = async (reportId: string): Promise<FinancialReportRo
   return normalizeReport(data)
 }
 
+const normalizeLiveScoreValue = (value: unknown): number | null => {
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (trimmed.includes("/")) {
+      const [left] = trimmed.split("/")
+      const parsed = parseLocaleNumber(left.trim())
+      return Number.isFinite(parsed) ? parsed : null
+    }
+    const parsed = parseLocaleNumber(trimmed)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return toNumber(value)
+}
+
+const normalizeLiveScoreType = (value: unknown): LiveScoreType | null => {
+  if (!value) return null
+  const normalized = String(value).toLowerCase().trim()
+  const stripped = normalized.replace(/^score_/, "").replace(/_score$/, "")
+  if (stripped === "global") return "global"
+  if (stripped === "purchase" || stripped === "buy") return "purchase"
+  if (stripped === "recipe" || stripped === "recipes") return "recipe"
+  if (stripped === "financial" || stripped === "finance") return "financial"
+  return null
+}
+
+const normalizeLiveScore = (score: LiveScoreRow): LiveScoreRow => ({
+  ...score,
+  type: normalizeLiveScoreType(score.type),
+  value: normalizeLiveScoreValue(score.value),
+})
+
 const fetchLiveScores = async (params: Record<string, string | number | boolean | undefined>) => {
   const { data } = await api.get<LiveScoreRow[]>("/live_score", { params })
-  return Array.isArray(data) ? data : []
+  const items = Array.isArray(data) ? data : []
+  return items.map((item) => normalizeLiveScore(item))
 }
 
 const fetchFinancialIngredients = async (estId: string): Promise<FinancialIngredientRow[]> => {
@@ -261,11 +296,19 @@ const fetchRecipeSubcategories = async (estId: string): Promise<RecipeSubcategor
 const buildReportableRecipes = (recipes: RecipeRow[]): ReportableRecipe[] =>
   recipes
     .filter((recipe) => recipe.active && recipe.saleable)
-    .map((recipe) => ({
-      id: recipe.id,
-      name: recipe.name ?? "Recette",
-      price: toNumber(recipe.price_excl_tax) ?? 0,
-    }))
+    .map((recipe) => {
+      const priceIncl = toNumber(recipe.price_incl_tax)
+      const priceTax = toNumber(recipe.price_tax)
+      const priceExcl = toNumber(recipe.price_excl_tax)
+      const price =
+        priceIncl ?? (priceExcl !== null ? priceExcl + (priceTax ?? 0) : 0)
+
+      return {
+        id: recipe.id,
+        name: recipe.name ?? "Recette",
+        price,
+      }
+    })
 
 export const submitFinancialReport = async ({
   establishmentId,
@@ -282,7 +325,7 @@ export const submitFinancialReport = async ({
 
   const { data } = await api.post<FinancialReportSubmitResponse>("/logic/write/financial-report", {
     establishment_id: establishmentId,
-    target_month: targetMonth.toISOString().slice(0, 10),
+    target_month: toMonthStartString(targetMonth),
     payload,
     fte_count: parseLocaleNumber(financialInputs.headcount),
     fte_cost: parseLocaleNumber(financialInputs.laborCost),

@@ -287,7 +287,7 @@ def _collect_flat_ingredients_for_recipe(
     )
 
     for ingredient in ingredients:
-        ing_type = _safe_get(ingredient, "type", "ARTICLE")
+        ing_type = str(_safe_get(ingredient, "type", "ARTICLE") or "ARTICLE").upper()
         qty = _as_decimal(_safe_get(ingredient, "quantity", 0) or 0) or Decimal("0")
         if qty <= 0:
             continue
@@ -315,7 +315,7 @@ def _collect_flat_ingredients_for_recipe(
                 }
             )
 
-        elif ing_type == "SUBRECIPES":
+        elif ing_type in ("SUBRECIPE", "SUBRECIPES"):
             # IMPORTANT : adaptez le nom du champ si besoin (subrecipe_id / subrecipes_id / autre)
             subrecipe_id = _safe_get(ingredient, "subrecipe_id", None)
             if not subrecipe_id:

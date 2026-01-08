@@ -52,6 +52,7 @@ type MarginsSectionProps = {
   }
   formatEuro: (value: number) => string
   formatPercent: (value: number) => string
+  formatMultiplier: (value: number) => string
   formatDelta: (delta: number | null) => string
   ratioCopy: (ratio: number) => string
   renderInfoHeader: (title: string, tooltip: string) => React.ReactNode
@@ -68,6 +69,7 @@ export default function MarginsSection({
   reportDeltas,
   formatEuro,
   formatPercent,
+  formatMultiplier,
   formatDelta,
   ratioCopy,
   renderInfoHeader,
@@ -113,7 +115,7 @@ export default function MarginsSection({
                   <p className="text-xs text-muted-foreground">{marginsCopy.multiplierSolidLabel}</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-[18px] font-semibold text-foreground">
-                      x{reportData.multiplier_solid}
+                      {formatMultiplier(reportData.multiplier_solid)}
                     </span>
                     {renderDelta(reportDeltas.multiplier_solid)}
                   </div>
@@ -122,7 +124,7 @@ export default function MarginsSection({
                   <p className="text-xs text-muted-foreground">{marginsCopy.multiplierLiquidLabel}</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-[18px] font-semibold text-foreground">
-                      x{reportData.multiplier_liquid}
+                      {formatMultiplier(reportData.multiplier_liquid)}
                     </span>
                     {renderDelta(reportDeltas.multiplier_liquid)}
                   </div>
@@ -130,7 +132,9 @@ export default function MarginsSection({
               </div>
               <p className="text-xs text-muted-foreground">
                 {marginsCopy.multiplierSummary}{" "}
-                <span className="font-medium text-foreground">x{reportData.multiplier_global}</span>{" "}
+                <span className="font-medium text-foreground">
+                  {formatMultiplier(reportData.multiplier_global)}
+                </span>{" "}
                 <span className={deltaClass(reportDeltas.multiplier_global)}>
                   ({formatDelta(reportDeltas.multiplier_global)})
                 </span>

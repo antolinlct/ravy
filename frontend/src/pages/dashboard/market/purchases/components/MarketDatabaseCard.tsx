@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { AgGridReact } from "ag-grid-react"
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from "ag-grid-community"
 import type {
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Skeleton } from "@/components/ui/skeleton"
 import MultipleCombobox from "@/components/ui/multiple_combobox"
 import { cn } from "@/lib/utils"
 import type { MarketGridRow } from "../types"
@@ -46,6 +47,7 @@ export type MarketDatabaseCardProps = {
   onToggleColumn: (columnId: string, visible: boolean) => void
   onResetColumns: () => void
   columnOptions: ColumnOption[]
+  isLoading?: boolean
 }
 
 export function MarketDatabaseCard({
@@ -68,12 +70,23 @@ export function MarketDatabaseCard({
   onToggleColumn,
   onResetColumns,
   columnOptions,
+  isLoading = false,
 }: MarketDatabaseCardProps) {
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
+  const skeletonRows = Array.from({ length: 10 })
+  const marketGridTheme = useMemo(() => {
+    const headerColor = agThemeMode === "dark" ? "#A1A1A1" : "#8492A5"
+    return themeQuartz.withParams({
+      borderRadius: 0,
+      wrapperBorderRadius: 0,
+      headerTextColor: headerColor,
+      iconColor: headerColor,
+    })
+  }, [agThemeMode])
 
   return (
     <>
-      <Card>
+      <Card className="rounded-none">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <CardTitle>Base de données</CardTitle>
@@ -115,18 +128,29 @@ export function MarketDatabaseCard({
             <p className={cn("text-sm", marketStatus.tone)}>{marketStatus.label}</p>
           ) : null}
           <div style={{ height: 620, width: "100%" }} data-ag-theme-mode={agThemeMode}>
-            <AgGridReact<MarketGridRow>
-              rowData={marketGridRows}
-              columnDefs={marketGridColumnDefsCompact}
-              defaultColDef={marketDefaultColDef}
-              theme={themeQuartz}
-              suppressDragLeaveHidesColumns
-              getRowId={marketGetRowId}
-              getRowClass={marketGetRowClass}
-              getRowHeight={marketRowHeight}
-              postSortRows={marketPostSortRows}
-              domLayout="normal"
-            />
+            {isLoading ? (
+              <div className="flex h-full flex-col gap-3 rounded-md border border-dashed border-muted p-4">
+                <Skeleton className="h-9 w-1/3" />
+                <div className="space-y-2">
+                  {skeletonRows.map((_, index) => (
+                    <Skeleton key={index} className="h-8 w-full" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <AgGridReact<MarketGridRow>
+                rowData={marketGridRows}
+                columnDefs={marketGridColumnDefsCompact}
+                defaultColDef={marketDefaultColDef}
+                theme={marketGridTheme}
+                suppressDragLeaveHidesColumns
+                getRowId={marketGetRowId}
+                getRowClass={marketGetRowClass}
+                getRowHeight={marketRowHeight}
+                postSortRows={marketPostSortRows}
+                domLayout="normal"
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -213,18 +237,29 @@ export function MarketDatabaseCard({
             ) : null}
             <div className="flex-1" data-ag-theme-mode={agThemeMode}>
               <div style={{ height: "100%", width: "100%" }}>
-                <AgGridReact<MarketGridRow>
-                  rowData={marketGridRows}
-                  columnDefs={marketGridColumnDefsFull}
-                  defaultColDef={marketDefaultColDef}
-                  theme={themeQuartz}
-                  suppressDragLeaveHidesColumns
-                  getRowId={marketGetRowId}
-                  getRowClass={marketGetRowClass}
-                  getRowHeight={marketRowHeight}
-                  postSortRows={marketPostSortRows}
-                  domLayout="normal"
-                />
+                {isLoading ? (
+                  <div className="flex h-full flex-col gap-3 rounded-md border border-dashed border-muted p-4">
+                    <Skeleton className="h-9 w-1/3" />
+                    <div className="space-y-2">
+                      {skeletonRows.map((_, index) => (
+                        <Skeleton key={index} className="h-8 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <AgGridReact<MarketGridRow>
+                    rowData={marketGridRows}
+                    columnDefs={marketGridColumnDefsFull}
+                    defaultColDef={marketDefaultColDef}
+                    theme={marketGridTheme}
+                    suppressDragLeaveHidesColumns
+                    getRowId={marketGetRowId}
+                    getRowClass={marketGetRowClass}
+                    getRowHeight={marketRowHeight}
+                    postSortRows={marketPostSortRows}
+                    domLayout="normal"
+                  />
+                )}
               </div>
             </div>
           </div>

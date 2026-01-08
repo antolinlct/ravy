@@ -43,6 +43,13 @@ const formatScoreMonth = (date: Date) => {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
+type ScoreTrendPoint = {
+  label: string
+  value: number
+  date: Date
+  isLive?: boolean
+}
+
 export default function PerformanceScoresPage() {
   const { reports, liveScores, globalRanking, isLoading, error } = usePerformanceScoresData()
 
@@ -60,41 +67,104 @@ export default function PerformanceScoresPage() {
   const previousReport = sortedReports[1]?.report
   const latestMonth = sortedReports[0]?.monthDate ?? null
 
+  const getLiveScoreEntry = (type: "global" | "purchase" | "recipe" | "financial") => {
+    const candidates = liveScores.filter(
+      (score) => score.type === type && Number.isFinite(score.value)
+    )
+    if (!candidates.length) return null
+    return [...candidates].sort((a, b) => {
+      const aTime = a.updated_at
+        ? new Date(a.updated_at).getTime()
+        : a.created_at
+          ? new Date(a.created_at).getTime()
+          : 0
+      const bTime = b.updated_at
+        ? new Date(b.updated_at).getTime()
+        : b.created_at
+          ? new Date(b.created_at).getTime()
+          : 0
+      return bTime - aTime
+    })[0]
+  }
+
   const getLiveScoreValue = (type: "global" | "purchase" | "recipe" | "financial") => {
-    const match = liveScores.find((score) => score.type === type)
+    const match = getLiveScoreEntry(type)
     return safeScoreValue(match?.value)
   }
 
-  const globalScore =
-    getLiveScoreValue("global") ?? safeScoreValue(latestReport?.score_global) ?? 0
-  const buyScore =
-    getLiveScoreValue("purchase") ?? safeScoreValue(latestReport?.score_purchase) ?? 0
-  const recipeScore =
-    getLiveScoreValue("recipe") ?? safeScoreValue(latestReport?.score_recipe) ?? 0
-  const financeScore =
-    getLiveScoreValue("financial") ?? safeScoreValue(latestReport?.score_financial) ?? 0
+  const liveGlobalValue = getLiveScoreValue("global")
+  const liveBuyValue = getLiveScoreValue("purchase")
+  const liveRecipeValue = getLiveScoreValue("recipe")
+  const liveFinanceValue = getLiveScoreValue("financial")
 
-  const globalDelta = buildScoreDelta(latestReport?.score_global, previousReport?.score_global)
-  const buyDelta = buildScoreDelta(latestReport?.score_purchase, previousReport?.score_purchase)
-  const recipeDelta = buildScoreDelta(latestReport?.score_recipe, previousReport?.score_recipe)
-  const financeDelta = buildScoreDelta(latestReport?.score_financial, previousReport?.score_financial)
+  const reportGlobalValue = safeScoreValue(latestReport?.score_global)
+  const reportBuyValue = safeScoreValue(latestReport?.score_purchase)
+  const reportRecipeValue = safeScoreValue(latestReport?.score_recipe)
+  const reportFinanceValue = safeScoreValue(latestReport?.score_financial)
+
+  const previousGlobalValue = safeScoreValue(previousReport?.score_global)
+  const previousBuyValue = safeScoreValue(previousReport?.score_purchase)
+  const previousRecipeValue = safeScoreValue(previousReport?.score_recipe)
+  const previousFinanceValue = safeScoreValue(previousReport?.score_financial)
+
+  const globalScore = liveGlobalValue ?? reportGlobalValue ?? 0
+  const buyScore = liveBuyValue ?? reportBuyValue ?? 0
+  const recipeScore = liveRecipeValue ?? reportRecipeValue ?? 0
+  const financeScore = liveFinanceValue ?? reportFinanceValue ?? 0
+
+  const globalDelta =
+    liveGlobalValue !== null && reportGlobalValue !== null
+      ? Math.round(liveGlobalValue - reportGlobalValue)
+      : buildScoreDelta(reportGlobalValue, previousGlobalValue)
+  const buyDelta =
+    liveBuyValue !== null && reportBuyValue !== null
+      ? Math.round(liveBuyValue - reportBuyValue)
+      : buildScoreDelta(reportBuyValue, previousBuyValue)
+  const recipeDelta =
+    liveRecipeValue !== null && reportRecipeValue !== null
+      ? Math.round(liveRecipeValue - reportRecipeValue)
+      : buildScoreDelta(reportRecipeValue, previousRecipeValue)
+  const financeDelta =
+    liveFinanceValue !== null && reportFinanceValue !== null
+      ? Math.round(liveFinanceValue - reportFinanceValue)
+      : buildScoreDelta(reportFinanceValue, previousFinanceValue)
 
   const globalDeltaIsPositive = globalDelta >= 0
   const resolvedRanking = globalRanking ?? { position: 1, total: 1 }
   const rankingSuffix = resolvedRanking.position === 1 ? "er" : "ème"
   const globalRankingReward = getRankingReward(resolvedRanking.position)
+  const isReportPenalty = useMemo(() => {
+    const previousMonth = new Date()
+    previousMonth.setDate(1)
+    previousMonth.setHours(0, 0, 0, 0)
+    previousMonth.setMonth(previousMonth.getMonth() - 1)
+    return !sortedReports.some(
+      (item) =>
+        item.monthDate.getFullYear() === previousMonth.getFullYear() &&
+        item.monthDate.getMonth() === previousMonth.getMonth()
+    )
+  }, [sortedReports])
+  const subtitleCopy = isReportPenalty
+    ? "Vos scores sont pénalisés : le rapport du mois précédent n’a pas été renseigné."
+    : "Suivez le score d'optimisation de votre établissement."
+  const subtitleClassName = isReportPenalty ? "text-sm text-red-500" : undefined
 
   const currentYear = new Date().getFullYear()
   const yearOptions = useMemo(() => {
     const years = new Set<number>()
     sortedReports.forEach((item) => years.add(item.monthDate.getFullYear()))
-    if (!years.size) {
-      years.add(currentYear)
-    }
+    liveScores.forEach((score) => {
+      const dateValue = score.updated_at ?? score.created_at
+      if (!dateValue) return
+      const date = new Date(dateValue)
+      if (Number.isNaN(date.getTime())) return
+      years.add(date.getFullYear())
+    })
+    years.add(currentYear)
     return Array.from(years)
       .sort((a, b) => b - a)
       .map((value) => `${value}`)
-  }, [sortedReports, currentYear])
+  }, [sortedReports, liveScores, currentYear])
 
   const [scoreYear, setScoreYear] = useState(`${currentYear}`)
   const [scoreMetric, setScoreMetric] = useState<"global" | "buy" | "recipes" | "finance">("global")
@@ -105,11 +175,6 @@ export default function PerformanceScoresPage() {
     }
   }, [currentYear, scoreYear, yearOptions])
 
-  const monthShortFormatter = useMemo(
-    () => new Intl.DateTimeFormat("fr-FR", { month: "short" }),
-    []
-  )
-
   const scoreMetricLabels = {
     global: "Score global",
     buy: "Score achat",
@@ -119,9 +184,8 @@ export default function PerformanceScoresPage() {
 
   const scoreTrendSeries = useMemo(() => {
     const year = Number(scoreYear)
-    const data = sortedReports
+    const points: ScoreTrendPoint[] = sortedReports
       .filter((item) => item.monthDate.getFullYear() === year)
-      .sort((a, b) => a.monthDate.getTime() - b.monthDate.getTime())
       .map((item) => {
         const metricValue =
           scoreMetric === "global"
@@ -134,17 +198,41 @@ export default function PerformanceScoresPage() {
 
         if (metricValue === null) return null
 
-        const monthLabel = monthShortFormatter.format(item.monthDate)
         return {
-          label: `${monthLabel.charAt(0).toUpperCase()}${monthLabel.slice(1)}`,
+          label: item.monthDate.toISOString(),
           value: metricValue,
-          date: item.monthDate.toISOString().slice(0, 10),
+          date: item.monthDate,
         }
       })
-      .filter((item): item is { label: string; value: number; date: string } => Boolean(item))
+      .filter((item): item is ScoreTrendPoint => Boolean(item))
 
-    return data
-  }, [monthShortFormatter, scoreMetric, scoreYear, sortedReports])
+    const metricToLiveType = {
+      global: "global",
+      buy: "purchase",
+      recipes: "recipe",
+      finance: "financial",
+    } as const
+    const liveType = metricToLiveType[scoreMetric]
+    const liveScore = getLiveScoreEntry(liveType)
+    const liveValue = safeScoreValue(liveScore?.value)
+    const rawLiveDateValue = liveScore?.updated_at ?? liveScore?.created_at
+    const rawLiveDate = rawLiveDateValue ? new Date(rawLiveDateValue) : null
+    if (
+      liveValue !== null &&
+      rawLiveDate &&
+      !Number.isNaN(rawLiveDate.getTime()) &&
+      rawLiveDate.getFullYear() === year
+    ) {
+      points.push({
+        label: `live-${rawLiveDate.toISOString()}`,
+        value: liveValue,
+        date: rawLiveDate,
+        isLive: true,
+      })
+    }
+
+    return points.sort((a, b) => a.date.getTime() - b.date.getTime())
+  }, [scoreMetric, scoreYear, sortedReports, liveScores])
 
   const scoreCards = [
     {
@@ -198,7 +286,8 @@ export default function PerformanceScoresPage() {
     <div className="space-y-4">
       <ScoreHeader
         title="Performances"
-        subtitle="Suivez le score d'optimisation de votre établissement."
+        subtitle={subtitleCopy}
+        subtitleClassName={subtitleClassName}
         ctaLabel="Comprendre mes score"
       />
 

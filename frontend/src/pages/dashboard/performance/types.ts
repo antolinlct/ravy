@@ -2,6 +2,7 @@ export type LiveScoreType = "global" | "purchase" | "recipe" | "financial"
 
 export type LiveScoreRow = {
   id: string
+  created_at?: string | null
   establishment_id?: string | null
   type?: LiveScoreType | null
   value?: number | null
@@ -95,6 +96,8 @@ export type RecipeRow = {
   active?: boolean | null
   saleable?: boolean | null
   price_excl_tax?: number | null
+  price_tax?: number | null
+  price_incl_tax?: number | null
   category_id?: string | null
   subcategory_id?: string | null
 }

@@ -9,17 +9,38 @@ function Separator({
   decorative = true,
   ...props
 }: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
+  const isHorizontal = orientation === "horizontal"
+
   return (
     <SeparatorPrimitive.Root
       data-slot="separator"
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+        "relative shrink-0 bg-border",
+        isHorizontal
+          ? "h-px w-full"
+          : "w-px h-full",
         className
       )}
       {...props}
-    />
+    >
+      {/* Left / Top cap */}
+      <span
+        className={cn(
+          "separator-cap",
+          isHorizontal ? "cap-left" : "cap-top"
+        )}
+      />
+
+      {/* Right / Bottom cap */}
+      <span
+        className={cn(
+          "separator-cap",
+          isHorizontal ? "cap-right" : "cap-bottom"
+        )}
+      />
+    </SeparatorPrimitive.Root>
   )
 }
 

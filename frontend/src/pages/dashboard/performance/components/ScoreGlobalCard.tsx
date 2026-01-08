@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, Minus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -29,6 +29,16 @@ export default function ScoreGlobalCard({
   tooltip,
   scoreColor,
 }: ScoreGlobalCardProps) {
+  const isZero = delta === 0
+  const isPositive = !isZero && deltaIsPositive
+  const isNegative = !isZero && !deltaIsPositive
+  const badgeClass = isZero
+    ? "bg-muted text-muted-foreground border border-border/60 hover:bg-muted"
+    : isPositive
+      ? "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/10"
+      : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/10"
+  const deltaLabel = isZero ? "0 point" : `${isPositive ? "+" : ""}${delta} points`
+
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -39,16 +49,15 @@ export default function ScoreGlobalCard({
           <CardContent className="space-y-3 p-0">
             <div className="flex flex-col items-center gap-3">
               <ScoreRadial value={score} color={scoreColor} className="mx-auto" />
-              <Badge
-                className={`gap-1 text-sm font-semibold ${
-                  deltaIsPositive
-                    ? "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/10"
-                    : "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/10"
-                }`}
-              >
-                {deltaIsPositive ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-3 w-3" />}
-                {deltaIsPositive ? "+" : ""}
-                {delta} points
+              <Badge variant="secondary" className={`gap-1 text-sm font-semibold ${badgeClass}`}>
+                {isZero ? (
+                  <Minus className="h-3.5 w-3.5" />
+                ) : isPositive ? (
+                  <ArrowUp className="h-4 w-4" />
+                ) : (
+                  <ArrowDown className="h-3 w-3" />
+                )}
+                {deltaLabel}
               </Badge>
               <CardDescription>{monthLabel}</CardDescription>
               <div className="flex w-full items-center justify-center gap-3 rounded-lg bg-muted/60 px-4 py-2">

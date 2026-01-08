@@ -444,6 +444,7 @@ export default function MarketMercurialesDetailsPage() {
         rowData={rowData}
         columnDefs={columnDefs}
         defaultColDef={defaultColDef}
+        isLoading={isLoading}
       />
     </div>
   )

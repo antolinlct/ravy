@@ -406,7 +406,7 @@ export default function ReportCreateDialog({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="pl-3 text-left">Recette</TableHead>
-                    <TableHead className="w-[140px] text-left">Prix de vente</TableHead>
+                    <TableHead className="w-[140px] text-left">Prix de vente TTC</TableHead>
                     <TableHead className="w-[160px] pr-3 text-left">Nombre vendu</TableHead>
                   </TableRow>
                 </TableHeader>

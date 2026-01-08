@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { AgGridReact } from "ag-grid-react"
 import { themeQuartz } from "ag-grid-community"
 import type { ColDef } from "ag-grid-community"
@@ -6,6 +6,7 @@ import type { ColDef } from "ag-grid-community"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ type MercurialeTableCardProps<TData> = {
   columnDefs: ColDef<TData>[]
   defaultColDef: ColDef<TData>
   gridHeight?: number
+  isLoading?: boolean
 }
 
 export default function MercurialeTableCard<TData>({
@@ -59,15 +61,26 @@ export default function MercurialeTableCard<TData>({
   columnDefs,
   defaultColDef,
   gridHeight = 510,
+  isLoading = false,
 }: MercurialeTableCardProps<TData>) {
   const [isGridFullscreen, setIsGridFullscreen] = useState(false)
+  const skeletonRows = Array.from({ length: 10 })
+  const mercurialeGridTheme = useMemo(() => {
+    const headerColor = agThemeMode === "dark" ? "#A1A1A1" : "#8492A5"
+    return themeQuartz.withParams({
+      borderRadius: 0,
+      wrapperBorderRadius: 0,
+      headerTextColor: headerColor,
+      iconColor: headerColor,
+    })
+  }, [agThemeMode])
   const description = isOutdatedSnapshot
     ? "Attention : cette mercuriale n’est plus valide."
     : "Consultez les articles négociés pour ce fournisseur."
 
   return (
     <>
-      <Card className="w-full">
+      <Card className="w-full rounded-none">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <CardTitle>Mercuriale valable {selectedRangeLabel}</CardTitle>
@@ -111,14 +124,25 @@ export default function MercurialeTableCard<TData>({
         <CardContent className="space-y-3">
           {tableStatus ? <p className={cn("text-sm", tableStatus.tone)}>{tableStatus.label}</p> : null}
           <div style={{ height: gridHeight, width: "100%" }} data-ag-theme-mode={agThemeMode}>
-            <AgGridReact<TData>
-              rowData={rowData}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              theme={themeQuartz}
-              suppressDragLeaveHidesColumns
-              domLayout="normal"
-            />
+            {isLoading ? (
+              <div className="flex h-full flex-col gap-3 rounded-md border border-dashed border-muted p-4">
+                <Skeleton className="h-9 w-1/3" />
+                <div className="space-y-2">
+                  {skeletonRows.map((_, index) => (
+                    <Skeleton key={index} className="h-8 w-full" />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <AgGridReact<TData>
+                rowData={rowData}
+                columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
+                theme={mercurialeGridTheme}
+                suppressDragLeaveHidesColumns
+                domLayout="normal"
+              />
+            )}
           </div>
         </CardContent>
       </Card>
@@ -171,14 +195,25 @@ export default function MercurialeTableCard<TData>({
             </div>
             <div className="flex-1" data-ag-theme-mode={agThemeMode}>
               <div style={{ height: "100%", width: "100%" }}>
-                <AgGridReact<TData>
-                  rowData={rowData}
-                  columnDefs={columnDefs}
-                  defaultColDef={defaultColDef}
-                  theme={themeQuartz}
-                  suppressDragLeaveHidesColumns
-                  domLayout="normal"
-                />
+                {isLoading ? (
+                  <div className="flex h-full flex-col gap-3 rounded-md border border-dashed border-muted p-4">
+                    <Skeleton className="h-9 w-1/3" />
+                    <div className="space-y-2">
+                      {skeletonRows.map((_, index) => (
+                        <Skeleton key={index} className="h-8 w-full" />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <AgGridReact<TData>
+                    rowData={rowData}
+                    columnDefs={columnDefs}
+                    defaultColDef={defaultColDef}
+                    theme={mercurialeGridTheme}
+                    suppressDragLeaveHidesColumns
+                    domLayout="normal"
+                  />
+                )}
               </div>
             </div>
           </div>

@@ -161,24 +161,24 @@ export default function ReportAnnexesCard({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1">
-          <CardTitle>Informations annexes</CardTitle>
-          <p className="text-sm text-muted-foreground">Détails complémentaires sur le rapport</p>
-        </div>
-        <Button
+      <CardHeader className="p-0">
+        <button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
+          className="flex w-full items-start justify-between gap-4 px-6 py-6 text-left transition-colors hover:bg-muted/40"
           onClick={() => setAnnexesOpen((prev) => !prev)}
           aria-expanded={annexesOpen}
         >
-          {annexesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <div className="space-y-1">
+            <CardTitle>Informations annexes</CardTitle>
+            <p className="text-sm text-muted-foreground">Détails complémentaires sur le rapport</p>
+          </div>
+          <span className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground">
+            {annexesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </span>
           <span className="sr-only">
             {annexesOpen ? "Réduire les informations annexes" : "Afficher les informations annexes"}
           </span>
-        </Button>
+        </button>
       </CardHeader>
       {annexesOpen ? (
         <CardContent className="pt-0">
@@ -186,7 +186,7 @@ export default function ReportAnnexesCard({
             <Card className="rounded-lg border-0 bg-muted/40 p-4 space-y-4">
               <div className="space-y-1">
                 <p className="text-base font-semibold">
-                  Consommation théorique de vos produits du mois de {reportMonth}
+                  Consommation théorique de vos produits sur {reportMonth}
                 </p>
               </div>
               <div className="space-y-2">
@@ -304,7 +304,7 @@ export default function ReportAnnexesCard({
             </Card>
             <Card className="rounded-lg border-0 bg-muted/40 p-4 space-y-4">
               <div className="space-y-1">
-                <p className="text-base font-semibold">Efficacité de vos recettes du mois de {reportMonth}</p>
+                <p className="text-base font-semibold">Efficacité de vos recettes sur {reportMonth}</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">

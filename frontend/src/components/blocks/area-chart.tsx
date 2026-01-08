@@ -784,16 +784,43 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
             : labelText
       const isActive =
         activeIndex !== null && idx !== undefined && idx === activeIndex
+      const isLiveTick = Boolean((point as TPoint | null)?.isLive)
+      const tickClassName = cn(
+        "text-xs",
+        !isLiveTick && "fill-muted-foreground",
+        xTickClassName,
+        isActive && !isLiveTick && "fill-foreground font-medium",
+        isLiveTick && "fill-green-500"
+      )
+      const liveDotX = (x ?? 0) - 20
+      const liveDotY = (y ?? 0) + 6
+      if (isLiveTick) {
+        return (
+          <g>
+            <circle
+              cx={liveDotX}
+              cy={liveDotY}
+              r={3}
+              className="fill-green-500/90 animate-pulse"
+            />
+            <text
+              x={x}
+              y={(y ?? 0) + 10}
+              textAnchor="middle"
+              className={tickClassName}
+              style={{ fill: "#22c55e" }}
+            >
+              {text}
+            </text>
+          </g>
+        )
+      }
       return (
         <text
           x={x}
           y={(y ?? 0) + 10}
           textAnchor="middle"
-          className={cn(
-            "text-xs fill-muted-foreground",
-            xTickClassName,
-            isActive && "fill-foreground font-medium"
-          )}
+          className={tickClassName}
         >
           {text}
         </text>

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react"
+import { ArrowDown, ArrowUp, Minus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -22,6 +22,20 @@ export default function ScoreSummaryGrid({ scores, getScoreColor }: ScoreSummary
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {scores.map((score) => (
+        (() => {
+          const isPositive = score.delta > 0
+          const isNegative = score.delta < 0
+          const isZero = score.delta === 0
+          const badgeClass = isZero
+            ? "bg-muted text-muted-foreground border border-border/60 hover:bg-muted"
+            : isPositive
+              ? "bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/10"
+              : "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/10"
+          const deltaLabel = isZero
+            ? "0 point"
+            : `${isPositive ? "+" : ""}${score.delta} points`
+
+          return (
         <Tooltip key={score.id}>
           <TooltipTrigger asChild>
             <Card>
@@ -37,19 +51,16 @@ export default function ScoreSummaryGrid({ scores, getScoreColor }: ScoreSummary
                     <p className="text-sm text-muted-foreground">{score.subtitle}</p>
                     <Badge
                       variant="secondary"
-                      className={`mt-2 w-fit gap-1 ${
-                        score.delta >= 0
-                          ? "bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/10"
-                          : "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/10"
-                      }`}
+                      className={`mt-2 w-fit gap-1 ${badgeClass}`}
                     >
-                      {score.delta >= 0 ? (
+                      {isZero ? (
+                        <Minus className="h-3.5 w-3.5" />
+                      ) : isPositive ? (
                         <ArrowUp className="h-3.5 w-3.5" />
                       ) : (
                         <ArrowDown className="h-3.5 w-3.5" />
                       )}
-                      {score.delta > 0 ? "+" : ""}
-                      {score.delta} points
+                      {deltaLabel}
                     </Badge>
                   </div>
                 </div>
@@ -60,6 +71,8 @@ export default function ScoreSummaryGrid({ scores, getScoreColor }: ScoreSummary
             {score.detail}
           </TooltipContent>
         </Tooltip>
+          )
+        })()
       ))}
     </div>
   )

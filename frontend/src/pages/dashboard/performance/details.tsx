@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   BookMarked,
@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner"
 
 import { type ChartConfig } from "@/components/ui/chart"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,6 +55,7 @@ export default function PerformancesReportsDetailsPage() {
   const { estId } = useEstablishment()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteCountdown, setDeleteCountdown] = useState<number | null>(null)
   const {
     report,
     reports,
@@ -315,7 +317,7 @@ export default function PerformancesReportsDetailsPage() {
   const formatPercent = (value: number) =>
     `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)}%`
   const formatMultiplier = (value: number) =>
-    `x${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(value)}`
+    `x${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(value)}`
   const formatDelta = (delta: number | null) =>
     delta === null || !Number.isFinite(delta)
       ? "- %"
@@ -691,7 +693,7 @@ export default function PerformancesReportsDetailsPage() {
 
       return {
         id: item.id,
-        name: masterArticle?.unformatted_name || masterArticle?.name || "Produit",
+        name: masterArticle?.name || masterArticle?.unformatted_name || "Produit",
         supplierId: masterArticle?.supplier_id ?? "",
         avgPrice,
         consumptionHt: consumedValue,
@@ -822,7 +824,7 @@ export default function PerformancesReportsDetailsPage() {
     await reload()
   }
 
-  const handleDeleteReport = async () => {
+  const handleDeleteReport = useCallback(async () => {
     if (!report?.id) return
     setIsDeleting(true)
     try {
@@ -835,10 +837,74 @@ export default function PerformancesReportsDetailsPage() {
       setIsDeleting(false)
       setDeleteOpen(false)
     }
+  }, [navigate, report?.id])
+
+  useEffect(() => {
+    if (deleteCountdown === null) return
+    if (deleteCountdown <= 0) {
+      setDeleteCountdown(null)
+      void handleDeleteReport()
+      return
+    }
+    const timer = window.setTimeout(() => {
+      setDeleteCountdown((prev) => (prev !== null ? prev - 1 : prev))
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [deleteCountdown, handleDeleteReport])
+
+  const handleDeleteOpenChange = (open: boolean) => {
+    setDeleteOpen(open)
+    if (!open) {
+      setDeleteCountdown(null)
+      setIsDeleting(false)
+    }
   }
 
+  const handleDeleteConfirm = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    if (isDeleting) return
+    if (deleteCountdown === null) {
+      setDeleteCountdown(6)
+      return
+    }
+    if (deleteCountdown > 0) {
+      setDeleteCountdown(0)
+    }
+  }
+
+  const deleteActionLabel = isDeleting
+    ? "Suppression..."
+    : deleteCountdown !== null
+      ? "Supprimer maintenant"
+      : "Supprimer"
+
   if (isLoading && !report) {
-    return <p className="text-sm text-muted-foreground">Chargement du rapport...</p>
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Skeleton className="h-10 w-10 rounded-md" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+
+        <Skeleton className="h-[420px] w-full" />
+        <Skeleton className="h-[320px] w-full" />
+      </div>
+    )
   }
 
   if (!report) {
@@ -868,6 +934,7 @@ export default function PerformancesReportsDetailsPage() {
         reportDeltas={reportDeltas}
         formatEuro={formatEuro}
         formatPercent={formatPercent}
+        formatMultiplier={formatMultiplier}
         formatDelta={formatDelta}
         ratioCopy={ratioCopy}
         renderInfoHeader={renderInfoHeader}
@@ -924,19 +991,29 @@ export default function PerformancesReportsDetailsPage() {
           />
         }
       />
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+      <AlertDialog open={deleteOpen} onOpenChange={handleDeleteOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer ce rapport ?</AlertDialogTitle>
             <AlertDialogDescription>
               Cette action est definitive. Les données du rapport seront supprimées.
             </AlertDialogDescription>
+            {deleteCountdown !== null ? (
+              <div className="mt-3 flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Suppression automatique dans {deleteCountdown}s. Vous pouvez encore annuler.</span>
+              </div>
+            ) : null}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteReport} disabled={isDeleting} className="gap-2">
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="gap-2 bg-destructive hover:bg-destructive/90 dark:text-foreground"
+            >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Supprimer
+              {deleteActionLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
