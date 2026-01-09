@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -75,11 +76,31 @@ def master_article_impact_analysis(
     all_recipe_ids = list(set(direct_recipe_ids + indirect_recipe_ids))
 
     if not all_recipe_ids:
-        return {
+        result = {
             "master_article_id": master_article_id,
             "recipes": [],
             "period": {"start": str(start_date), "end": str(end_date)},
         }
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Impact produit sur recettes - 0 recette",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "products",
+                        "scope": "master_article_recipes_analysis",
+                        "entity": "master_article_recipes_analysis",
+                        "master_article_id": master_article_id,
+                        "period": result["period"],
+                        "recipes_count": 0,
+                    },
+                }
+            )
+        except Exception:
+            pass
+        return result
 
     # --- 4. Récupérer les recettes concernées ---
     recipes_resp = (
@@ -203,8 +224,30 @@ def master_article_impact_analysis(
         )
 
     # --- 7. Résultat final ---
-    return {
+    result = {
         "master_article_id": master_article_id,
         "period": {"start": str(start_date), "end": str(end_date)},
         "recipes": results,
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Impact produit sur recettes - {len(results)} recettes",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "products",
+                    "scope": "master_article_recipes_analysis",
+                    "entity": "master_article_recipes_analysis",
+                    "master_article_id": master_article_id,
+                    "period": result["period"],
+                    "recipes_count": len(results),
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

@@ -47,8 +47,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { useUserData } from "@/context/UserDataContext"
 import { toast } from "sonner"
 import { supabase } from "@/lib/supabaseClient"
+import { usePostHog } from "posthog-js/react"
 
 type Ticket = {
   backendId: string | null
@@ -75,6 +77,8 @@ export default function TicketSupportPage() {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [data, setData] = React.useState<Ticket[]>([])
   const { estId } = useEstablishment()
+  const userData = useUserData()
+  const posthog = usePostHog()
   const [estPrefix, setEstPrefix] = React.useState("XX")
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [selected, setSelected] = React.useState<Ticket | null>(null)
@@ -232,6 +236,7 @@ export default function TicketSupportPage() {
         description: form.description || null,
         status: "open",
         invoice_path: invoicePath,
+        user_email: userData?.email ?? null,
       }
       const res = await fetch(`${API_URL}/support_ticket/`, {
         method: "POST",
@@ -250,6 +255,13 @@ export default function TicketSupportPage() {
         const statusLabel = "Ouvert"
         const createdDate = created.created_at ? new Date(created.created_at) : new Date()
         const date = createdDate.toLocaleDateString("fr-FR")
+        posthog?.capture("support_ticket_created", {
+          ticket_id: created.ticket_id || ticketId,
+          backend_id: created.id ?? null,
+          subject: created.object || payload.object,
+          has_attachment: Boolean(created.invoice_path || invoicePath),
+          establishment_id: estId,
+        })
         setData((prev) => [
           {
             backendId: created.id ?? null,

@@ -39,6 +39,7 @@ from app.api.routes import price_stripe
 from app.api.routes import sessions_ia
 from app.api.routes import logs_ia
 from app.api.routes import messages_ia
+from app.api.routes import notifications
 from app.api.routes import regex_patterns
 from app.api.routes import supplier_alias
 from app.api.routes import recipe_categories
@@ -157,6 +158,7 @@ app.include_router(recipe_categories.router)
 app.include_router(supplier_alias.router)
 app.include_router(regex_patterns.router)
 app.include_router(messages_ia.router)
+app.include_router(notifications.router)
 app.include_router(logs_ia.router)
 app.include_router(sessions_ia.router)
 app.include_router(price_stripe.router)

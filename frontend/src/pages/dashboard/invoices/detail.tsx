@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type WheelEventHandler } from "re
 import { toast } from "sonner"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
+import { usePostHog } from "posthog-js/react"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import api from "@/lib/axiosClient"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -91,6 +92,7 @@ export default function InvoiceDetailPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const posthog = usePostHog()
   const { id } = useParams()
   const { estId } = useEstablishment()
   const invoiceId = useMemo(() => {
@@ -218,6 +220,11 @@ export default function InvoiceDetailPage() {
       return
     }
     window.open(resolvedInvoice.documentUrl, "_blank", "noreferrer")
+    posthog?.capture("invoice_document_opened", {
+      invoice_id: invoiceId,
+      establishment_id: estId ?? null,
+      supplier_id: invoiceMeta?.supplierId ?? null,
+    })
   }
 
   const handleShareDocument = async () => {
@@ -240,10 +247,27 @@ export default function InvoiceDetailPage() {
           text: "Pièce jointe : facture.",
           files: [file],
         })
+        posthog?.capture("invoice_document_shared", {
+          invoice_id: invoiceId,
+          establishment_id: estId ?? null,
+          supplier_id: invoiceMeta?.supplierId ?? null,
+        })
         return
       }
+      posthog?.capture("invoice_document_share_failed", {
+        invoice_id: invoiceId,
+        establishment_id: estId ?? null,
+        supplier_id: invoiceMeta?.supplierId ?? null,
+        reason: "unsupported",
+      })
       toast.error("Le partage de pièces jointes n'est pas supporté sur ce navigateur.")
     } catch {
+      posthog?.capture("invoice_document_share_failed", {
+        invoice_id: invoiceId,
+        establishment_id: estId ?? null,
+        supplier_id: invoiceMeta?.supplierId ?? null,
+        reason: "exception",
+      })
       toast.error("Impossible de préparer la pièce jointe.")
     }
   }
@@ -267,7 +291,17 @@ export default function InvoiceDetailPage() {
       link.click()
       link.remove()
       URL.revokeObjectURL(objectUrl)
+      posthog?.capture("invoice_document_downloaded", {
+        invoice_id: invoiceId,
+        establishment_id: estId ?? null,
+        supplier_id: invoiceMeta?.supplierId ?? null,
+      })
     } catch {
+      posthog?.capture("invoice_document_download_failed", {
+        invoice_id: invoiceId,
+        establishment_id: estId ?? null,
+        supplier_id: invoiceMeta?.supplierId ?? null,
+      })
       toast.error("Impossible de télécharger le document.")
     }
   }
@@ -324,6 +358,11 @@ export default function InvoiceDetailPage() {
       await queryClient.invalidateQueries({ queryKey: ["invoices", "list", estId] })
       queryClient.removeQueries({ queryKey: ["invoice", invoiceId, estId] })
       toast.success("Facture supprimée.")
+      posthog?.capture("invoice_deleted", {
+        invoice_id: invoiceId,
+        establishment_id: estId ?? null,
+        supplier_id: meta.supplierId,
+      })
       navigate("/dashboard/invoices")
     } catch {
       toast.error("Impossible de supprimer la facture.")

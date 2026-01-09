@@ -14,8 +14,20 @@ from app.logic.write.shared.recipes_history_recipes import update_recipes_and_hi
 from app.services import (
     ingredients_service,
     recipes_service,
+    establishments_service,
 )
 from app.core.supabase_client import supabase
+
+try:
+    from app.services.telegram.gordon_service import GordonTelegram
+
+    _telegram_client = GordonTelegram()
+
+    def _notify_recipe_deleted(message: str) -> None:
+        _telegram_client.send_text(message)
+except Exception:
+    def _notify_recipe_deleted(message: str) -> None:
+        return
 
 
 class LogicError(Exception):
@@ -51,6 +63,22 @@ def _as_date(value: Any) -> Optional[date]:
         except ValueError:
             return None
     return None
+
+
+def _notify_deletion(
+    *, establishment_id: UUID, root_recipe_name: Optional[str], deleted_count: int
+) -> None:
+    try:
+        establishment = establishments_service.get_establishments_by_id(establishment_id)
+        establishment_name = _safe_get(establishment, "name") or str(establishment_id)
+        suffix = f" ({deleted_count} supprimée(s))" if deleted_count > 1 else ""
+        _notify_recipe_deleted(
+            "🗑️ Recette supprimée\n"
+            f"{root_recipe_name or 'Recette'}{suffix}\n"
+            f"{establishment_name}"
+        )
+    except Exception:
+        pass
 
 
 def _paginate_ingredients_with_subrecipe(
@@ -98,6 +126,9 @@ def delete_recipe(
         raise LogicError("Les paramètres recipe_id et establishment_id sont requis")
 
     target_date_norm = _as_date(target_date) or date.today()
+
+    root_recipe = recipes_service.get_recipes_by_id(recipe_id)
+    root_recipe_name = _safe_get(root_recipe, "name")
 
     deleted_ingredient_ids: Set[UUID] = set()
     deleted_recipe_ids: Set[UUID] = set()
@@ -183,6 +214,13 @@ def delete_recipe(
             establishment_id=establishment_id,
             recipe_ids=list(impacted_recipes),
             target_date=target_date_norm,
+        )
+
+    if deleted_recipe_ids:
+        _notify_deletion(
+            establishment_id=establishment_id,
+            root_recipe_name=root_recipe_name,
+            deleted_count=len(deleted_recipe_ids),
         )
 
     return {

@@ -160,6 +160,8 @@ def recompute_recipe_margins(
             "action": None,
             "text": f"Début du recalcul des marges moyennes – {est_name}",
             "json": {
+                "domain": "recipes",
+                "scope": "recompute_margins/start",
                 "recipe_ids": [str(r) for r in recipe_ids],
                 "target_date": str(target_date_norm),
             },
@@ -221,7 +223,11 @@ def recompute_recipe_margins(
                 if avg_global is not None else
                 f"Marge moyenne globale recalculée – {est_name}"
             ),
-            "json": {"average_margin": float(avg_global) if avg_global else None},
+            "json": {
+                "domain": "recipes",
+                "scope": "recompute_margins/global",
+                "average_margin": float(avg_global) if avg_global else None,
+            },
             "element_id": global_res["id"],
             "element_type": "recipe",
         }
@@ -280,6 +286,8 @@ def recompute_recipe_margins(
                     f"Marge moyenne catégorie {cat_name} recalculée – {est_name}"
                 ),
                 "json": {
+                    "domain": "recipes",
+                    "scope": "recompute_margins/category",
                     "category_id": cat_id,
                     "category_name": cat_name,
                     "average_margin": float(avg_cat) if avg_cat else None,
@@ -351,6 +359,8 @@ def recompute_recipe_margins(
                     f"Marge moyenne sous-catégorie {sub_name} recalculée – {est_name}"
                 ),
                 "json": {
+                    "domain": "recipes",
+                    "scope": "recompute_margins/subcategory",
                     "subcategory_id": sub_id,
                     "subcategory_name": sub_name,
                     "average_margin": float(avg_sub) if avg_sub else None,
@@ -381,6 +391,8 @@ def recompute_recipe_margins(
             "action": None,
             "text": f"Fin du recalcul des marges moyennes – {est_name}",
             "json": {
+                "domain": "recipes",
+                "scope": "recompute_margins/end",
                 "categories_recalculated": categories_result,
                 "subcategories_recalculated": subcategories_result,
                 "global_result": global_res,

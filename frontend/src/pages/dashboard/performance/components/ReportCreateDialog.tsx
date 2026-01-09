@@ -21,6 +21,8 @@ import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 
 type MonthOption = {
   value: string
@@ -62,6 +64,8 @@ export default function ReportCreateDialog({
   formatEuro,
   onSubmit,
 }: ReportCreateDialogProps) {
+  const { estId } = useEstablishment()
+  const posthog = usePostHog()
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedMonthKey, setSelectedMonthKey] = useState("")
   const selectedMonth = monthOptions.find((option) => option.value === selectedMonthKey)
@@ -139,6 +143,10 @@ export default function ReportCreateDialog({
           Le rapport du mois de <span className="font-semibold">{selectedMonthLabel}</span> a été créé.
         </>
       )
+      posthog?.capture("financial_report_created", {
+        month: selectedMonth.value,
+        establishment_id: estId,
+      })
       setCreateOpen(false)
       setShowValidation(false)
       setSalesByRecipe({})

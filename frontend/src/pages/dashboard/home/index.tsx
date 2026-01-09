@@ -8,6 +8,7 @@ import { OptimizedProductsCard } from "./components/optimized-products-card"
 import { MarginChartCard } from "./components/margin-chart-card"
 import { TopLowMarginCard } from "./components/top-low-margin-card"
 import type { InvoiceStatItem } from "./types"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const FALLBACK_INVOICE_STATS: InvoiceStatItem[] = [
   { name: "Factures importées", value: "--" },
@@ -17,6 +18,7 @@ const FALLBACK_INVOICE_STATS: InvoiceStatItem[] = [
 
 export default function DashboardHomePage() {
   const user = useUser()
+  const isMobile = useIsMobile()
   const { data, currentMonthLabel } = useDashboardHomeData()
 
   const displayName = useMemo(() => {
@@ -55,7 +57,7 @@ export default function DashboardHomePage() {
 
         <div className="grid gap-4 md:grid-cols-10">
           <MarginChartCard series={data.marginSeries} />
-          <TopLowMarginCard items={data.topLowMargin} />
+          {!isMobile && <TopLowMarginCard items={data.topLowMargin} />}
         </div>
       </div>
     </div>

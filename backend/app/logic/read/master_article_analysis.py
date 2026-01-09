@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Optional
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _to_decimal(value: Any, default: str = "0") -> Decimal:
@@ -55,6 +56,24 @@ def master_article_analysis(
         .execute()
     )
     if not master_resp.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Analyse produit introuvable",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "products",
+                        "scope": "master_article_analysis",
+                        "entity": "master_article_analysis",
+                        "master_article_id": master_article_id,
+                        "status": "not_found",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"error": "Master article not found", "master_article_id": master_article_id}
 
     master_article = master_resp.data[0]
@@ -74,7 +93,7 @@ def master_article_analysis(
 
     # --- 4. Si aucun article ---
     if not articles:
-        return {
+        result = {
             "master_article": master_article,
             "stats": {
                 "count_articles": 0,
@@ -96,6 +115,26 @@ def master_article_analysis(
                 "end_date": str(end_date),
             },
         }
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Analyse produit - 0 achats",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "products",
+                        "scope": "master_article_analysis",
+                        "entity": "master_article_analysis",
+                        "master_article_id": master_article_id,
+                        "filters": result["filters"],
+                        "articles_count": 0,
+                    },
+                }
+            )
+        except Exception:
+            pass
+        return result
 
     # --- 5. Calculs statistiques ---
     prices = [
@@ -152,7 +191,7 @@ def master_article_analysis(
     invoices = invoices_resp.data if invoices_resp else []
 
     # --- 7. Résultat final ---
-    return {
+    result = {
         "master_article": master_article,
         "stats": stats,
         "articles": articles,
@@ -164,3 +203,25 @@ def master_article_analysis(
             "end_date": str(end_date),
         },
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Analyse produit - {len(articles)} achats",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "products",
+                    "scope": "master_article_analysis",
+                    "entity": "master_article_analysis",
+                    "master_article_id": master_article_id,
+                    "filters": result["filters"],
+                    "articles_count": len(articles),
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

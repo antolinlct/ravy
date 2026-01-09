@@ -6,7 +6,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar variant="inset" />
       {children}
     </SidebarProvider>

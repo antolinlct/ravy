@@ -21,6 +21,8 @@ import { Separator } from "@/components/ui/separator"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 
 type ReportableRecipe = {
   id: string
@@ -61,6 +63,8 @@ export default function ReportEditDialog({
   formatEuro,
   onSubmit,
 }: ReportEditDialogProps) {
+  const { estId } = useEstablishment()
+  const posthog = usePostHog()
   const [editOpen, setEditOpen] = useState(false)
   const [financialInputs, setFinancialInputs] = useState<FinancialInputs>(initialFinancialInputs)
   const [salesByRecipe, setSalesByRecipe] = useState<Record<string, string>>(initialSalesByRecipe)
@@ -117,6 +121,10 @@ export default function ReportEditDialog({
           Le rapport du mois de <span className="font-semibold">{reportMonth}</span> a été modifié.
         </>
       )
+      posthog?.capture("financial_report_updated", {
+        month: reportMonth,
+        establishment_id: estId,
+      })
       setEditOpen(false)
       setShowEditValidation(false)
     } catch {

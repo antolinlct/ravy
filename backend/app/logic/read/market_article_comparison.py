@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Dict, Any, Optional
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _to_decimal(value: Any, default: str = "0") -> Decimal:
@@ -61,11 +62,47 @@ def market_article_comparison(
         .execute()
     )
     if not master_resp.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Comparaison marche introuvable",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "market",
+                        "scope": "market_article_comparison",
+                        "entity": "market_article_comparison",
+                        "master_article_id": master_article_id,
+                        "status": "not_found",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"error": "Master article not found", "master_article_id": master_article_id}
 
     master_article = master_resp.data[0]
     market_master_id = master_article.get("market_master_article_id")
     if not market_master_id:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Comparaison marche indisponible",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "market",
+                        "scope": "market_article_comparison",
+                        "entity": "market_article_comparison",
+                        "master_article_id": master_article_id,
+                        "status": "missing_market_master",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {
             "master_article": master_article,
             "error": "Missing market_master_article_id for master_article"
@@ -92,6 +129,25 @@ def market_article_comparison(
         .execute()
     )
     if not market_master_resp.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Comparaison marche sans donnees",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "market",
+                        "scope": "market_article_comparison",
+                        "entity": "market_article_comparison",
+                        "master_article_id": master_article_id,
+                        "market_master_article_id": market_master_id,
+                        "status": "no_market_data",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {
             "master_article": master_article,
             "error": "No market data found for linked market_master_article_id"
@@ -168,7 +224,7 @@ def market_article_comparison(
     supplier = supplier_resp.data[0] if supplier_resp.data else None
 
     # --- 10. Résultat final ---
-    return {
+    result = {
         "master_article": master_article,
         "market_master_article": market_master_article,
         "stats_user": {
@@ -194,3 +250,27 @@ def market_article_comparison(
             "establishment_id": establishment_id,
         },
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": "Comparaison marche chargee",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "market",
+                    "scope": "market_article_comparison",
+                    "entity": "market_article_comparison",
+                    "master_article_id": master_article_id,
+                    "market_master_article_id": market_master_id,
+                    "filters": result["filters"],
+                    "user_articles_count": len(user_articles),
+                    "market_articles_count": len(market_articles),
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

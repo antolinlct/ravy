@@ -4,6 +4,7 @@ import unidecode
 from typing import Dict, Any, Optional, List
 from rapidfuzz import fuzz
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def clean_name(name: str) -> str:
@@ -79,6 +80,24 @@ def master_article_alternatives(
         .execute()
     )
     if not master_resp.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Alternatives produit introuvable",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "products",
+                        "scope": "master_article_alternatives",
+                        "entity": "master_article_alternatives",
+                        "master_article_id": master_article_id,
+                        "status": "not_found",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"error": "Master article not found", "master_article_id": master_article_id}
 
     master_article = master_resp.data[0]
@@ -169,7 +188,7 @@ def master_article_alternatives(
     results = results[:limit]
 
     # --- 9. Retour final ---
-    return {
+    result = {
         "master_article": master_article,
         "alternatives": results,
         "filters": {
@@ -180,3 +199,25 @@ def master_article_alternatives(
             "limit": limit,
         },
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Alternatives produit calculees - {len(results)}",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "products",
+                    "scope": "master_article_alternatives",
+                    "entity": "master_article_alternatives",
+                    "master_article_id": master_article_id,
+                    "filters": result["filters"],
+                    "alternatives_count": len(results),
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

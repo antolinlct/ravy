@@ -4,7 +4,26 @@ from fastapi import APIRouter, HTTPException
 from fastapi.encoders import jsonable_encoder
 from typing import Optional
 from app.schemas.recipes import Recipes
-from app.services import recipes_service
+from app.services import recipes_service, establishments_service
+
+try:
+    from app.services.telegram.gordon_service import GordonTelegram
+
+    _telegram_client = GordonTelegram()
+
+    def _notify_recipe_event(message: str) -> None:
+        _telegram_client.send_text(message)
+except Exception:
+    def _notify_recipe_event(message: str) -> None:
+        return
+
+
+def _safe_get(obj: object, key: str) -> Optional[str]:
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
 router = APIRouter(prefix="/recipes", tags=["Recipes"])
 
@@ -36,6 +55,24 @@ def get_recipes(id: UUID):
 def create_recipes(data: Recipes):
     payload = jsonable_encoder(data.dict(exclude={"id"}))
     created = recipes_service.create_recipes(payload)
+    try:
+        recipe_name = _safe_get(created, "name") or _safe_get(data, "name")
+        establishment_id = _safe_get(created, "establishment_id") or _safe_get(
+            data, "establishment_id"
+        )
+        establishment = (
+            establishments_service.get_establishments_by_id(establishment_id)
+            if establishment_id
+            else None
+        )
+        establishment_name = _safe_get(establishment, "name") or str(establishment_id)
+        _notify_recipe_event(
+            "🍽️ Recette créée\n"
+            f"{recipe_name or 'Recette'}\n"
+            f"{establishment_name}"
+        )
+    except Exception:
+        pass
     return Recipes(**created)
 
 @router.patch("/{id}", response_model=Recipes)

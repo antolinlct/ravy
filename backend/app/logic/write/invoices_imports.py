@@ -64,9 +64,15 @@ try:
     _telegram_client = GordonTelegram()
 
     def _notify_invoice_rejection(message: str) -> None:
-        _telegram_client.send_text(message, html=False)
+        _telegram_client.send_text(message)
+
+    def _notify_invoice_variations(message: str) -> None:
+        _telegram_client.send_text(message)
 except Exception:
     def _notify_invoice_rejection(message: str) -> None:
+        return
+
+    def _notify_invoice_variations(message: str) -> None:
         return
 
 
@@ -828,6 +834,14 @@ def _import_invoice_from_import_job(import_job_id: UUID, import_job: Any) -> Non
                     sms_lines.extend(["", f"Impact sur {recipes_impacted_count} recettes."])
 
                 sms_text = "\n".join(line for line in sms_lines if line.strip())
+
+                try:
+                    establishment_name = _safe_get(establishment, "name") or str(establishment_id)
+                    _notify_invoice_variations(
+                        f"{establishment_name}\n{sms_text}"
+                    )
+                except Exception:
+                    pass
 
                 # CREATION DE L'ALERT LOGS
                 for link in user_links:

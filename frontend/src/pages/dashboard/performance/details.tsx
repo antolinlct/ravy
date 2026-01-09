@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { type TooltipProps } from "recharts"
 import ConsultantAvatar from "@/assets/avatar.png"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 import {
   deleteFinancialReport,
   getReportMonthDate,
@@ -53,6 +54,7 @@ export default function PerformancesReportsDetailsPage() {
   const { id: reportId } = useParams()
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const posthog = usePostHog()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteCountdown, setDeleteCountdown] = useState<number | null>(null)
@@ -830,6 +832,10 @@ export default function PerformancesReportsDetailsPage() {
     try {
       await deleteFinancialReport(report.id)
       toast.success("Rapport supprimé.")
+      posthog?.capture("financial_report_deleted", {
+        report_id: report.id,
+        establishment_id: estId,
+      })
       navigate("/dashboard/performance/reports")
     } catch {
       toast.error("Impossible de supprimer le rapport.")
@@ -837,7 +843,7 @@ export default function PerformancesReportsDetailsPage() {
       setIsDeleting(false)
       setDeleteOpen(false)
     }
-  }, [navigate, report?.id])
+  }, [estId, navigate, posthog, report?.id])
 
   useEffect(() => {
     if (deleteCountdown === null) return

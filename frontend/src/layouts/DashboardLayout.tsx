@@ -11,6 +11,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { OnboardingGate } from "@/features/onboarding/OnboardingGate"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { MobileBottomNav } from "@/components/dashboard/mobile/mobile-bottom-nav"
+import { MobileDashboardHeader } from "@/components/dashboard/mobile/mobile-header"
 import api from "@/lib/axiosClient"
 
 type Crumb = {
@@ -32,6 +34,13 @@ type ApiSupplier = {
 
 export default function DashboardLayout() {
   const location = useLocation()
+
+  useEffect(() => {
+    document.body.classList.add("dashboard-shell")
+    return () => {
+      document.body.classList.remove("dashboard-shell")
+    }
+  }, [])
 
   const segments = location.pathname.split("/").filter(Boolean)
   const invoiceSubPage = segments[2]
@@ -180,8 +189,9 @@ export default function DashboardLayout() {
   }, [invoiceSubPage, isInvoiceDetail, location.state])
 
   return (
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+    <SidebarInset className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <MobileDashboardHeader />
+      <header className="hidden h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:flex">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator
@@ -219,10 +229,13 @@ export default function DashboardLayout() {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        <Outlet />
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <Outlet />
+        </div>
       </div>
 
+      <MobileBottomNav />
       <OnboardingGate />
     </SidebarInset>
   )

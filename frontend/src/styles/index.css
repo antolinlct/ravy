@@ -181,6 +181,12 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
   }
+
+  .dashboard-shell {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+  }
   button {
     cursor: pointer;
   }
@@ -276,6 +282,7 @@
   height: 6px;
   pointer-events: none;
   opacity: 0.4;
+  color: #108fff;
 }
 
 /* TOP LEFT */

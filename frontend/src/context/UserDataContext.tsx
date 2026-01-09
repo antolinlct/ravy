@@ -17,6 +17,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { usePostHog } from "posthog-js/react"
 import { supabase } from "@/lib/supabaseClient"
 import { useUser } from "./UserContext"
 
@@ -40,6 +41,7 @@ const UserDataContext = createContext<ContextValue | null>(null)
 export function UserDataProvider({ children }: { children: React.ReactNode }) {
   const user = useUser()
   const [data, setData] = useState<UserData | null>(null)
+  const posthog = usePostHog()
 
   const reload = useCallback(async () => {
     if (!user?.id) {
@@ -83,6 +85,21 @@ export function UserDataProvider({ children }: { children: React.ReactNode }) {
       /* ignore initial load errors */
     })
   }, [reload])
+
+  useEffect(() => {
+    if (!posthog) return
+    if (!data?.id) {
+      posthog.reset()
+      return
+    }
+    posthog.identify(data.id, {
+      email: data.email,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      full_name: data.fullName,
+      phone: data.phone,
+    })
+  }, [posthog, data?.id, data?.email, data?.firstName, data?.lastName, data?.fullName, data?.phone])
 
   return (
     <UserDataContext.Provider value={{ data, reload }}>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Info, Loader2 } from "lucide-react"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 import { RecipesPageHeader } from "./components/RecipesPageHeader"
 import { RecipeCreationCard } from "./components/RecipeCreationCard"
 import { RecipesListCard } from "./components/RecipesListCard"
@@ -61,6 +62,7 @@ const parseDateValue = (value?: string | null) => {
 export default function RecipesPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const posthog = usePostHog()
   const [defaultVatId, setDefaultVatId] = useState<string | null>(null)
 
   const [recipes, setRecipes] = useState<RecipeListItem[]>([])
@@ -225,8 +227,13 @@ export default function RecipesPage() {
       establishment_id: estId,
       new_name: resolvedName,
     })
-      .then(() => {
+      .then((result) => {
         setDuplicateDialogOpen(false)
+        posthog?.capture("recipe_duplicated", {
+          recipe_id: recipeToDuplicate.id,
+          new_recipe_id: result?.new_recipe_id ?? null,
+          establishment_id: estId,
+        })
         toast.success(
           <>
             Recette <span className="font-semibold">{resolvedName}</span> dupliquée
@@ -261,6 +268,11 @@ export default function RecipesPage() {
       .then((result) => {
         setDeleteDialogOpen(false)
         const deletedIds = new Set<string>(result?.deleted_recipes ?? [deletedId])
+        posthog?.capture("recipe_deleted", {
+          recipe_id: deletedId,
+          deleted_ids: Array.from(deletedIds),
+          establishment_id: estId,
+        })
         if (recipeSearchValue && deletedIds.has(recipeSearchValue)) setRecipeSearchValue("")
         deletedIds.forEach((id) => removeCachedRecipe(estId, id))
         clearIngredientsCache(estId)
@@ -295,6 +307,10 @@ export default function RecipesPage() {
 
   const handleRowNavigate = (recipeId: string) => {
     const cached = recipesById[recipeId]
+    posthog?.capture("recipe_opened", {
+      recipe_id: recipeId,
+      establishment_id: estId,
+    })
     navigate(`/dashboard/recipes/${recipeId}`, {
       state: {
         recipeId,
@@ -417,6 +433,13 @@ export default function RecipesPage() {
     })
       .then((created) => {
         toast.success("Recette créée.")
+        posthog?.capture("recipe_created", {
+          recipe_id: created.id,
+          name: created.name ?? recipeName.trim(),
+          category_id: created.category_id ?? recipeCategory,
+          subcategory_id: created.subcategory_id ?? recipeSubCategory,
+          establishment_id: estId,
+        })
         setRecipeName("")
         setRecipeCategory(undefined)
         setRecipeSubCategory(undefined)

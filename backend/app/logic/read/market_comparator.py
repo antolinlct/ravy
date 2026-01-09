@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _to_decimal(value: Any) -> Optional[Decimal]:
@@ -216,7 +217,7 @@ def market_comparator(
     )
 
     # --- 6. Résultat final ---
-    return {
+    result = {
         "period": {"start": str(start_date), "end": str(end_date)},
         "product1": {
             "meta": product1_meta,
@@ -231,3 +232,27 @@ def market_comparator(
             "diff_avg_pct": diff_avg_pct,
         },
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": "Comparateur marche charge",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "market",
+                    "scope": "market_comparator",
+                    "entity": "market_comparator",
+                    "market_master_article_1_id": market_master_article_1_id,
+                    "market_master_article_2_id": market_master_article_2_id,
+                    "filters": result["period"],
+                    "only_my_invoices_product1": only_my_invoices_product1,
+                    "only_my_invoices_product2": only_my_invoices_product2,
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

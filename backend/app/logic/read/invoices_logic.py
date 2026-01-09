@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import List, Optional, Dict, Any
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _safe_decimal(value: Any) -> Decimal:
@@ -105,7 +106,7 @@ def invoices_sum(
         return float(_safe_decimal(value).quantize(Decimal(exp), rounding=ROUND_HALF_UP))
 
     # --- 7. Résultat final ---
-    return {
+    result = {
         "filters": {
             "establishment_id": establishment_id,
             "start_date": str(start_date),
@@ -121,3 +122,25 @@ def invoices_sum(
         "count": len(invoices),
         "invoices": invoices,
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Synthese factures calculee - {len(invoices)} factures",
+                "establishment_id": establishment_id,
+                "element_type": "invoice",
+                "json": {
+                    "domain": "invoices",
+                    "scope": "invoices_sum",
+                    "filters": result["filters"],
+                    "count": result["count"],
+                    "totals": result["totals"],
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result

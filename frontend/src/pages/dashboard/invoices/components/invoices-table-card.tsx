@@ -3,6 +3,7 @@ import { ArrowDownToLine, ArrowRight, ChevronDown, ChevronUp, ChevronsUpDown, Lo
 import JSZip from "jszip"
 import * as XLSX from "xlsx"
 import { useNavigate } from "react-router-dom"
+import { usePostHog } from "posthog-js/react"
 import { toast } from "sonner"
 import api from "@/lib/axiosClient"
 import { Badge } from "@/components/ui/badge"
@@ -70,6 +71,7 @@ export default function InvoicesTableCard({
   onDateRangeChange,
 }: InvoicesTableCardProps) {
   const navigate = useNavigate()
+  const posthog = usePostHog()
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [exportStartDate, setExportStartDate] = useState<Date | undefined>(startDate)
@@ -155,6 +157,12 @@ export default function InvoicesTableCard({
       ? invoice.reference
       : `Facture ${invoice.reference}`
     const breadcrumb = `${baseReference} - ${invoice.supplier}`
+    posthog?.capture("invoice_opened", {
+      invoice_id: invoice.id,
+      supplier_id: invoice.supplierValue,
+      supplier: invoice.supplier,
+      establishment_id: establishmentId ?? null,
+    })
     navigate(`/dashboard/invoices/${invoice.id}`, { state: { invoiceBreadcrumb: breadcrumb } })
   }
 
@@ -189,6 +197,12 @@ export default function InvoicesTableCard({
       toast.error("Sélectionnez au moins une facture.")
       return
     }
+    const exportMode = exportSelectedInvoices.length > 5 ? "backend" : "frontend"
+    posthog?.capture("invoice_export_started", {
+      count: exportSelectedInvoices.length,
+      mode: exportMode,
+      establishment_id: establishmentId ?? null,
+    })
     setExporting(true)
     try {
       const exportDate = new Date()
@@ -202,6 +216,12 @@ export default function InvoicesTableCard({
       if (exportSelectedInvoices.length > 5) {
         if (!establishmentId) {
           toast.error("Établissement manquant pour l'export.")
+          posthog?.capture("invoice_export_failed", {
+            count: exportSelectedInvoices.length,
+            mode: exportMode,
+            establishment_id: null,
+            reason: "missing_establishment",
+          })
           return
         }
         const response = await api.post(
@@ -222,6 +242,12 @@ export default function InvoicesTableCard({
         link.remove()
         URL.revokeObjectURL(objectUrl)
         toast.success("Export terminé.")
+        posthog?.capture("invoice_export_completed", {
+          count: exportSelectedInvoices.length,
+          mode: exportMode,
+          establishment_id: establishmentId,
+          missing_count: 0,
+        })
         return
       }
 
@@ -300,7 +326,18 @@ export default function InvoicesTableCard({
       } else {
         toast.success("Export terminé.")
       }
+      posthog?.capture("invoice_export_completed", {
+        count: exportSelectedInvoices.length,
+        mode: exportMode,
+        establishment_id: establishmentId ?? null,
+        missing_count: missing.length,
+      })
     } catch {
+      posthog?.capture("invoice_export_failed", {
+        count: exportSelectedInvoices.length,
+        mode: exportMode,
+        establishment_id: establishmentId ?? null,
+      })
       toast.error("Impossible de générer l'export.")
     } finally {
       setExporting(false)

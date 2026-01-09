@@ -24,6 +24,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import { usePostHog } from "posthog-js/react"
 import { useEstablishment } from "./EstablishmentContext"
 
 type EstablishmentValue = Record<string, unknown> | null
@@ -42,6 +43,7 @@ export function EstablishmentDataProvider({
 }) {
   const { estId } = useEstablishment()
   const [est, setEst] = useState<EstablishmentValue>(null)
+  const posthog = usePostHog()
 
   const reload = useCallback(async () => {
     if (!estId) {
@@ -63,6 +65,14 @@ export function EstablishmentDataProvider({
       /* ignore load errors */
     })
   }, [reload])
+
+  useEffect(() => {
+    if (!posthog || !estId) return
+    const estName = est && typeof est["name"] === "string" ? (est["name"] as string) : undefined
+    posthog.group("establishment", estId, {
+      name: estName,
+    })
+  }, [posthog, estId, est])
 
   return (
     <EstablishmentDataContext.Provider value={{ data: est, reload }}>

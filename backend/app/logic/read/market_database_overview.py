@@ -6,6 +6,7 @@ from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _to_decimal(value: Any) -> Optional[Decimal]:
@@ -346,6 +347,25 @@ def market_database_overview(
 
     suppliers = _fetch_market_suppliers(supplier_id)
     if not suppliers:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Base marche chargee - 0 fournisseurs",
+                    "establishment_id": establishment_id,
+                    "json": {
+                        "domain": "market",
+                        "scope": "market_database_overview",
+                        "entity": "market_database_overview",
+                        "period": {"start": str(start), "end": str(end)},
+                        "supplier_id": supplier_id,
+                        "include_user_comparison": include_user_comparison,
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"period": {"start": str(start), "end": str(end)}, "suppliers": []}
 
     result_suppliers: List[Dict[str, Any]] = []
@@ -462,5 +482,29 @@ def market_database_overview(
                 })
 
         result_suppliers.append({"market_supplier": sup, "products": products_block})
+
+    total_products = sum(len(sup.get("products") or []) for sup in result_suppliers)
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Base marche chargee - {len(result_suppliers)} fournisseurs",
+                "establishment_id": establishment_id,
+                "json": {
+                    "domain": "market",
+                    "scope": "market_database_overview",
+                    "entity": "market_database_overview",
+                    "period": {"start": str(start), "end": str(end)},
+                    "supplier_id": supplier_id,
+                    "include_user_comparison": include_user_comparison,
+                    "suppliers_count": len(result_suppliers),
+                    "products_count": total_products,
+                },
+            }
+        )
+    except Exception:
+        pass
 
     return {"period": {"start": str(start), "end": str(end)}, "suppliers": result_suppliers}

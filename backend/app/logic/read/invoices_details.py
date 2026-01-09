@@ -2,6 +2,7 @@ from typing import Dict, Any, List
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def _to_decimal(value: Any, default: str = "0") -> Decimal:
@@ -33,6 +34,24 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
     )
 
     if not invoice_response.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Facture introuvable",
+                    "element_type": "invoice",
+                    "element_id": invoice_id,
+                    "json": {
+                        "domain": "invoices",
+                        "scope": "invoices_details",
+                        "invoice_id": invoice_id,
+                        "status": "not_found",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"error": "Invoice not found", "invoice_id": invoice_id}
 
     invoice = invoice_response.data[0]
@@ -117,5 +136,26 @@ def get_invoice_detail(invoice_id: str) -> Dict[str, Any]:
         "articles_count": len(articles),
         "articles": articles,
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Facture detail chargee - {len(articles)} articles",
+                "establishment_id": establishment_id,
+                "element_type": "invoice",
+                "element_id": invoice_id,
+                "json": {
+                    "domain": "invoices",
+                    "scope": "invoices_details",
+                    "invoice_id": invoice_id,
+                    "supplier_id": invoice.get("supplier_id"),
+                    "articles_count": len(articles),
+                },
+            }
+        )
+    except Exception:
+        pass
 
     return result

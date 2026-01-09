@@ -40,6 +40,7 @@ import { Info } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -65,6 +66,7 @@ type ApiUserProfile = {
 
 export default function UsersSupportPage() {
   const { estId } = useEstablishment()
+  const posthog = usePostHog()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [role, setRole] = useState("staff")
@@ -122,7 +124,27 @@ export default function UsersSupportPage() {
         throw new Error("Création du lien utilisateur/établissement échouée.")
       }
 
+      try {
+        await fetch(`${API_URL}/notifications/telegram`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "invite_sent",
+            email: email.trim(),
+            establishment_id: estId,
+            role,
+          }),
+        })
+      } catch {
+        /* ignore notification errors */
+      }
+
       toast.success("Invitation envoyée.")
+      posthog?.capture("user_invited", {
+        email: email.trim(),
+        role,
+        establishment_id: estId,
+      })
       setInviteOpen(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : "Impossible d'envoyer l'invitation."

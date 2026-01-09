@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Info, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { usePostHog } from "posthog-js/react"
 import { RecipeDetailHeader } from "./components/RecipeDetailHeader"
 import { RecipeIngredientsCard } from "./components/RecipeIngredientsCard"
 import { RecipeSettingsCard } from "./components/RecipeSettingsCard"
@@ -150,6 +151,7 @@ export default function RecipeDetailPage() {
   const location = useLocation()
   const state = (location.state ?? {}) as RecipeDetailLocationState
   const { estId } = useEstablishment()
+  const posthog = usePostHog()
 
   const recipeId = params.id ?? state.recipeId ?? ""
   const seedRecipe = state.recipe && state.recipe.id ? state.recipe : null
@@ -1207,6 +1209,10 @@ export default function RecipeDetailPage() {
       })
       setForceSaveOnEntry(false)
       toast.success("Recette enregistrée.")
+      posthog?.capture("recipe_saved", {
+        recipe_id: recipe.id,
+        establishment_id: estId,
+      })
       if (options?.redirect) {
         navigate("/dashboard/recipes")
       }
@@ -1226,6 +1232,7 @@ export default function RecipeDetailPage() {
       portionsValue,
       priceExclTax,
       priceInclTaxValue,
+      posthog,
       recommendedPriceTtc,
       recipe,
       recipeSaving,
@@ -1427,6 +1434,12 @@ export default function RecipeDetailPage() {
 
   const confirmDownload = async () => {
     if (downloadSaving || !estId) return
+    posthog?.capture("recipe_pdf_generation_started", {
+      recipe_id: recipe.id,
+      establishment_id: estId,
+      include_financials: downloadShowFinancial,
+      has_image: Boolean(technicalImageFile || technicalImagePath),
+    })
     setDownloadSaving(true)
     const controller = new AbortController()
     downloadAbortRef.current = controller
@@ -1559,10 +1572,20 @@ export default function RecipeDetailPage() {
           Téléchargement de <span className="font-semibold">{recipe.name}</span> prêt.
         </>
       )
+      posthog?.capture("recipe_pdf_generation_completed", {
+        recipe_id: recipe.id,
+        establishment_id: estId,
+        include_financials: downloadShowFinancial,
+        has_image: Boolean(nextImagePath),
+      })
     } catch (error) {
       if (axios.isAxiosError(error) && error.code === "ERR_CANCELED") {
         return
       }
+      posthog?.capture("recipe_pdf_generation_failed", {
+        recipe_id: recipe.id,
+        establishment_id: estId,
+      })
       toast.error("Impossible de générer la fiche technique.")
     } finally {
       setDownloadSaving(false)
@@ -1575,6 +1598,10 @@ export default function RecipeDetailPage() {
       downloadAbortRef.current?.abort()
       downloadAbortRef.current = null
       setDownloadSaving(false)
+      posthog?.capture("recipe_pdf_generation_cancelled", {
+        recipe_id: recipe.id,
+        establishment_id: estId,
+      })
     }
     setDownloadOpen(open)
   }
@@ -1641,6 +1668,11 @@ export default function RecipeDetailPage() {
             Recette <span className="font-semibold">{resolvedName}</span> dupliquée
           </>
         )
+        posthog?.capture("recipe_duplicated", {
+          recipe_id: recipe.id,
+          new_recipe_id: nextId,
+          establishment_id: estId,
+        })
         setDuplicateOpen(false)
         navigate(`/dashboard/recipes/${nextId}`, {
           replace: false,
@@ -1668,6 +1700,11 @@ export default function RecipeDetailPage() {
       .then((result) => {
         setDeleteOpen(false)
         const deletedIds = new Set<string>(result?.deleted_recipes ?? [recipe.id])
+        posthog?.capture("recipe_deleted", {
+          recipe_id: recipe.id,
+          deleted_ids: Array.from(deletedIds),
+          establishment_id: estId,
+        })
         deletedIds.forEach((id) => removeCachedRecipe(estId, id))
         clearIngredientsCache(estId)
         toast.success(
@@ -1695,6 +1732,11 @@ export default function RecipeDetailPage() {
     })
       .then((result) => {
         const deletedIds = new Set<string>(result?.deleted_recipes ?? [recipe.id])
+        posthog?.capture("recipe_deleted", {
+          recipe_id: recipe.id,
+          deleted_ids: Array.from(deletedIds),
+          establishment_id: estId,
+        })
         deletedIds.forEach((id) => removeCachedRecipe(estId, id))
         clearIngredientsCache(estId)
         toast.success(

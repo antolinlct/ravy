@@ -16,10 +16,12 @@ import { PhoneInput } from "@/components/ui/phone-input"
 import { useUserData, useUserDataReload } from "@/context/UserDataContext"
 import { supabase } from "@/lib/supabaseClient"
 import { Mail } from "lucide-react"
+import { usePostHog } from "posthog-js/react"
 
 export default function AccountSettingsPage() {
   const userData = useUserData()
   const reloadUserData = useUserDataReload()
+  const posthog = usePostHog()
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
@@ -195,6 +197,22 @@ export default function AccountSettingsPage() {
         toast.error("Impossible d'envoyer l'email de réinitialisation.")
         return
       }
+      try {
+        const API_URL = import.meta.env.VITE_API_URL
+        await fetch(`${API_URL}/notifications/telegram`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "password_reset",
+            email,
+          }),
+        })
+      } catch {
+        /* ignore notification errors */
+      }
+      posthog?.capture("password_reset_requested", {
+        email,
+      })
       toast.success("Email de réinitialisation envoyé.")
     } catch {
       toast.error("Impossible d'envoyer l'email de réinitialisation.")

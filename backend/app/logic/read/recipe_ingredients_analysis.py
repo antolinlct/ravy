@@ -2,6 +2,7 @@ from datetime import date
 from typing import Dict, Any, Optional
 from dateutil.relativedelta import relativedelta
 from app.core.supabase_client import supabase
+from app.services import logs_service
 
 
 def get_month_bounds(target_date: Optional[date] = None):
@@ -41,6 +42,26 @@ def recipe_ingredients_analysis(
         .execute()
     )
     if not recipe_resp.data:
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Analyse recette introuvable",
+                    "establishment_id": establishment_id,
+                    "element_type": "recipe",
+                    "element_id": recipe_id,
+                    "json": {
+                        "domain": "recipes",
+                        "scope": "recipe_ingredients_analysis",
+                        "entity": "recipe_ingredients_analysis",
+                        "recipe_id": recipe_id,
+                        "status": "not_found",
+                    },
+                }
+            )
+        except Exception:
+            pass
         return {"error": "Recipe not found", "recipe_id": recipe_id}
 
     recipe = recipe_resp.data[0]
@@ -60,11 +81,33 @@ def recipe_ingredients_analysis(
     ingredients = ingredients_resp.data or []
 
     if not ingredients:
-        return {
+        result = {
             "recipe": recipe,
             "ingredients": [],
             "period": {"start": str(start_date), "end": str(end_date)},
         }
+        try:
+            logs_service.create_logs(
+                {
+                    "type": "context",
+                    "action": "view",
+                    "text": "Analyse recette - 0 ingredient",
+                    "establishment_id": establishment_id,
+                    "element_type": "recipe",
+                    "element_id": recipe_id,
+                    "json": {
+                        "domain": "recipes",
+                        "scope": "recipe_ingredients_analysis",
+                        "entity": "recipe_ingredients_analysis",
+                        "recipe_id": recipe_id,
+                        "period": result["period"],
+                        "ingredients_count": 0,
+                    },
+                }
+            )
+        except Exception:
+            pass
+        return result
 
     results = []
 
@@ -247,8 +290,32 @@ def recipe_ingredients_analysis(
             )
 
     # --- 5. Résultat final ---
-    return {
+    result = {
         "recipe": recipe,
         "ingredients": results,
         "period": {"start": str(start_date), "end": str(end_date)},
     }
+
+    try:
+        logs_service.create_logs(
+            {
+                "type": "context",
+                "action": "view",
+                "text": f"Analyse recette - {len(results)} ingredients",
+                "establishment_id": establishment_id,
+                "element_type": "recipe",
+                "element_id": recipe_id,
+                "json": {
+                    "domain": "recipes",
+                    "scope": "recipe_ingredients_analysis",
+                    "entity": "recipe_ingredients_analysis",
+                    "recipe_id": recipe_id,
+                    "period": result["period"],
+                    "ingredients_count": len(results),
+                },
+            }
+        )
+    except Exception:
+        pass
+
+    return result
