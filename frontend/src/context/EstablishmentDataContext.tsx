@@ -24,14 +24,29 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
+import api from "@/lib/axiosClient"
 import { usePostHog } from "posthog-js/react"
 import { useEstablishment } from "./EstablishmentContext"
 
 type EstablishmentValue = Record<string, unknown> | null
 
+type UsageCounter = {
+  id: string
+  value_category?: "seat" | "invoices" | "recipe" | null
+  used_value?: number | null
+  limit_value?: number | null
+  period_start?: string | null
+  period_end?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
 type ContextValue = {
   data: EstablishmentValue
+  usageCounters: UsageCounter[]
+  usageLoading: boolean
   reload: () => Promise<void>
+  reloadUsage: () => Promise<void>
 }
 
 const EstablishmentDataContext = createContext<ContextValue | null>(null)
@@ -43,6 +58,8 @@ export function EstablishmentDataProvider({
 }) {
   const { estId } = useEstablishment()
   const [est, setEst] = useState<EstablishmentValue>(null)
+  const [usageCounters, setUsageCounters] = useState<UsageCounter[]>([])
+  const [usageLoading, setUsageLoading] = useState(false)
   const posthog = usePostHog()
 
   const reload = useCallback(async () => {
@@ -60,11 +77,35 @@ export function EstablishmentDataProvider({
     setEst(data)
   }, [estId])
 
+  const reloadUsage = useCallback(async () => {
+    if (!estId) {
+      setUsageCounters([])
+      setUsageLoading(false)
+      return
+    }
+
+    setUsageLoading(true)
+    try {
+      const res = await api.get<UsageCounter[]>("/usage_counters", {
+        params: { establishment_id: estId, limit: 10 },
+      })
+      setUsageCounters(res.data ?? [])
+    } finally {
+      setUsageLoading(false)
+    }
+  }, [estId])
+
   useEffect(() => {
     reload().catch(() => {
       /* ignore load errors */
     })
   }, [reload])
+
+  useEffect(() => {
+    reloadUsage().catch(() => {
+      /* ignore usage load errors */
+    })
+  }, [reloadUsage])
 
   useEffect(() => {
     if (!posthog || !estId) return
@@ -75,7 +116,9 @@ export function EstablishmentDataProvider({
   }, [posthog, estId, est])
 
   return (
-    <EstablishmentDataContext.Provider value={{ data: est, reload }}>
+    <EstablishmentDataContext.Provider
+      value={{ data: est, usageCounters, usageLoading, reload, reloadUsage }}
+    >
       {children}
     </EstablishmentDataContext.Provider>
   )
@@ -87,4 +130,16 @@ export function useEstablishmentData() {
 
 export function useEstablishmentDataReload() {
   return useContext(EstablishmentDataContext)?.reload
+}
+
+export function useEstablishmentUsageCounters() {
+  return useContext(EstablishmentDataContext)?.usageCounters ?? []
+}
+
+export function useEstablishmentUsageCountersLoading() {
+  return Boolean(useContext(EstablishmentDataContext)?.usageLoading)
+}
+
+export function useEstablishmentUsageCountersReload() {
+  return useContext(EstablishmentDataContext)?.reloadUsage
 }

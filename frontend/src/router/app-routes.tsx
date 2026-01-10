@@ -60,7 +60,7 @@ import ConsultantPage from "../pages/dashboard/consultant/consultant.tsx";
 import SettingsLayout from "../layouts/SettingsLayout.tsx"
 import AccountSettingsPage from "../pages/dashboard/settings/account.tsx";
 import EstablishmentSettingsPage from "../pages/dashboard/settings/establishment.tsx";
-import SubscriptionPage from "../pages/dashboard/settings/subscription.tsx";
+import SubscriptionPage from "../pages/dashboard/settings/subscription/subscription.tsx";
 import UsersSupportPage from "@/pages/dashboard/settings/users.tsx";
 import PreferencesSettingsPage from "../pages/dashboard/settings/preferences.tsx";
 import TicketSupportPage from "../pages/dashboard/settings/tickets.tsx";

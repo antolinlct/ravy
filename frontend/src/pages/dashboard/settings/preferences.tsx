@@ -278,7 +278,7 @@ export default function PreferencesSettingsPage() {
   }, [])
 
   return (
-    <div className="flex items-start justify-start bg-sidebar rounded-xl gap-4 p-4">
+    <div className="flex items-start justify-start rounded-xl gap-4">
       <div className="w-full max-w-4xl space-y-4">
         <Card>
           <CardHeader>

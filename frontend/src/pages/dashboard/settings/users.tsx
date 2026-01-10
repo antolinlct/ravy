@@ -222,7 +222,7 @@ export default function UsersSupportPage() {
   }, [estId])
 
   return (
-    <div className="flex items-start justify-start bg-sidebar rounded-xl gap-4 p-4">
+    <div className="flex items-start justify-start rounded-xl gap-4">
       <div className="w-full max-w-5xl space-y-4">
         <Card>
           <CardHeader className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

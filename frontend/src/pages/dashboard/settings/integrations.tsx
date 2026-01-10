@@ -31,7 +31,7 @@ const integrations = [
 
 export default function IntegrationsSupportPage() {
   return (
-    <div className="flex items-start justify-start bg-sidebar rounded-xl gap-4 p-4">
+    <div className="flex items-start justify-start rounded-xl gap-4">
       <div className="w-full max-w-5xl space-y-4">
         <Card>
           <CardHeader>

@@ -36,7 +36,7 @@ export const EXTERNAL_LINKS = {
   },
 
   booking: {
-    calendly: "https://calendly.com/ravy-meet/30min",
+    cal: "https://cal.com/ravy-app",
   },
 
   support: {

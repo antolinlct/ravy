@@ -5,6 +5,7 @@
 .env.*
 .env.sandbox
 !.env.example
+/supabase
 
 # ============================================
 # 🧠 EXPORTS & FICHIERS GÉNÉRÉS AUTOMATIQUEMENT
