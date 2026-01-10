@@ -17,6 +17,8 @@ class BillingAccount(BaseModel):
     free_mode: Optional[bool] = None
     stripe_subscription_id_prod: Optional[str] = None
     stripe_subscription_id_live: Optional[str] = None
+    current_period_end: Optional[dt.datetime] = None
+    current_period_start: Optional[dt.datetime] = None
 
     class Config:
         json_encoders = {

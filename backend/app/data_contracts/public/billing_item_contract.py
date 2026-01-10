@@ -62,5 +62,23 @@ CONTRACT = {
         "default": null,
         "relation": null
 },
+        'quantity': {
+        "type": "numeric",
+        "required": true,
+        "default": "'1'::numeric",
+        "relation": null
+},
+        'stripe_subscription_item_id_prod': {
+        "type": "text",
+        "required": false,
+        "default": null,
+        "relation": null
+},
+        'stripe_subscription_item_id_live': {
+        "type": "text",
+        "required": false,
+        "default": null,
+        "relation": null
+},
     }
 }

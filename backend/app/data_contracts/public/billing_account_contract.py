@@ -73,5 +73,17 @@ CONTRACT = {
         "default": null,
         "relation": null
 },
+        'current_period_end': {
+        "type": "timestamp with time zone",
+        "required": false,
+        "default": null,
+        "relation": null
+},
+        'current_period_start': {
+        "type": "timestamp with time zone",
+        "required": false,
+        "default": null,
+        "relation": null
+},
     }
 }

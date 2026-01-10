@@ -682,6 +682,16 @@
       "column": "stripe_subscription_id_live",
       "data_type": "text",
       "udt_name": "text"
+    },
+    {
+      "column": "current_period_end",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "current_period_start",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
     }
   ],
   "billing_item": [
@@ -724,6 +734,21 @@
       "column": "updated_at",
       "data_type": "timestamp with time zone",
       "udt_name": "timestamptz"
+    },
+    {
+      "column": "quantity",
+      "data_type": "numeric",
+      "udt_name": "numeric"
+    },
+    {
+      "column": "stripe_subscription_item_id_prod",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "stripe_subscription_item_id_live",
+      "data_type": "text",
+      "udt_name": "text"
     }
   ],
   "countries": [

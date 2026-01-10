@@ -14,6 +14,9 @@ class BillingItem(BaseModel):
     current_period_end: Optional[dt.datetime] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
+    quantity: Optional[float] = None
+    stripe_subscription_item_id_prod: Optional[str] = None
+    stripe_subscription_item_id_live: Optional[str] = None
 
     class Config:
         json_encoders = {
