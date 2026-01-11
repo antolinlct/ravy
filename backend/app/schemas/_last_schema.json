@@ -2691,6 +2691,28 @@
       "udt_name": "timestamptz"
     }
   ],
+  "stripe_webhook_events": [
+    {
+      "column": "id",
+      "data_type": "uuid",
+      "udt_name": "uuid"
+    },
+    {
+      "column": "event_id",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "column": "received_at",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    },
+    {
+      "column": "event_created",
+      "data_type": "timestamp with time zone",
+      "udt_name": "timestamptz"
+    }
+  ],
   "supplier_alias": [
     {
       "column": "id",

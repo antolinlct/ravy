@@ -942,6 +942,56 @@
       }
     ]
   },
+  "stripe_webhook_events_service": {
+    "table_name": "stripe_webhook_events",
+    "functions": [
+      {
+        "name": "_is_no_row_error",
+        "args": [
+          "exc"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_all_stripe_webhook_events",
+        "args": [
+          "filters",
+          "limit",
+          "page"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "get_stripe_webhook_events_by_id",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "create_stripe_webhook_events",
+        "args": [
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "update_stripe_webhook_events",
+        "args": [
+          "id",
+          "payload"
+        ],
+        "docstring": null
+      },
+      {
+        "name": "delete_stripe_webhook_events",
+        "args": [
+          "id"
+        ],
+        "docstring": null
+      }
+    ]
+  },
   "market_articles_service": {
     "table_name": "market_articles",
     "functions": [

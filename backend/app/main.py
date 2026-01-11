@@ -1,3 +1,4 @@
+from app.api.routes import stripe_webhook_events
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -169,3 +170,5 @@ app.include_router(mercuriale_supplier.router)
 app.include_router(mercuriale_subcategories.router)
 app.include_router(mercuriale_master_article.router)
 app.include_router(mercurial_request.router)
+
+app.include_router(stripe_webhook_events.router)
