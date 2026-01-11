@@ -27,6 +27,124 @@ export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
 
   const API_URL = import.meta.env.VITE_API_URL
   const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
+  const PLAN_FREE_CODE = "PLAN_FREE"
+
+  const toNumber = (value: unknown, fallback = 0) => {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
+  const buildPeriodWindow = () => {
+    const start = new Date()
+    const end = new Date(start)
+    end.setMonth(end.getMonth() + 1)
+    return {
+      periodStart: start.toISOString(),
+      periodEnd: end.toISOString(),
+    }
+  }
+
+  const fetchPlanFree = async () => {
+    const res = await fetch(`${API_URL}/product_stripe?limit=200`)
+    if (!res.ok) {
+      throw new Error("Impossible de récupérer le plan gratuit.")
+    }
+    const data = await res.json().catch(() => [])
+    if (!Array.isArray(data) || !data.length) {
+      throw new Error("Plan gratuit introuvable.")
+    }
+    const planFree = data.find(
+      (item) => item?.internal_code === PLAN_FREE_CODE
+    )
+    if (!planFree) {
+      throw new Error("Plan gratuit introuvable.")
+    }
+    return planFree as {
+      included_invoices?: number | string | null
+      included_recipes?: number | string | null
+      included_seats?: number | string | null
+    }
+  }
+
+  const ensureBillingAccount = async (establishmentId: string) => {
+    const payload = {
+      establishment_id: establishmentId,
+      free_mode: true,
+      billing_cycle: "monthly",
+    }
+
+    const createRes = await fetch(`${API_URL}/billing_account/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+
+    if (createRes.ok) return
+
+    const existingRes = await fetch(
+      `${API_URL}/billing_account?establishment_id=${establishmentId}&limit=1`
+    )
+    if (!existingRes.ok) {
+      throw new Error("Impossible de créer le compte de facturation.")
+    }
+    const existing = await existingRes.json().catch(() => [])
+    if (!Array.isArray(existing) || existing.length === 0) {
+      throw new Error("Impossible de créer le compte de facturation.")
+    }
+  }
+
+  const ensureUsageCounters = async (
+    establishmentId: string,
+    planFree: {
+      included_invoices?: number | string | null
+      included_recipes?: number | string | null
+      included_seats?: number | string | null
+    }
+  ) => {
+    const existingRes = await fetch(
+      `${API_URL}/usage_counters?establishment_id=${establishmentId}&limit=200`
+    )
+    if (!existingRes.ok) {
+      throw new Error("Impossible d'initialiser les quotas.")
+    }
+    const existing = await existingRes.json().catch(() => [])
+    const existingCategories = new Set<string>()
+    if (Array.isArray(existing)) {
+      existing.forEach((row) => {
+        if (row?.value_category) existingCategories.add(row.value_category)
+      })
+    }
+
+    const { periodStart, periodEnd } = buildPeriodWindow()
+    const quotas = {
+      invoices: toNumber(planFree.included_invoices),
+      recipe: toNumber(planFree.included_recipes),
+      seat: toNumber(planFree.included_seats),
+    }
+
+    const countersToCreate = (["invoices", "recipe", "seat"] as const).filter(
+      (category) => !existingCategories.has(category)
+    )
+
+    for (const category of countersToCreate) {
+      const createRes = await fetch(`${API_URL}/usage_counters/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          establishment_id: establishmentId,
+          value_category: category,
+          period_start: periodStart,
+          period_end: periodEnd,
+          used_value: 0,
+          limit_value: quotas[category],
+        }),
+      })
+
+      if (!createRes.ok) {
+        throw new Error("Impossible d'initialiser les quotas.")
+      }
+    }
+  }
 
   function updateField<K extends keyof typeof formData>(key: K, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }))
@@ -203,6 +321,10 @@ export function EstablishmentStep({ onDone }: EstablishmentStepProps) {
           console.error("Establishment logo update failed:", updateRes.status)
         }
       }
+
+      const planFree = await fetchPlanFree()
+      await ensureBillingAccount(establishmentId)
+      await ensureUsageCounters(establishmentId, planFree)
 
       onDone(establishmentId)
     } catch (err) {
