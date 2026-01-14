@@ -59,6 +59,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
+    "jetbrains-mono": "^1.0.6",
     "jszip": "^3.10.1",
     "lexical": "^0.39.0",
     "lucide-react": "^0.548.0",

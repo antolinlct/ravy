@@ -16,9 +16,10 @@ interface UploadItem {
 
 type FileUpload06Props = {
   onHasUploadsChange?: (hasUploads: boolean) => void;
+  disabled?: boolean;
 };
 
-export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) {
+export default function FileUpload06({ onHasUploadsChange, disabled }: FileUpload06Props) {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const filePickerRef = useRef<HTMLInputElement>(null);
   const MAX_FILE_SIZE_MB = 25;
@@ -27,10 +28,12 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
   const importLabel = fileCount > 1 ? "Importer les factures" : "Importer la facture";
 
   const openFilePicker = () => {
+    if (disabled) return;
     filePickerRef.current?.click();
   };
 
   const addFiles = (fileList: FileList | null) => {
+    if (disabled) return;
     if (!fileList) return;
 
     const files = Array.from(fileList).slice(0, 10);
@@ -60,19 +63,23 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
   };
 
   const onFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     addFiles(event.target.files);
   };
 
   const onDragOver = (event: React.DragEvent) => {
+    if (disabled) return;
     event.preventDefault();
   };
 
   const onDropFiles = (event: React.DragEvent) => {
+    if (disabled) return;
     event.preventDefault();
     addFiles(event.dataTransfer.files);
   };
 
   const removeUploadById = (id: string) => {
+    if (disabled) return;
     setUploads(uploads.filter((file) => file.id !== id));
   };
 
@@ -86,7 +93,9 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
     <div className="flex h-full w-full flex-col">
       {!hasUploads && (
         <Card
-          className="group flex w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 py-8 min-h-[135px] text-sm cursor-pointer hover:bg-muted/50 transition-colors"
+          className={`group flex w-full flex-col items-center justify-center gap-4 rounded-lg border border-dashed bg-muted/30 py-8 min-h-[135px] text-sm transition-colors ${
+            disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-muted/50"
+          }`}
           onDragOver={onDragOver}
           onDrop={onDropFiles}
           onClick={openFilePicker}
@@ -100,6 +109,7 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
                   variant="link"
                   className="text-primary p-0 h-auto font-normal"
                   onClick={openFilePicker}
+                  disabled={disabled}
                 >
                   parcourez vos documents
                 </Button>{" "}
@@ -145,6 +155,7 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
                     className="size-8"
                     onClick={() => removeUploadById(file.id)}
                     aria-label={`Supprimer ${file.name}`}
+                    disabled={disabled}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -154,7 +165,7 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
           </div>
 
           <div className="flex items-center justify-end mt-2">
-            <Button disabled={!uploads.length}>{importLabel}</Button>
+            <Button disabled={disabled || !uploads.length}>{importLabel}</Button>
           </div>
         </div>
       )}
@@ -166,6 +177,7 @@ export default function FileUpload06({ onHasUploadsChange }: FileUpload06Props) 
         accept="application/pdf,image/png,image/jpeg,image/tiff,image/bmp,image/heif,image/heic"
         multiple
         onChange={onFileInputChange}
+        disabled={disabled}
       />
     </div>
   );

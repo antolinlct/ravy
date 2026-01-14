@@ -7,6 +7,10 @@ import { Info, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabaseClient"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { usePostHog } from "posthog-js/react"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
+import { RecipePlanPreview } from "./components/RecipePlanPreview"
 import { RecipeDetailHeader } from "./components/RecipeDetailHeader"
 import { RecipeIngredientsCard } from "./components/RecipeIngredientsCard"
 import { RecipeSettingsCard } from "./components/RecipeSettingsCard"
@@ -152,6 +156,9 @@ export default function RecipeDetailPage() {
   const state = (location.state ?? {}) as RecipeDetailLocationState
   const { estId } = useEstablishment()
   const posthog = usePostHog()
+  const { can, role } = useAccess()
+  const isStaff = role === "staff"
+  const planCode = useEstablishmentPlanCode()
 
   const recipeId = params.id ?? state.recipeId ?? ""
   const seedRecipe = state.recipe && state.recipe.id ? state.recipe : null
@@ -745,6 +752,7 @@ export default function RecipeDetailPage() {
   }, [recipe.id, subRecipeOptions])
 
   const openCreateIngredient = (type: IngredientType) => {
+    if (isStaff) return
     setIngredientEditorMode("create")
     setEditingIngredientId(null)
     if (type === "ARTICLE") {
@@ -774,6 +782,7 @@ export default function RecipeDetailPage() {
   }
 
   const openEditIngredient = (id: string) => {
+    if (isStaff) return
     const found = ingredients.find((item) => item.id === id)
     if (!found) return
     setIngredientEditorMode("edit")
@@ -1830,6 +1839,18 @@ export default function RecipeDetailPage() {
     }))
   }
 
+  if (!can("recipes")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const hasRecipeAccess = planValue
+    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
+    : false
+
+  if (!hasRecipeAccess) {
+    return <RecipePlanPreview />
+  }
+
   if (!recipeId) {
     return (
       <div className="flex min-h-[400px] items-center justify-center text-sm text-muted-foreground">
@@ -1881,31 +1902,35 @@ export default function RecipeDetailPage() {
         onDeleteAndLeave={confirmDeleteAndLeave}
       />
 
-      <RecipeDeleteDialog
-        open={deleteOpen}
-        onOpenChange={(open) => {
-          setDeleteOpen(open)
-          if (!open) {
-            setDeleteSaving(false)
-          }
-        }}
-        recipeName={recipe.name}
-        onConfirm={confirmDeleteRecipe}
-        isDeleting={deleteSaving}
-      />
+      {!isStaff && (
+        <>
+          <RecipeDeleteDialog
+            open={deleteOpen}
+            onOpenChange={(open) => {
+              setDeleteOpen(open)
+              if (!open) {
+                setDeleteSaving(false)
+              }
+            }}
+            recipeName={recipe.name}
+            onConfirm={confirmDeleteRecipe}
+            isDeleting={deleteSaving}
+          />
 
-      <RecipeDuplicateDialog
-        open={duplicateOpen}
-        onOpenChange={(open) => {
-          setDuplicateOpen(open)
-          if (!open) setDuplicateSaving(false)
-        }}
-        recipeName={recipe.name}
-        duplicateName={duplicateName}
-        onDuplicateNameChange={setDuplicateName}
-        onConfirm={confirmDuplicate}
-        isDuplicating={duplicateSaving}
-      />
+          <RecipeDuplicateDialog
+            open={duplicateOpen}
+            onOpenChange={(open) => {
+              setDuplicateOpen(open)
+              if (!open) setDuplicateSaving(false)
+            }}
+            recipeName={recipe.name}
+            duplicateName={duplicateName}
+            onDuplicateNameChange={setDuplicateName}
+            onConfirm={confirmDuplicate}
+            isDuplicating={duplicateSaving}
+          />
+        </>
+      )}
 
       <RecipeRenameDialog
         open={renameOpen}
@@ -1975,6 +2000,9 @@ export default function RecipeDetailPage() {
           openDownload()
         }}
         onDelete={() => setDeleteOpen(true)}
+        canRename={!isStaff}
+        canDuplicate={!isStaff}
+        canDelete={!isStaff}
       />
 
       <div className="grid gap-4 lg:grid-cols-12 items-start">
@@ -1989,6 +2017,7 @@ export default function RecipeDetailPage() {
             onAddSubRecipe={() => openCreateIngredient("SUBRECIPE")}
             onAddFixed={() => openCreateIngredient("FIXED")}
             onEditIngredient={openEditIngredient}
+            canEdit={!isStaff}
           />
         </div>
 
@@ -2038,6 +2067,7 @@ export default function RecipeDetailPage() {
             categoryOptions={categoryOptions}
             subcategoryOptionsByCategory={subcategoryOptionsByCategory}
             vatOptions={vatOptions}
+            readOnly={isStaff}
           />
         </div>
       </div>

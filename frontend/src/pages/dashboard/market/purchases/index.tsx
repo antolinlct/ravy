@@ -21,7 +21,10 @@ import {
 
 import ConsultantAvatar from "@/assets/avatar.png"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
 import { useTheme } from "@/components/dark/theme-provider"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ChartConfig } from "@/components/ui/chart"
@@ -32,6 +35,7 @@ import type { MarketGridRow, MarketProductRow, PricePoint } from "./types"
 import { MarketComparatorCard } from "./components/MarketComparatorCard"
 import { MarketDatabaseCard } from "./components/MarketDatabaseCard"
 import { MarketProductSheet } from "./components/MarketProductSheet"
+import { MarketPlanPreview } from "../components/MarketPlanPreview"
 
 type InterestHeaderProps = IHeaderParams<MarketGridRow>
 
@@ -158,6 +162,8 @@ const getIntervalStart = (date: Date, interval: IntervalKey) => {
 }
 
 export default function MarketPurchasesPage() {
+  const { can } = useAccess()
+  const planCode = useEstablishmentPlanCode()
   const { estId } = useEstablishment()
   const { theme = "system" } = useTheme()
   const [isProductSheetOpen, setIsProductSheetOpen] = useState(false)
@@ -1210,6 +1216,15 @@ export default function MarketPurchasesPage() {
       actionColumn,
     ]
   )
+  if (!can("consultant")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const planLocked = planValue === "PLAN_APERO" || planValue === "PLAN_PLAT"
+  if (planLocked) {
+    return <MarketPlanPreview />
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

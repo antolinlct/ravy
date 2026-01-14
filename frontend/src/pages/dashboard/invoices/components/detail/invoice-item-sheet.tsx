@@ -22,6 +22,7 @@ type InvoiceItemSheetProps = {
   isBeverageSupplier: boolean
   onOpenChange: (open: boolean) => void
   onUpdate: React.Dispatch<React.SetStateAction<InvoiceDetail | null>>
+  readOnly?: boolean
 }
 
 type ItemFormState = {
@@ -49,6 +50,7 @@ export default function InvoiceItemSheet({
   isBeverageSupplier,
   onOpenChange,
   onUpdate,
+  readOnly = false,
 }: InvoiceItemSheetProps) {
   const [itemForm, setItemForm] = useState<ItemFormState>(EMPTY_FORM)
 
@@ -74,6 +76,7 @@ export default function InvoiceItemSheet({
   }
 
   const handleSave = async () => {
+    if (readOnly) return
     if (editingIndex === null) return
     const unit = itemForm.unit.trim()
     const unitPrice = itemForm.unitPrice.trim()
@@ -193,6 +196,7 @@ export default function InvoiceItemSheet({
                   <InputGroupInput
                     value={itemForm.unitPriceGross}
                     onChange={(e) => setItemForm((prev) => ({ ...prev, unitPriceGross: e.target.value }))}
+                    disabled={readOnly}
                   />
                   <InputGroupAddon align="inline-end">€</InputGroupAddon>
                 </InputGroup>
@@ -203,6 +207,7 @@ export default function InvoiceItemSheet({
                   value={itemForm.unit}
                   required
                   onChange={(e) => setItemForm((prev) => ({ ...prev, unit: e.target.value }))}
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -215,6 +220,7 @@ export default function InvoiceItemSheet({
                     <InputGroupInput
                       value={itemForm.dutiesTaxes}
                       onChange={(e) => setItemForm((prev) => ({ ...prev, dutiesTaxes: e.target.value }))}
+                      disabled={readOnly}
                     />
                     <InputGroupAddon align="inline-end">€</InputGroupAddon>
                   </InputGroup>
@@ -225,6 +231,7 @@ export default function InvoiceItemSheet({
                     <InputGroupInput
                       value={itemForm.discount}
                       onChange={(e) => setItemForm((prev) => ({ ...prev, discount: e.target.value }))}
+                      disabled={readOnly}
                     />
                     <InputGroupAddon align="inline-end">€</InputGroupAddon>
                   </InputGroup>
@@ -239,6 +246,7 @@ export default function InvoiceItemSheet({
                   <InputGroupInput
                     value={itemForm.unitPrice}
                     onChange={(e) => setItemForm((prev) => ({ ...prev, unitPrice: e.target.value }))}
+                    disabled={readOnly}
                   />
                   <InputGroupAddon align="inline-end">€</InputGroupAddon>
                 </InputGroup>
@@ -248,6 +256,7 @@ export default function InvoiceItemSheet({
                 <Input
                   value={itemForm.quantity}
                   onChange={(e) => setItemForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -279,7 +288,7 @@ export default function InvoiceItemSheet({
           <Button variant="secondary" onClick={closeSheet}>
             Annuler
           </Button>
-          <Button onClick={handleSave} disabled={editingIndex === null}>
+          <Button onClick={handleSave} disabled={editingIndex === null || readOnly}>
             Enregistrer
           </Button>
         </div>

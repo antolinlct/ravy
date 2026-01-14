@@ -46,6 +46,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import { useUserData } from "@/context/UserDataContext"
 import { toast } from "sonner"
@@ -74,10 +76,21 @@ type ApiSupportTicket = {
 }
 
 export default function TicketSupportPage() {
+  const { can } = useAccess()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [data, setData] = React.useState<Ticket[]>([])
   const { estId } = useEstablishment()
   const userData = useUserData()
+
+  if (!can("support")) {
+    return (
+      <div className="flex items-start justify-start rounded-xl gap-4">
+        <div className="w-full max-w-5xl space-y-4">
+          <AccessLockedCard />
+        </div>
+      </div>
+    )
+  }
   const posthog = usePostHog()
   const [estPrefix, setEstPrefix] = React.useState("XX")
   const [dialogOpen, setDialogOpen] = React.useState(false)

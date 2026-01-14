@@ -28,6 +28,8 @@ type PdfToolbarProps = {
   onNextPage?: () => void
   onOpen?: () => void
   onShare?: () => void
+  canOpen?: boolean
+  canShare?: boolean
   className?: string
   collapsed?: boolean
   onToggleCollapse?: () => void
@@ -46,6 +48,8 @@ export function PdfToolbar({
   onNextPage,
   onOpen,
   onShare,
+  canOpen = true,
+  canShare = true,
   className,
   collapsed = false,
   onToggleCollapse,
@@ -149,25 +153,31 @@ export function PdfToolbar({
 
             <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
 
-            <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" size="icon" onClick={onOpen} aria-label="Ouvrir dans un onglet">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
-              </Tooltip>
+            {(canOpen || canShare) && (
+              <div className="flex items-center gap-2">
+                {canOpen && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="secondary" size="icon" onClick={onOpen} aria-label="Ouvrir dans un onglet">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Ouvrir dans un nouvel onglet</TooltipContent>
+                  </Tooltip>
+                )}
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" size="icon" onClick={onShare} aria-label="Partager par mail">
-                    <Mail className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Partager par mail</TooltipContent>
-              </Tooltip>
-            </div>
+                {canShare && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="secondary" size="icon" onClick={onShare} aria-label="Partager par mail">
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Partager par mail</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+            )}
 
             {onToggleCollapse && (
               <Tooltip>

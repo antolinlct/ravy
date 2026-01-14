@@ -62,7 +62,43 @@ def get_establishments_by_id(id: UUID):
 def create_establishments(payload: dict):
     prepared = jsonable_encoder({k: v for k, v in payload.items() if v is not None and k != "id"})
     response = supabase.table("establishments").insert(prepared).execute()
-    return response.data[0] if response.data else None
+    created = response.data[0] if response.data else None
+    if not created or not created.get("id"):
+        return created
+
+    establishment_id = created["id"]
+    try:
+        padrino_rows = (
+            supabase.table("user_establishment")
+            .select("user_id")
+            .eq("role", "padrino")
+            .execute()
+        )
+        user_ids = []
+        if padrino_rows.data:
+            seen = set()
+            for row in padrino_rows.data:
+                user_id = row.get("user_id")
+                if user_id and user_id not in seen:
+                    seen.add(user_id)
+                    user_ids.append(user_id)
+
+        if user_ids:
+            supabase.table("user_establishment").insert(
+                [
+                    {
+                        "user_id": user_id,
+                        "establishment_id": establishment_id,
+                        "role": "padrino",
+                    }
+                    for user_id in user_ids
+                ]
+            ).execute()
+    except APIError:
+        # Ne bloque pas la création si l'association padrino échoue
+        pass
+
+    return created
 
 
 def update_establishments(id: UUID, payload: dict):

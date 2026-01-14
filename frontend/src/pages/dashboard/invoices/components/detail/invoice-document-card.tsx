@@ -34,6 +34,8 @@ type InvoiceDocumentCardProps = {
   onNextPage: () => void
   onOpenDocument: () => void
   onShareDocument: () => void
+  canOpen?: boolean
+  canShare?: boolean
   toolbarCollapsed: boolean
   onToggleCollapse: () => void
 }
@@ -57,6 +59,8 @@ export default function InvoiceDocumentCard({
   onNextPage,
   onOpenDocument,
   onShareDocument,
+  canOpen = true,
+  canShare = true,
   toolbarCollapsed,
   onToggleCollapse,
 }: InvoiceDocumentCardProps) {
@@ -270,6 +274,8 @@ export default function InvoiceDocumentCard({
               onNextPage={onNextPage}
               onOpen={onOpenDocument}
               onShare={onShareDocument}
+              canOpen={canOpen}
+              canShare={canShare}
               collapsed={toolbarCollapsed}
               onToggleCollapse={onToggleCollapse}
             />

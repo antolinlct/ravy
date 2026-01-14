@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import ConsultantAvatar from "@/assets/avatar.png"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 import {
   buildSupplierOptions,
   buildSupplierSeries,
@@ -19,6 +21,7 @@ import { ProductConsumptionCard } from "./components/ProductConsumptionCard"
 export default function ProductAnalyticsPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const { can } = useAccess()
   const [selectedLabel, setSelectedLabel] = useState<string>("all")
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [supplierInterval, setSupplierInterval] = useState<"day" | "week" | "month">("week")
@@ -351,6 +354,10 @@ export default function ProductAnalyticsPage() {
         .slice(0, 10),
     [masterArticlesById, suppliersById, variations]
   )
+
+  if (!can("analytics")) {
+    return <AccessLockedCard />
+  }
 
   return (
     <div className="flex w-full items-start justify-start">

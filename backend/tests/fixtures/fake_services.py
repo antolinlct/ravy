@@ -423,6 +423,28 @@ class PriceService:
 price_service = PriceService()
 
 
+class StripeWebhookEventsService:
+    def get_all_stripe_webhook_events(self, filters=None, limit=1000, page=1):
+        return _find("stripe_webhook_events", filters or {}, limit)
+
+    def get_stripe_webhook_events_by_id(self, id):
+        return next((r for r in DB["stripe_webhook_events"] if r.get("id") == id), None)
+
+    def create_stripe_webhook_events(self, payload: dict):
+        data = dict(payload)
+        if "id" not in data:
+            data["id"] = uuid4()
+        return _insert("stripe_webhook_events", data)
+
+    def update_stripe_webhook_events(self, id, payload: dict):
+        return _update("stripe_webhook_events", id, payload)
+
+    def delete_stripe_webhook_events(self, id):
+        return _delete("stripe_webhook_events", id)
+
+stripe_webhook_events_service = StripeWebhookEventsService()
+
+
 class MarketArticlesService:
     def get_all_market_articles(self, filters=None, limit=1000, page=1):
         return _find("market_articles", filters or {}, limit)

@@ -4,7 +4,7 @@ from typing import List, Optional, Any, Literal
 from uuid import UUID
 
 
-User_role = Literal["padrino", "owner", "admin", "manager", "staff"]
+User_role = Literal["padrino", "owner", "admin", "manager", "staff", "accountant"]
 
 class UserEstablishment(BaseModel):
     user_id: Optional[UUID] = None

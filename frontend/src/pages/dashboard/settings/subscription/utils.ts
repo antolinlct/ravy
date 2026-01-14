@@ -17,6 +17,7 @@ export type UsageItem = {
   value: number
   detail: string
   quota: string
+  isOverLimit: boolean
 }
 
 type AddonPricing = {
@@ -289,9 +290,18 @@ const buildUsageItems = (
     const counter = countersByCategory[config.key]
     const used = toNumber(counter?.used_value) ?? 0
     const limit = toNumber(counter?.limit_value) ?? planQuotaByCategory[config.key] ?? null
-    const percent = limit && limit > 0 ? Math.min((used / limit) * 100, 100) : 0
-    const detail =
+    const isOverLimit = limit !== null && used > limit
+    const percent =
       limit !== null
+        ? limit > 0
+          ? Math.min((used / limit) * 100, 100)
+          : used > 0
+            ? 100
+            : 0
+        : 0
+    const detail = isOverLimit
+      ? "Quota dépassé"
+      : limit !== null
         ? `${Math.round(percent)}% du quota${config.detailSuffix ? ` ${config.detailSuffix}` : ""}`
         : "Quota illimité"
     const quota =
@@ -307,6 +317,7 @@ const buildUsageItems = (
       value: percent,
       detail,
       quota,
+      isOverLimit,
     }
   })
 }
@@ -503,10 +514,10 @@ export const buildSubscriptionViewModel = (
     price: priceLabel,
     status: isFree ? "Gratuit" : "Actif",
     renewal: renewalDate
-      ? `Renouvellement automatique le ${renewalDate}`
+      ? `Mise à jour automatique le ${renewalDate}`
       : isFree
-        ? "Aucun renouvellement"
-        : "Renouvellement à venir",
+        ? "Aucune mise à jour"
+        : "Mise à jour à venir",
     billingCycle: planCycle ?? null,
     amount: planPriceAmount ?? (isFree ? 0 : null),
     periodStart: periodStartValue,

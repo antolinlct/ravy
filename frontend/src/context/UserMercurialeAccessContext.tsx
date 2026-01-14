@@ -10,7 +10,7 @@
 
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 import { useUser } from "./UserContext"
 
@@ -18,6 +18,7 @@ export type MercurialeLevel = "STANDARD" | "PLUS" | "PREMIUM"
 
 type ContextValue = {
   level: MercurialeLevel | null
+  reload: () => Promise<void>
 }
 
 const UserMercurialeAccessContext = createContext<ContextValue | null>(null)
@@ -30,7 +31,7 @@ export function UserMercurialeAccessProvider({
   const user = useUser()
   const [level, setLevel] = useState<MercurialeLevel | null>(null)
 
-  useEffect(() => {
+  const reload = useCallback(async () => {
     const userId = user?.id
 
     if (!userId) {
@@ -38,29 +39,25 @@ export function UserMercurialeAccessProvider({
       return
     }
 
-    let active = true
+    const { data, error } = await supabase
+      .from("user_mercuriale_access")
+      .select("mercuriale_level")
+      .eq("user_id", userId)
+      .maybeSingle()
 
-    async function load() {
-      const { data, error } = await supabase
-        .from("user_mercuriale_access")
-        .select("mercuriale_level")
-        .eq("user_id", userId)
-        .maybeSingle()
+    if (error) return
 
-      if (!active || error) return
-
-      setLevel(data?.mercuriale_level ?? "STANDARD")
-    }
-
-    load()
-
-    return () => {
-      active = false
-    }
+    setLevel(data?.mercuriale_level ?? "STANDARD")
   }, [user?.id])
 
+  useEffect(() => {
+    reload().catch(() => {
+      /* ignore load errors */
+    })
+  }, [reload])
+
   return (
-    <UserMercurialeAccessContext.Provider value={{ level }}>
+    <UserMercurialeAccessContext.Provider value={{ level, reload }}>
       {children}
     </UserMercurialeAccessContext.Provider>
   )
@@ -70,4 +67,8 @@ export function UserMercurialeAccessProvider({
 // eslint-disable-next-line react-refresh/only-export-components -- hook export nécessaire aux consommateurs
 export function useUserMercurialeAccess() {
   return useContext(UserMercurialeAccessContext)
+}
+
+export function useUserMercurialeAccessReload() {
+  return useContext(UserMercurialeAccessContext)?.reload
 }

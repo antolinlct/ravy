@@ -40,7 +40,6 @@ from app.api.routes import price_stripe
 from app.api.routes import sessions_ia
 from app.api.routes import logs_ia
 from app.api.routes import messages_ia
-from app.api.routes import notifications
 from app.api.routes import regex_patterns
 from app.api.routes import supplier_alias
 from app.api.routes import recipe_categories
@@ -72,6 +71,7 @@ from app.api.routes import variations
 from app.api.routes import suppliers
 from app.api.routes import invoices
 from app.api.routes import user_establishment
+from app.api.routes import invite
 from app.api.routes import articles
 from app.api.routes import history_ingredients
 from app.api.routes import establishment_email_alias
@@ -127,6 +127,7 @@ app.include_router(establishment_email_alias.router)
 app.include_router(history_ingredients.router)
 app.include_router(articles.router)
 app.include_router(user_establishment.router)
+app.include_router(invite.router)
 app.include_router(invoices.router)
 app.include_router(suppliers.router)
 app.include_router(variations.router)
@@ -159,7 +160,6 @@ app.include_router(recipe_categories.router)
 app.include_router(supplier_alias.router)
 app.include_router(regex_patterns.router)
 app.include_router(messages_ia.router)
-app.include_router(notifications.router)
 app.include_router(logs_ia.router)
 app.include_router(sessions_ia.router)
 app.include_router(price_stripe.router)

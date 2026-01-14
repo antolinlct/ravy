@@ -3,10 +3,14 @@ import { useNavigate } from "react-router-dom"
 
 import { type ChartConfig } from "@/components/ui/chart"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
 import ReportsHeader from "./components/ReportsHeader"
 import ReportsTrendCard from "./components/ReportsTrendCard"
 import ReportsHistoryCard from "./components/ReportsHistoryCard"
 import ReportCreateDialog from "./components/ReportCreateDialog"
+import { PerformancePlanPreview } from "./components/PerformancePlanPreview"
 import {
   getReportMonthDate,
   getReportMonthKey,
@@ -22,6 +26,8 @@ const formatMonthLabel = (date: Date) => {
 export default function PerformancesReportsPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const { can } = useAccess()
+  const planCode = useEstablishmentPlanCode()
   const { reports, reportableRecipes, isLoading, error, reload } = usePerformanceReportsData()
 
   const currentYear = new Date().getFullYear()
@@ -226,6 +232,15 @@ export default function PerformancesReportsPage() {
     },
     [estId, navigate, reload]
   )
+
+  if (!can("performance")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const planLocked = planValue === "PLAN_APERO" || planValue === "PLAN_PLAT"
+  if (planLocked) {
+    return <PerformancePlanPreview />
+  }
 
   return (
     <div className="space-y-4">

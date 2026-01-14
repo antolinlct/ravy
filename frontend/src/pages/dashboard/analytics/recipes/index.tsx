@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
+import { RecipePlanPreview } from "@/pages/dashboard/recipes/components/RecipePlanPreview"
 import { buildRecipeKpis, useRecipeOverviewData } from "./api"
 import type { IntervalKey } from "@/components/blocks/area-chart"
 import type { RecipeKpi, RecipeMarginItem, RecipeVariation } from "./types"
@@ -11,6 +15,8 @@ import { RecipeMarginsCard } from "./components/RecipeMarginsCard"
 export default function RecipeAnalyticsPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
+  const { can } = useAccess()
+  const planCode = useEstablishmentPlanCode()
   const [selectedCategory, setSelectedCategory] = useState<string>("__all__")
   const [selectedSubCategory, setSelectedSubCategory] = useState<string>("__all__")
   const [marginInterval, setMarginInterval] = useState<IntervalKey>("week")
@@ -222,6 +228,18 @@ export default function RecipeAnalyticsPage() {
   }, [marginPeriodDelta])
 
   const firstRecipeId = recipes[0]?.id
+
+  if (!can("analytics")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const hasRecipeAccess = planValue
+    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
+    : false
+
+  if (!hasRecipeAccess) {
+    return <RecipePlanPreview />
+  }
 
   return (
     <div className="space-y-6">

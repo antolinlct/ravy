@@ -37,6 +37,7 @@ type InvoiceArticlesCardProps = {
   isLoading?: boolean
   onToggleExpand: () => void
   onEditItem: (index: number) => void
+  canEdit?: boolean
   establishmentId?: string | null
   fallbackDate: Date
 }
@@ -48,6 +49,7 @@ export default function InvoiceArticlesCard({
   isLoading,
   onToggleExpand,
   onEditItem,
+  canEdit = true,
   establishmentId,
   fallbackDate,
 }: InvoiceArticlesCardProps) {
@@ -160,7 +162,7 @@ export default function InvoiceArticlesCard({
     }
 
     return (
-      <DialogContent className="w-full sm:w-[1020px] max-w-[98vw] sm:!max-w-[1100px] bg-transparent p-0 border-none shadow-none">
+      <DialogContent className="w-full sm:w-[1020px] max-w-[98vw] sm:!max-w-[1100px] bg-background p-6">
         <AreaChartBlock
           data={metricHistory}
           title={`${metric} - ${item.name}`}
@@ -179,6 +181,7 @@ export default function InvoiceArticlesCard({
           showIntervalTabs
           enableZoom
           minYPadding={2}
+          variant="bare"
           areaColor="var(--chart-1)"
           tooltipLabel={metric}
           tooltipValueFormatter={(v) => formatEuroFromNumber(v)}
@@ -315,24 +318,26 @@ export default function InvoiceArticlesCard({
                               </TableCell>
                               <TableCell className="px-3 text-right w-[20%]">{renderDelta(item.delta)}</TableCell>
                               <TableCell className="px-3 text-right w-12">
-                                <TooltipProvider delayDuration={100}>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        className="h-7 w-7"
-                                        aria-label={`Modifier ${item.name}`}
-                                        onClick={(event) => {
-                                          event.stopPropagation()
-                                          onEditItem(index)
-                                        }}
-                                      >
-                                        <Pencil color="#848484" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                {canEdit && (
+                                  <TooltipProvider delayDuration={100}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          className="h-7 w-7"
+                                          aria-label={`Modifier ${item.name}`}
+                                          onClick={(event) => {
+                                            event.stopPropagation()
+                                            onEditItem(index)
+                                          }}
+                                        >
+                                          <Pencil color="#848484" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                               </TableCell>
                             </TableRow>
                           </DialogTrigger>
@@ -492,24 +497,26 @@ export default function InvoiceArticlesCard({
                               {item.lineTotal ?? "—"}
                             </TableCell>
                             <TableCell className="px-3 text-right w-12">
-                              <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      className="h-7 w-7"
-                                      aria-label={`Modifier ${item.name}`}
-                                      onClick={(event) => {
-                                        event.stopPropagation()
-                                        onEditItem(index)
-                                      }}
-                                    >
-                                      <Pencil color="var(--muted-foreground)" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                              {canEdit && (
+                                <TooltipProvider delayDuration={100}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        aria-label={`Modifier ${item.name}`}
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          onEditItem(index)
+                                        }}
+                                      >
+                                        <Pencil color="var(--muted-foreground)" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">Modifier l&apos;article</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </TableCell>
                           </TableRow>
                         </DialogTrigger>

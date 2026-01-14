@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useAccess } from "@/components/access/access-control"
 import type { LatestVariation } from "../types"
 import { formatters } from "../api"
 import { EmptyState } from "./empty-state"
@@ -12,6 +13,8 @@ type LatestVariationsCardProps = {
 }
 
 export function LatestVariationsCard({ items }: LatestVariationsCardProps) {
+  const { role } = useAccess()
+  const isStaffOrAccountant = role === "staff" || role === "accountant"
   const variationsScrollRef = useRef<HTMLDivElement | null>(null)
   const [showBottomFade, setShowBottomFade] = useState(false)
 
@@ -42,9 +45,11 @@ export function LatestVariationsCard({ items }: LatestVariationsCardProps) {
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <CardTitle>Dernières variations</CardTitle>
-          <Button variant="link" className="text-muted-foreground hover:text-destructive p-0 h-6">
-            Tout supprimer
-          </Button>
+          {!isStaffOrAccountant && (
+            <Button variant="link" className="text-muted-foreground hover:text-destructive p-0 h-6">
+              Tout supprimer
+            </Button>
+          )}
         </div>
         <CardDescription className="mt-1">
           Suivi des articles dont les prix ont récemment varié.
@@ -88,13 +93,15 @@ export function LatestVariationsCard({ items }: LatestVariationsCardProps) {
                           {item.changePercent > 0 ? "+" : ""}
                           {formatters.formatPercentValue(item.changePercent)}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!isStaffOrAccountant && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   )

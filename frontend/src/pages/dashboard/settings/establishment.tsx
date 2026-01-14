@@ -21,6 +21,8 @@ import {
 import { extractLogoPath, getSignedLogoUrl } from "@/lib/logoStorage"
 import { supabase } from "@/lib/supabaseClient"
 import { Building, IdCard, Mail, X } from "lucide-react"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 
 const LOGO_BUCKET = import.meta.env.VITE_SUPABASE_LOGO_BUCKET || "logos"
 
@@ -38,6 +40,7 @@ type EstablishmentData = {
 }
 
 export default function EstablishmentSettingsPage() {
+  const { can } = useAccess()
   const { estId } = useEstablishment()
   const establishment = useEstablishmentData() as EstablishmentData | null
   const reloadEstablishmentData = useEstablishmentDataReload()
@@ -96,6 +99,16 @@ export default function EstablishmentSettingsPage() {
       isActive = false
     }
   }, [establishment])
+
+  if (!can("establishment_settings")) {
+    return (
+      <div className="flex items-start justify-start rounded-xl gap-4">
+        <div className="w-full max-w-3xl space-y-4">
+          <AccessLockedCard />
+        </div>
+      </div>
+    )
+  }
 
   const hasChanges =
     name !== baseline.name ||

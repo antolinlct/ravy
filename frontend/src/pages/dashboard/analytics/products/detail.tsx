@@ -103,6 +103,13 @@ export default function ProductDetailPage() {
   }, [resolvedRouteId, selectedArticleId])
 
   useEffect(() => {
+    if (!selectedArticleId) return
+    if (typeof window === "undefined") return
+    const detailPath = `/dashboard/analytics/products/${selectedArticleId}`
+    window.sessionStorage.setItem("sidebar.analytics.products.detail", detailPath)
+  }, [selectedArticleId])
+
+  useEffect(() => {
     const analysisSupplierId = analysis?.master_article?.supplier_id
     if (analysisSupplierId && analysisSupplierId !== selectedSupplierId) {
       setSelectedSupplierId(analysisSupplierId)

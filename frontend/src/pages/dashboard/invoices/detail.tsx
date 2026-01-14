@@ -6,6 +6,7 @@ import { usePostHog } from "posthog-js/react"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import api from "@/lib/axiosClient"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAccess } from "@/components/access/access-control"
 import InvoiceDetailHeader from "./components/detail/invoice-detail-header"
 import InvoiceDocumentCard from "./components/detail/invoice-document-card"
 import InvoiceSummaryCard from "./components/detail/invoice-summary-card"
@@ -95,6 +96,8 @@ export default function InvoiceDetailPage() {
   const posthog = usePostHog()
   const { id } = useParams()
   const { estId } = useEstablishment()
+  const { role } = useAccess()
+  const isStaff = role === "staff"
   const invoiceId = useMemo(() => {
     if (id) return id
     const state = location.state as { invoiceId?: string } | null
@@ -307,6 +310,7 @@ export default function InvoiceDetailPage() {
   }
 
   const handleEditItem = (index: number) => {
+    if (isStaff) return
     setEditingItemIndex(index)
     setItemSheetOpen(true)
   }
@@ -339,6 +343,7 @@ export default function InvoiceDetailPage() {
   }
 
   const handleDeleteInvoice = async () => {
+    if (isStaff) return
     if (!estId || !invoiceId) {
       toast.error("Impossible de supprimer la facture.")
       return
@@ -387,6 +392,8 @@ export default function InvoiceDetailPage() {
         lastModified={resolvedInvoice.lastModified}
         onDownload={handleDownloadDocument}
         onDelete={handleDeleteInvoice}
+        canDownload={!isStaff}
+        canDelete={!isStaff}
       />
 
       <div className="grid gap-4 lg:grid-cols-12 items-start">
@@ -409,6 +416,8 @@ export default function InvoiceDetailPage() {
           onNextPage={handleNextPage}
           onOpenDocument={handleOpenDocument}
           onShareDocument={handleShareDocument}
+          canOpen={!isStaff}
+          canShare={!isStaff}
           toolbarCollapsed={toolbarCollapsed}
           onToggleCollapse={() => setToolbarCollapsed((prev) => !prev)}
         />
@@ -418,6 +427,7 @@ export default function InvoiceDetailPage() {
             invoice={resolvedInvoice}
             onUpdate={setLocalInvoice}
             invoiceId={invoiceId}
+            canEdit={!isStaff}
           />
           {!articlesExpanded && (
             <InvoiceArticlesCard
@@ -427,6 +437,7 @@ export default function InvoiceDetailPage() {
               isLoading={isArticlesLoading}
               onToggleExpand={() => setArticlesExpanded(true)}
               onEditItem={handleEditItem}
+              canEdit={!isStaff}
               establishmentId={estId}
               fallbackDate={new Date()}
             />
@@ -441,6 +452,7 @@ export default function InvoiceDetailPage() {
             isLoading={isArticlesLoading}
             onToggleExpand={() => setArticlesExpanded(false)}
             onEditItem={handleEditItem}
+            canEdit={!isStaff}
             establishmentId={estId}
             fallbackDate={new Date()}
           />
@@ -454,6 +466,7 @@ export default function InvoiceDetailPage() {
         isBeverageSupplier={isBeverageSupplier}
         onOpenChange={handleItemSheetChange}
         onUpdate={setLocalInvoice}
+        readOnly={isStaff}
       />
     </div>
   )

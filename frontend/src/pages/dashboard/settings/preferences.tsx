@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -27,6 +29,7 @@ import {
 import { useEstablishment } from "@/context/EstablishmentContext"
 
 export default function PreferencesSettingsPage() {
+  const { can } = useAccess()
   const { estId } = useEstablishment()
   const [aliasEmail, setAliasEmail] = useState<string>("")
   const [aliasActive, setAliasActive] = useState<boolean>(false)
@@ -41,6 +44,16 @@ export default function PreferencesSettingsPage() {
     typeSms: null as string | null,
     smsTrigger: null as string | null,
   })
+
+  if (!can("preferences")) {
+    return (
+      <div className="flex items-start justify-start rounded-xl gap-4">
+        <div className="w-full max-w-5xl space-y-4">
+          <AccessLockedCard />
+        </div>
+      </div>
+    )
+  }
   const [savingSms, setSavingSms] = useState(false)
   const [priceMethod, setPriceMethod] = useState<string | null>(null)
   const [priceValue, setPriceValue] = useState<string | null>(null)

@@ -40,6 +40,8 @@ import {
   type AvailableAddonItem,
   type PlanDialogItem,
 } from "./utils"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 
 const toNumber = (value: number | string | null | undefined) => {
   if (value === null || value === undefined) return null
@@ -48,6 +50,7 @@ const toNumber = (value: number | string | null | undefined) => {
 }
 
 export default function SubscriptionPage() {
+  const { can } = useAccess()
   const { estId } = useEstablishment()
   const user = useUser()
   const usageCounters = useEstablishmentUsageCounters()
@@ -123,6 +126,16 @@ export default function SubscriptionPage() {
   const totalRecurringAmount = (plan.amount ?? 0) + totalAddonAmount
   const totalCycleLabel = subscriptionBillingCycle === "yearly" ? " / an" : " / mois"
 
+  if (!can("billing")) {
+    return (
+      <div className="flex items-start justify-start rounded-xl gap-4">
+        <div className="w-full max-w-5xl space-y-4">
+          <AccessLockedCard />
+        </div>
+      </div>
+    )
+  }
+
   const triggerSubscriptionRefresh = () => {
     if (!estId) return
     void queryClient.invalidateQueries({ queryKey: ["subscription", estId] })
@@ -138,6 +151,10 @@ export default function SubscriptionPage() {
   }
 
   const handleOpenPortal = async () => {
+    if (!estId) {
+      toast.error("Établissement introuvable.")
+      return
+    }
     if (!subscriptionData?.billingAccount) return
     const stripeCustomerId =
       subscriptionData.billingAccount.stripe_customer_id_live ??

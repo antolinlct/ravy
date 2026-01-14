@@ -19,6 +19,8 @@ type InvoiceDetailHeaderProps = {
   lastModified: string
   onDownload: () => void
   onDelete: () => Promise<void> | void
+  canDownload?: boolean
+  canDelete?: boolean
 }
 
 export default function InvoiceDetailHeader({
@@ -26,6 +28,8 @@ export default function InvoiceDetailHeader({
   lastModified,
   onDownload,
   onDelete,
+  canDownload = true,
+  canDelete = true,
 }: InvoiceDetailHeaderProps) {
   const [open, setOpen] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
@@ -90,43 +94,47 @@ export default function InvoiceDetailHeader({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" className="gap-2" onClick={onDownload}>
-          <Download className="h-4 w-4" />
-          Télécharger
-        </Button>
-        <AlertDialog open={open} onOpenChange={handleOpenChange}>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Supprimer
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer cette facture ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible. Confirmez la suppression de la facture et de son document associé.
-              </AlertDialogDescription>
-              {countdown !== null && (
-                <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Suppression automatique dans {countdown}s. Vous pouvez encore annuler.</span>
-                </div>
-              )}
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive hover:bg-destructive/90 dark:text-foreground"
-                onClick={handleConfirmClick}
-                disabled={isDeleting}
-              >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {actionLabel}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {canDownload && (
+          <Button variant="outline" className="gap-2" onClick={onDownload}>
+            <Download className="h-4 w-4" />
+            Télécharger
+          </Button>
+        )}
+        {canDelete && (
+          <AlertDialog open={open} onOpenChange={handleOpenChange}>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Supprimer
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer cette facture ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible. Confirmez la suppression de la facture et de son document associé.
+                </AlertDialogDescription>
+                {countdown !== null && (
+                  <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Suppression automatique dans {countdown}s. Vous pouvez encore annuler.</span>
+                  </div>
+                )}
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive hover:bg-destructive/90 dark:text-foreground"
+                  onClick={handleConfirmClick}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {actionLabel}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   )

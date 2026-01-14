@@ -14,9 +14,15 @@ type InvoiceSummaryCardProps = {
   invoice: InvoiceDetail
   onUpdate: React.Dispatch<React.SetStateAction<InvoiceDetail | null>>
   invoiceId: string
+  canEdit?: boolean
 }
 
-export default function InvoiceSummaryCard({ invoice, onUpdate, invoiceId }: InvoiceSummaryCardProps) {
+export default function InvoiceSummaryCard({
+  invoice,
+  onUpdate,
+  invoiceId,
+  canEdit = true,
+}: InvoiceSummaryCardProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formValues, setFormValues] = useState({
@@ -92,81 +98,83 @@ export default function InvoiceSummaryCard({ invoice, onUpdate, invoiceId }: Inv
           <CardTitle>Détail facture</CardTitle>
           <CardDescription>Résumé compact des infos clés.</CardDescription>
         </div>
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogTrigger asChild>
-            <Button variant="secondary" onClick={openEdit}>
-              <Pencil className="h-4 w-4" />
-              Modifier
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Modifier la facture</DialogTitle>
-              <DialogDescription>Actualisez les informations principales.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid w-full items-center gap-3">
-                <Label>Numéro de facture</Label>
-                <InputGroup>
-                  <InputGroupInput
-                    value={formValues.number}
-                    required
-                    onChange={(e) => setFormValues((prev) => ({ ...prev, number: e.target.value }))}
-                  />
-                  <InputGroupAddon align="inline-start">N°</InputGroupAddon>
-                </InputGroup>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <div className="grid w-full max-w-sm items-center gap-3">
-                  <Label>HT</Label>
+        {canEdit && (
+          <Dialog open={editOpen} onOpenChange={setEditOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" onClick={openEdit}>
+                <Pencil className="h-4 w-4" />
+                Modifier
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Modifier la facture</DialogTitle>
+                <DialogDescription>Actualisez les informations principales.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid w-full items-center gap-3">
+                  <Label>Numéro de facture</Label>
                   <InputGroup>
                     <InputGroupInput
-                      value={formValues.ht}
+                      value={formValues.number}
                       required
-                      onChange={(e) => setFormValues((prev) => ({ ...prev, ht: e.target.value }))}
+                      onChange={(e) => setFormValues((prev) => ({ ...prev, number: e.target.value }))}
                     />
-                    <InputGroupAddon align="inline-end">€</InputGroupAddon>
+                    <InputGroupAddon align="inline-start">N°</InputGroupAddon>
                   </InputGroup>
                 </div>
-                <div className="grid w-full max-w-sm items-center gap-3">
-                  <Label>TVA</Label>
-                  <InputGroup>
-                    <InputGroupInput
-                      value={formValues.tva}
-                      required
-                      onChange={(e) => setFormValues((prev) => ({ ...prev, tva: e.target.value }))}
-                    />
-                    <InputGroupAddon align="inline-end">€</InputGroupAddon>
-                  </InputGroup>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid w-full max-w-sm items-center gap-3">
+                    <Label>HT</Label>
+                    <InputGroup>
+                      <InputGroupInput
+                        value={formValues.ht}
+                        required
+                        onChange={(e) => setFormValues((prev) => ({ ...prev, ht: e.target.value }))}
+                      />
+                      <InputGroupAddon align="inline-end">€</InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                  <div className="grid w-full max-w-sm items-center gap-3">
+                    <Label>TVA</Label>
+                    <InputGroup>
+                      <InputGroupInput
+                        value={formValues.tva}
+                        required
+                        onChange={(e) => setFormValues((prev) => ({ ...prev, tva: e.target.value }))}
+                      />
+                      <InputGroupAddon align="inline-end">€</InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                  <div className="grid w-full max-w-sm items-center gap-3">
+                    <Label>TTC</Label>
+                    <InputGroup>
+                      <InputGroupInput
+                        value={formValues.ttc}
+                        required
+                        onChange={(e) => setFormValues((prev) => ({ ...prev, ttc: e.target.value }))}
+                      />
+                      <InputGroupAddon align="inline-end">€</InputGroupAddon>
+                    </InputGroup>
+                  </div>
                 </div>
-                <div className="grid w-full max-w-sm items-center gap-3">
-                  <Label>TTC</Label>
-                  <InputGroup>
-                    <InputGroupInput
-                      value={formValues.ttc}
-                      required
-                      onChange={(e) => setFormValues((prev) => ({ ...prev, ttc: e.target.value }))}
-                    />
-                    <InputGroupAddon align="inline-end">€</InputGroupAddon>
-                  </InputGroup>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                <Button variant="outline" onClick={resetForm}>
-                  Réinitialiser
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" onClick={() => setEditOpen(false)}>
-                    Annuler
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                  <Button variant="outline" onClick={resetForm}>
+                    Réinitialiser
                   </Button>
-                        <Button onClick={handleSave} disabled={isSaving}>
-                          Enregistrer
-                        </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" onClick={() => setEditOpen(false)}>
+                      Annuler
+                    </Button>
+                    <Button onClick={handleSave} disabled={isSaving}>
+                      Enregistrer
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-md border bg-muted/30 p-4">

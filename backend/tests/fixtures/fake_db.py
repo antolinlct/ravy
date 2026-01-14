@@ -55,6 +55,7 @@ DB = {
     "user_establishment": [],
     "invoices": [],
     "suppliers": [],
+    "stripe_webhook_events": [],
     "mercurial_request": [],
     "supplier_alias": [],
     "variations": [],
@@ -409,6 +410,11 @@ def create_suppliers(data: Dict[str, Any]):
     if "id" not in data:
         data["id"] = uuid4()
     return _insert("suppliers", data)
+
+def create_stripe_webhook_events(data: Dict[str, Any]):
+    if "id" not in data:
+        data["id"] = uuid4()
+    return _insert("stripe_webhook_events", data)
 
 def create_mercurial_request(data: Dict[str, Any]):
     if "id" not in data:

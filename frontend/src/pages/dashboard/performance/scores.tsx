@@ -7,11 +7,15 @@ import RewardTop25 from "@/assets/rewards/top-25.png"
 import RewardTop50 from "@/assets/rewards/top-50.png"
 import RewardTop100 from "@/assets/rewards/top-100.png"
 import ConsultantAvatar from "@/assets/avatar.png"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
 import ScoreHeader from "./components/ScoreHeader"
 import ScoreGlobalCard from "./components/ScoreGlobalCard"
 import ScoreTrendCard from "./components/ScoreTrendCard"
 import ScoreSummaryGrid from "./components/ScoreSummaryGrid"
 import ScoreConsultantCard from "./components/ScoreConsultantCard"
+import { PerformancePlanPreview } from "./components/PerformancePlanPreview"
 import { getReportMonthDate, usePerformanceScoresData } from "./api"
 
 const getScoreColor = (value: number) => {
@@ -51,6 +55,8 @@ type ScoreTrendPoint = {
 }
 
 export default function PerformanceScoresPage() {
+  const { can } = useAccess()
+  const planCode = useEstablishmentPlanCode()
   const { reports, liveScores, globalRanking, isLoading, error } = usePerformanceScoresData()
 
   const sortedReports = useMemo(() => {
@@ -281,6 +287,15 @@ export default function PerformanceScoresPage() {
 
   const weakestScore = scoreCards.reduce((lowest, item) => (item.value < lowest.value ? item : lowest))
   const consultantCopy = consultantMessages[weakestScore.id as keyof typeof consultantMessages]
+
+  if (!can("performance")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const planLocked = planValue === "PLAN_APERO" || planValue === "PLAN_PLAT"
+  if (planLocked) {
+    return <PerformancePlanPreview />
+  }
 
   return (
     <div className="space-y-4">

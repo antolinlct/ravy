@@ -33,7 +33,8 @@ CONTRACT = {
                 "owner",
                 "admin",
                 "manager",
-                "staff"
+                "staff",
+                "accountant"
         ],
         "enum_default": "staff"
 },

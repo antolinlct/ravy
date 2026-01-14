@@ -45,6 +45,7 @@ type ContextValue = {
   data: EstablishmentValue
   usageCounters: UsageCounter[]
   usageLoading: boolean
+  planCode: string | null
   reload: () => Promise<void>
   reloadUsage: () => Promise<void>
 }
@@ -60,6 +61,7 @@ export function EstablishmentDataProvider({
   const [est, setEst] = useState<EstablishmentValue>(null)
   const [usageCounters, setUsageCounters] = useState<UsageCounter[]>([])
   const [usageLoading, setUsageLoading] = useState(false)
+  const [planCode, setPlanCode] = useState<string | null>(null)
   const posthog = usePostHog()
 
   const reload = useCallback(async () => {
@@ -108,6 +110,65 @@ export function EstablishmentDataProvider({
   }, [reloadUsage])
 
   useEffect(() => {
+    const planId =
+      est && typeof est["plan_id"] === "string" ? (est["plan_id"] as string) : null
+    const planFallback =
+      est && typeof est["plan"] === "string" ? (est["plan"] as string) : null
+    if (!estId) {
+      setPlanCode(null)
+      return
+    }
+    let cancelled = false
+    const loadPlan = async () => {
+      try {
+        const [productsRes, billingAccountRes] = await Promise.all([
+          api.get<{ id: string; internal_code?: string | null; plan_or_addon?: string | null }[]>(
+            "/product_stripe",
+            { params: { limit: 200 } }
+          ),
+          api.get<{ id: string; free_mode?: boolean | null }[]>("/billing_account", {
+            params: { establishment_id: estId, limit: 1 },
+          }),
+        ])
+
+        if (cancelled) return
+        const products = productsRes.data ?? []
+        const billingAccount = billingAccountRes.data?.[0] ?? null
+        const billingAccountId = billingAccount?.id ?? null
+        const isFreeMode = Boolean(billingAccount?.free_mode)
+
+        if (planId) {
+          const match = products.find((item) => item?.id === planId)
+          setPlanCode(match?.internal_code ?? planFallback ?? null)
+          return
+        }
+
+        if (billingAccountId) {
+          const billingItemsRes = await api.get<
+            { product_id?: string | null }[]
+          >("/billing_item", { params: { billling_acount_id: billingAccountId, limit: 200 } })
+          if (cancelled) return
+          const planItem = (billingItemsRes.data ?? []).find((item) => {
+            const product = products.find((p) => p.id === item?.product_id)
+            return product?.plan_or_addon === "plan"
+          })
+          const planProduct = products.find((p) => p.id === planItem?.product_id)
+          setPlanCode(planProduct?.internal_code ?? (isFreeMode ? "PLAN_FREE" : planFallback) ?? null)
+          return
+        }
+
+        setPlanCode(isFreeMode ? "PLAN_FREE" : planFallback ?? null)
+      } catch {
+        if (!cancelled) setPlanCode(planFallback ?? null)
+      }
+    }
+    loadPlan()
+    return () => {
+      cancelled = true
+    }
+  }, [est, estId])
+
+  useEffect(() => {
     if (!posthog || !estId) return
     const estName = est && typeof est["name"] === "string" ? (est["name"] as string) : undefined
     posthog.group("establishment", estId, {
@@ -117,7 +178,7 @@ export function EstablishmentDataProvider({
 
   return (
     <EstablishmentDataContext.Provider
-      value={{ data: est, usageCounters, usageLoading, reload, reloadUsage }}
+      value={{ data: est, usageCounters, usageLoading, planCode, reload, reloadUsage }}
     >
       {children}
     </EstablishmentDataContext.Provider>
@@ -142,4 +203,8 @@ export function useEstablishmentUsageCountersLoading() {
 
 export function useEstablishmentUsageCountersReload() {
   return useContext(EstablishmentDataContext)?.reloadUsage
+}
+
+export function useEstablishmentPlanCode() {
+  return useContext(EstablishmentDataContext)?.planCode ?? null
 }

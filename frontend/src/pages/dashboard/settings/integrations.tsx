@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Banknote, Brain, Store } from "lucide-react"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 
 const integrations = [
   {
@@ -30,6 +32,18 @@ const integrations = [
 ]
 
 export default function IntegrationsSupportPage() {
+  const { can } = useAccess()
+
+  if (!can("integrations")) {
+    return (
+      <div className="flex items-start justify-start rounded-xl gap-4">
+        <div className="w-full max-w-5xl space-y-4">
+          <AccessLockedCard />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-start justify-start rounded-xl gap-4">
       <div className="w-full max-w-5xl space-y-4">

@@ -84,6 +84,7 @@ type RecipesListCardProps = {
   onDuplicate: (recipe: RecipeListItem) => void
   onDelete: (recipe: RecipeListItem) => void
   shouldScrollRecipes: boolean
+  canManage?: boolean
 }
 
 export function RecipesListCard({
@@ -110,6 +111,7 @@ export function RecipesListCard({
   onDuplicate,
   onDelete,
   shouldScrollRecipes,
+  canManage = true,
 }: RecipesListCardProps) {
   const sortIcon = (key: typeof sortKey) => {
     if (sortKey !== key) return <ChevronsUpDown className="h-4 w-4 opacity-50" />
@@ -422,6 +424,7 @@ export function RecipesListCard({
                               className="scale-90 data-[state=checked]:!bg-[#108FFF]"
                               style={isActive ? { backgroundColor: "#108FFF" } : undefined}
                               onCheckedChange={(checked) => onToggleActive(recipe.id, checked)}
+                              disabled={!canManage}
                             />
                           </div>
                         </TableCell>
@@ -430,60 +433,62 @@ export function RecipesListCard({
                           onClick={(event) => event.stopPropagation()}
                           onKeyDown={(event) => event.stopPropagation()}
                         >
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Actions pour ${recipe.name}`}
+                          {canManage && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Actions pour ${recipe.name}`}
+                                >
+                                  <EllipsisVertical className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                sideOffset={4}
+                                className="min-w-56 rounded-lg"
                               >
-                                <EllipsisVertical className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              sideOffset={4}
-                              className="min-w-56 rounded-lg"
-                            >
-                              <DropdownMenuLabel className="p-1 font-normal">
-                                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                  <ChefHat className="h-4 w-4 text-muted-foreground" />
-                                  <div className="grid flex-1 text-left text-sm leading-tight">
-                                    <span className="truncate font-semibold">{recipe.name}</span>
-                                    <span className="truncate text-xs text-muted-foreground">
-                                      {recipe.ingredientsLabel}
-                                    </span>
+                                <DropdownMenuLabel className="p-1 font-normal">
+                                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                    <ChefHat className="h-4 w-4 text-muted-foreground" />
+                                    <div className="grid flex-1 text-left text-sm leading-tight">
+                                      <span className="truncate font-semibold">{recipe.name}</span>
+                                      <span className="truncate text-xs text-muted-foreground">
+                                        {recipe.ingredientsLabel}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              </DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onSelect={() => onRowNavigate(recipe.id)}>
-                                <Eye />
-                                Voir
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => onDuplicate(recipe)}>
-                                <Copy />
-                                Dupliquer
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() => {
-                                  onToggleActive(recipe.id, !isActive)
-                                }}
-                              >
-                                {isActive ? <CircleX /> : <CircleCheck />}
-                                {isActive ? "Désactiver" : "Activer"}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10 focus:text-destructive focus:bg-destructive/10 data-[highlighted]:text-destructive data-[highlighted]:bg-destructive/10"
-                                onSelect={() => onDelete(recipe)}
-                              >
-                                <Trash2 />
-                                Supprimer
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onSelect={() => onRowNavigate(recipe.id)}>
+                                  <Eye />
+                                  Voir
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => onDuplicate(recipe)}>
+                                  <Copy />
+                                  Dupliquer
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    onToggleActive(recipe.id, !isActive)
+                                  }}
+                                >
+                                  {isActive ? <CircleX /> : <CircleCheck />}
+                                  {isActive ? "Désactiver" : "Activer"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 focus:text-destructive focus:bg-destructive/10 data-[highlighted]:text-destructive data-[highlighted]:bg-destructive/10"
+                                  onSelect={() => onDelete(recipe)}
+                                >
+                                  <Trash2 />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </TableCell>
                       </TableRow>
                     )

@@ -12,6 +12,10 @@ import { usePostHog } from "posthog-js/react"
 import { RecipesPageHeader } from "./components/RecipesPageHeader"
 import { RecipeCreationCard } from "./components/RecipeCreationCard"
 import { RecipesListCard } from "./components/RecipesListCard"
+import { RecipePlanPreview } from "./components/RecipePlanPreview"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
 import {
   createRecipe,
   deleteRecipe,
@@ -63,6 +67,9 @@ export default function RecipesPage() {
   const navigate = useNavigate()
   const { estId } = useEstablishment()
   const posthog = usePostHog()
+  const { can, role } = useAccess()
+  const isStaff = role === "staff"
+  const planCode = useEstablishmentPlanCode()
   const [defaultVatId, setDefaultVatId] = useState<string | null>(null)
 
   const [recipes, setRecipes] = useState<RecipeListItem[]>([])
@@ -457,6 +464,18 @@ export default function RecipesPage() {
       })
   }
 
+  if (!can("recipes")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const hasRecipeAccess = planValue
+    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
+    : false
+
+  if (!hasRecipeAccess) {
+    return <RecipePlanPreview />
+  }
+
   return (
     <div className="flex w-full items-start justify-start">
       <AlertDialog
@@ -550,24 +569,31 @@ export default function RecipesPage() {
       <div className="w-full space-y-4">
         <RecipesPageHeader />
 
-        <RecipeCreationCard
-          creationProgress={creationProgress}
-          recipesRemaining={recipesRemaining}
-          recipeName={recipeName}
-          onRecipeNameChange={setRecipeName}
-          recipeCategory={recipeCategory}
-          onRecipeCategoryChange={setRecipeCategory}
-          recipeSubCategory={recipeSubCategory}
-          onRecipeSubCategoryChange={setRecipeSubCategory}
-          categoryOptions={categoryOptions}
-          subCategoryOptions={creationSubCategoryOptions}
-          createAttempted={createAttempted}
-          canCreateRecipe={canCreateRecipe}
-          onCreateAttempt={handleCreateAttempt}
-          nameInputRef={nameInputRef}
-          categoryTriggerRef={categoryTriggerRef}
-          subCategoryTriggerRef={subCategoryTriggerRef}
-        />
+        {isStaff ? (
+          <AccessLockedCard
+            title="Création de recettes"
+            description="Votre rôle ne permet pas de créer de nouvelles recettes. Contactez un administrateur si besoin."
+          />
+        ) : (
+          <RecipeCreationCard
+            creationProgress={creationProgress}
+            recipesRemaining={recipesRemaining}
+            recipeName={recipeName}
+            onRecipeNameChange={setRecipeName}
+            recipeCategory={recipeCategory}
+            onRecipeCategoryChange={setRecipeCategory}
+            recipeSubCategory={recipeSubCategory}
+            onRecipeSubCategoryChange={setRecipeSubCategory}
+            categoryOptions={categoryOptions}
+            subCategoryOptions={creationSubCategoryOptions}
+            createAttempted={createAttempted}
+            canCreateRecipe={canCreateRecipe}
+            onCreateAttempt={handleCreateAttempt}
+            nameInputRef={nameInputRef}
+            categoryTriggerRef={categoryTriggerRef}
+            subCategoryTriggerRef={subCategoryTriggerRef}
+          />
+        )}
 
         <RecipesListCard
           categoryOptions={categoryOptions}
@@ -627,6 +653,7 @@ export default function RecipesPage() {
           onDuplicate={handleDuplicateOpen}
           onDelete={handleDeleteOpen}
           shouldScrollRecipes={shouldScrollRecipes}
+          canManage={!isStaff}
         />
       </div>
     </div>

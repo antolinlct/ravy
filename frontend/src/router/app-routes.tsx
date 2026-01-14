@@ -7,6 +7,7 @@ import ResetPasswordPage from "../pages/system/ResetPasswordPage.tsx";
 import MaintenancePage from "../pages/system/MaintenancePage.tsx";
 import NotFoundPage from "../pages/system/NotFoundPage.tsx";
 import SignupPage from "@/pages/system/SignupPage.tsx";
+import InvitePage from "@/pages/system/InvitePage.tsx";
 
 // --- Page Admin (backoffice) ---
 import AdminEstablishmentsPage from "@/pages/admin/establishments/index.tsx";
@@ -83,6 +84,7 @@ export const appRoutes: RouteObject[] = [
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/maintenance", element: <MaintenancePage /> },
   { path: "/signup", element: <SignupPage/>},
+  { path: "/invite/accept", element: <InvitePage /> },
 
   // Dashboard principal
 {

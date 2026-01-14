@@ -38,6 +38,7 @@ import MultipleCombobox from "@/components/ui/multiple_combobox"
 import { DoubleDatePicker, type DoubleDatePickerValue } from "@/components/blocks/double-datepicker"
 import { filterInvoices, getInvoiceDocumentUrl, toCurrencyNumber } from "../api"
 import type { InvoiceListItem, SupplierOption } from "../types"
+import { useAccess } from "@/components/access/access-control"
 
 const MIN_DATE = new Date("2022-01-01")
 
@@ -72,6 +73,8 @@ export default function InvoicesTableCard({
 }: InvoicesTableCardProps) {
   const navigate = useNavigate()
   const posthog = usePostHog()
+  const { role } = useAccess()
+  const isStaff = role === "staff"
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [exportStartDate, setExportStartDate] = useState<Date | undefined>(startDate)
@@ -143,6 +146,7 @@ export default function InvoicesTableCard({
   }, 0)
 
   const handleSheetToggle = (open: boolean) => {
+    if (isStaff && open) return
     if (open) {
       setExportStartDate(startDate)
       setExportEndDate(endDate)
@@ -380,7 +384,7 @@ export default function InvoicesTableCard({
               <span className="text-xs font-medium text-muted-foreground invisible">Exporter</span>
               <Sheet open={sheetOpen} onOpenChange={handleSheetToggle}>
                 <SheetTrigger asChild>
-                  <Button>
+                  <Button disabled={isStaff}>
                     Exporter
                     <ArrowDownToLine className="h-4 w-4" />
                   </Button>

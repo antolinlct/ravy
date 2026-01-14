@@ -21,6 +21,7 @@ type RecipeIngredientsCardProps = {
   onAddSubRecipe: () => void
   onAddFixed: () => void
   onEditIngredient: (id: string) => void
+  canEdit?: boolean
 }
 
 export function RecipeIngredientsCard({
@@ -33,6 +34,7 @@ export function RecipeIngredientsCard({
   onAddSubRecipe,
   onAddFixed,
   onEditIngredient,
+  canEdit = true,
 }: RecipeIngredientsCardProps) {
   const skeletonRows = Array.from({ length: 6 })
 
@@ -45,41 +47,43 @@ export function RecipeIngredientsCard({
               <CardTitle>Ingrédients</CardTitle>
               <Badge variant="secondary">{isLoading ? "—" : ingredientsCount}</Badge>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" className="gap-2" onClick={onAddArticle}>
-                    <ShoppingBasket className="h-4 w-4" />
-                    Ajouter un produit
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={6}>
-                  Produits issus de vos factures (quantité, pertes, coût).
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" className="gap-2" onClick={onAddSubRecipe}>
-                    <FileText className="h-4 w-4" />
-                    Ajouter une recette
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={6}>
-                  Intégrez une sous-recette existante dans celle-ci.
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="secondary" className="gap-2" onClick={onAddFixed}>
-                    <Plus className="h-4 w-4" />
-                    Autre
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={6}>
-                  Ajoutez un coût fixe (main-d’œuvre, énergie…).
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            {canEdit && (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="secondary" className="gap-2" onClick={onAddArticle}>
+                      <ShoppingBasket className="h-4 w-4" />
+                      Ajouter un produit
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6}>
+                    Produits issus de vos factures (quantité, pertes, coût).
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="secondary" className="gap-2" onClick={onAddSubRecipe}>
+                      <FileText className="h-4 w-4" />
+                      Ajouter une recette
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6}>
+                    Intégrez une sous-recette existante dans celle-ci.
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="secondary" className="gap-2" onClick={onAddFixed}>
+                      <Plus className="h-4 w-4" />
+                      Autre
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={6}>
+                    Ajoutez un coût fixe (main-d’œuvre, énergie…).
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
           </div>
           <CardDescription>Ajoutez des produits, des sous-recettes ou des charges fixes.</CardDescription>
         </div>
@@ -124,8 +128,8 @@ export function RecipeIngredientsCard({
                   : ingredientRows.map((row) => (
                       <TableRow
                         key={row.id}
-                        className="cursor-pointer h-14"
-                        onClick={() => onEditIngredient(row.id)}
+                        className={`h-14${canEdit ? " cursor-pointer" : ""}`}
+                        onClick={canEdit ? () => onEditIngredient(row.id) : undefined}
                       >
                         <TableCell className="pl-3 pr-3">
                           <div className="space-y-1">
@@ -167,24 +171,26 @@ export function RecipeIngredientsCard({
                           </Badge>
                         </TableCell>
                         <TableCell className="pr-3 text-right">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Modifier ${row.name}`}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  onEditIngredient(row.id)
-                                }}
-                              >
-                                <Pencil className="h-4 w-4 text-muted-foreground" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" sideOffset={6}>
-                              Modifier l’ingrédient
-                            </TooltipContent>
-                          </Tooltip>
+                          {canEdit && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Modifier ${row.name}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    onEditIngredient(row.id)
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" sideOffset={6}>
+                                Modifier l’ingrédient
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

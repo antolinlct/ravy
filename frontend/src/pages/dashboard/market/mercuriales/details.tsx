@@ -14,11 +14,15 @@ import {
 import { useNavigate, useParams } from "react-router-dom"
 import { useTheme } from "@/components/dark/theme-provider"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
 import { useUserMercurialeAccess } from "@/context/UserMercurialeAccessContext"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
 import { useMarketOverviewData } from "../purchases/api"
 import { useMercurialeSupplierData } from "./api"
 import MercurialeDetailsHeader from "./components/MercurialeDetailsHeader"
 import MercurialeTableCard from "./components/MercurialeTableCard"
+import { MarketPlanPreview } from "../components/MarketPlanPreview"
 import type { Mercuriale, MercurialeArticle } from "./types"
 
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -86,9 +90,11 @@ const getMercurialeSortKey = (item: Mercuriale) => {
 }
 
 export default function MarketMercurialesDetailsPage() {
+  const { can } = useAccess()
   const navigate = useNavigate()
   const { theme = "system" } = useTheme()
   const { estId } = useEstablishment()
+  const planCode = useEstablishmentPlanCode()
   const access = useUserMercurialeAccess()
   const activeLevel = (access?.level ?? "STANDARD") as MercurialeLevel
   const { id } = useParams()
@@ -419,6 +425,15 @@ export default function MarketMercurialesDetailsPage() {
     }),
     []
   )
+
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const planLocked = planValue === "PLAN_APERO" || planValue === "PLAN_PLAT"
+  if (!can("consultant")) {
+    return <AccessLockedCard />
+  }
+  if (planLocked) {
+    return <MarketPlanPreview />
+  }
 
   return (
     <div className="space-y-4">

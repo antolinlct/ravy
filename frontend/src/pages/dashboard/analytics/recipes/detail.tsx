@@ -9,11 +9,17 @@ import { RecipeMarginDetailCard } from "./components/RecipeMarginDetailCard"
 import { RecipeCostCard } from "./components/RecipeCostCard"
 import { RecipeCostSkeletonCard, RecipeMarginSkeletonCard } from "./components/RecipeAnalysisSkeletons"
 import type { RecipeIngredientRow } from "./types"
+import { AccessLockedCard } from "@/components/access/AccessLockedCard"
+import { useAccess } from "@/components/access/access-control"
+import { useEstablishmentPlanCode } from "@/context/EstablishmentDataContext"
+import { RecipePlanPreview } from "@/pages/dashboard/recipes/components/RecipePlanPreview"
 
 export default function RecipeAnalyticsDetailPage() {
   const navigate = useNavigate()
   const { id: routeRecipeId } = useParams<{ id?: string }>()
   const { estId } = useEstablishment()
+  const { can } = useAccess()
+  const planCode = useEstablishmentPlanCode()
   const [selectedCategory, setSelectedCategory] = useState("__all__")
   const [selectedSubCategory, setSelectedSubCategory] = useState("__all__")
   const [selectedRecipeId, setSelectedRecipeId] = useState(routeRecipeId ?? "")
@@ -56,6 +62,18 @@ export default function RecipeAnalyticsDetailPage() {
     isLoading: isDetailLoading,
   } = useRecipeDetailData(estId, selectedRecipeId || null, analysisRange.start, analysisRange.end)
 
+  if (!can("analytics")) {
+    return <AccessLockedCard />
+  }
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const hasRecipeAccess = planValue
+    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
+    : false
+
+  if (!hasRecipeAccess) {
+    return <RecipePlanPreview />
+  }
+
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ value: category.id, label: category.name })),
     [categories]
@@ -94,6 +112,13 @@ export default function RecipeAnalyticsDetailPage() {
       setSelectedRecipeId(routeRecipeId)
     }
   }, [routeRecipeId, selectedRecipeId])
+
+  useEffect(() => {
+    if (!selectedRecipeId) return
+    if (typeof window === "undefined") return
+    const detailPath = `/dashboard/analytics/recipes/${selectedRecipeId}`
+    window.sessionStorage.setItem("sidebar.analytics.recipes.detail", detailPath)
+  }, [selectedRecipeId])
 
   useEffect(() => {
     if (!recipesByCategoryAndSub.length) {

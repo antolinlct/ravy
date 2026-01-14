@@ -23,8 +23,18 @@ export function UsageSection({ usage, isFree }: UsageSectionProps) {
                 </span>
                 <span className="text-muted-foreground">{item.detail}</span>
               </div>
-              <Progress value={item.value} />
-              <p className="text-sm text-muted-foreground">{item.quota}</p>
+              <Progress
+                value={item.isOverLimit ? 100 : item.value}
+                className={item.isOverLimit ? "bg-destructive/20" : undefined}
+                indicatorClassName={item.isOverLimit ? "bg-destructive" : undefined}
+              />
+              <p
+                className={
+                  item.isOverLimit ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+                }
+              >
+                {item.quota}
+              </p>
             </CardContent>
           </Card>
         )

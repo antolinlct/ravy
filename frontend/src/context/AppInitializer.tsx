@@ -11,20 +11,41 @@ import { useEffect } from "react"
 import type { Session } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabaseClient"
 import { useUser } from "./UserContext"
-import { useUserData } from "./UserDataContext"
+import { useUserData, useUserDataReload } from "./UserDataContext"
 import { useEstablishment } from "./EstablishmentContext"
-import { useEstablishmentData } from "./EstablishmentDataContext"
+import {
+  useEstablishmentData,
+  useEstablishmentDataReload,
+  useEstablishmentUsageCountersReload,
+} from "./EstablishmentDataContext"
+import { useUserEstablishments } from "./UserEstablishmentsContext"
+import { useUserMercurialeAccessReload } from "./UserMercurialeAccessContext"
 
 export function AppInitializer({ children }: { children: React.ReactNode }) {
   const user = useUser()
   useUserData()
-  const { estId, select } = useEstablishment()
+  const userDataReload = useUserDataReload()
+  const { estId, select, clear } = useEstablishment()
   useEstablishmentData()
+  const estDataReload = useEstablishmentDataReload()
+  const usageReload = useEstablishmentUsageCountersReload()
+  const userEstablishments = useUserEstablishments()
+  const userMercurialeReload = useUserMercurialeAccessReload()
 
   useEffect(() => {
     let isMounted = true
 
-    async function sync(session: Session | null) {
+    async function refreshAll() {
+      await Promise.allSettled([
+        userDataReload?.(),
+        userEstablishments?.reload?.(),
+        userMercurialeReload?.(),
+        estDataReload?.(),
+        usageReload?.(),
+      ])
+    }
+
+    async function sync(session: Session | null, event?: string) {
       if (!isMounted) return
 
       if (!session) {
@@ -35,30 +56,13 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
         return
       }
 
+      if (event === "SIGNED_IN") {
+        await refreshAll()
+      }
+
       // Hydrate user_id si manquant
       if (!user?.id) {
         localStorage.setItem("user_id", session.user.id)
-      }
-
-      // Sélection établissement par défaut si manquant
-      if (!estId) {
-        const API_URL = import.meta.env.VITE_API_URL
-        if (!API_URL) return
-
-        const res = await fetch(
-          `${API_URL}/user_establishment/?user_id=${session.user.id}`
-        )
-
-        if (res.ok) {
-          const links = await res.json()
-          if (
-            Array.isArray(links) &&
-            links.length > 0 &&
-            links[0]?.establishment_id
-          ) {
-            select(links[0].establishment_id)
-          }
-        }
       }
     }
 
@@ -67,7 +71,7 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
       .getSession()
       .then(({ data, error }) => {
         if (!error) {
-          sync(data.session)
+          sync(data.session, "INITIAL_SESSION")
         }
       })
       .catch(() => {
@@ -75,8 +79,8 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
       })
 
     // 2. Sync temps réel (login / logout)
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      sync(session)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      sync(session, event)
     })
 
     return () => {
@@ -86,6 +90,21 @@ export function AppInitializer({ children }: { children: React.ReactNode }) {
     // select provient du contexte et n'est pas mémorisé, on le passe volontairement hors deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, estId])
+
+  useEffect(() => {
+    const links = userEstablishments?.list ?? []
+    if (!user?.id) return
+    if (!links.length) {
+      clear()
+      return
+    }
+    if (estId && links.some((link) => link.establishmentId === estId)) {
+      return
+    }
+    if (links[0]?.establishmentId && estId !== links[0].establishmentId) {
+      select(links[0].establishmentId)
+    }
+  }, [user?.id, estId, userEstablishments?.list, select, clear])
 
   return <>{children}</>
 }

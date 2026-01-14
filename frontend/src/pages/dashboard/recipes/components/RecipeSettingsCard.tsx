@@ -55,6 +55,7 @@ type RecipeSettingsCardProps = {
   categoryOptions: RecipeCategoryOption[]
   subcategoryOptionsByCategory: Record<string, RecipeSubcategoryOption[]>
   vatOptions: VatRateOption[]
+  readOnly?: boolean
 }
 
 export function RecipeSettingsCard({
@@ -100,6 +101,7 @@ export function RecipeSettingsCard({
   categoryOptions,
   subcategoryOptionsByCategory,
   vatOptions,
+  readOnly = false,
 }: RecipeSettingsCardProps) {
   const subcategoryOptions = subcategoryOptionsByCategory[recipe.categoryId] ?? []
 
@@ -136,6 +138,7 @@ export function RecipeSettingsCard({
                     checked={recipe.saleable}
                     style={recipe.saleable ? { backgroundColor: "#108FFF" } : undefined}
                     onCheckedChange={onToggleSaleable}
+                    disabled={readOnly}
                   />
                 </div>
               </CardContent>
@@ -166,7 +169,7 @@ export function RecipeSettingsCard({
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">TVA</Label>
                     <Select value={recipe.vatId} onValueChange={onVatChange}>
-                      <SelectTrigger>
+                      <SelectTrigger disabled={readOnly}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -208,6 +211,7 @@ export function RecipeSettingsCard({
                             onFocus={onPriceInclTaxFocus}
                             onBlur={onPriceInclTaxBlur}
                             placeholder="0"
+                            disabled={readOnly}
                           />
                           <InputGroupAddon align="inline-end">€</InputGroupAddon>
                         </InputGroup>
@@ -250,6 +254,7 @@ export function RecipeSettingsCard({
                       onFocus={onPortionsFocus}
                       onBlur={onPortionsBlur}
                       placeholder="1"
+                      disabled={readOnly}
                     />
                   </div>
                 </TooltipTrigger>
@@ -287,6 +292,7 @@ export function RecipeSettingsCard({
                         onFocus={onPortionWeightFocus}
                         onBlur={onPortionWeightBlur}
                         placeholder="0"
+                        disabled={readOnly}
                       />
                       <InputGroupAddon align="inline-end">g</InputGroupAddon>
                     </InputGroup>
@@ -338,7 +344,7 @@ export function RecipeSettingsCard({
                   Catégorie
                 </Label>
                 <Select value={recipe.categoryId} onValueChange={onCategoryChange}>
-                  <SelectTrigger id="recipe-category">
+                  <SelectTrigger id="recipe-category" disabled={readOnly}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -355,7 +361,7 @@ export function RecipeSettingsCard({
                   Sous-catégorie
                 </Label>
                 <Select value={recipe.subcategoryId} onValueChange={onSubcategoryChange}>
-                  <SelectTrigger id="recipe-subcategory">
+                  <SelectTrigger id="recipe-subcategory" disabled={readOnly}>
                     <SelectValue
                       placeholder={
                         recipe.categoryId ? "Sélectionnez une sous-catégorie" : "Sélectionnez une catégorie"
@@ -398,6 +404,7 @@ export function RecipeSettingsCard({
                     checked={recipe.active}
                     style={recipe.active ? { backgroundColor: "#108FFF" } : undefined}
                     onCheckedChange={onToggleActive}
+                    disabled={readOnly}
                   />
                 </div>
               </CardContent>
@@ -406,7 +413,12 @@ export function RecipeSettingsCard({
         </Tabs>
       </CardContent>
       <CardFooter className="p-6 pt-0">
-        <Button className="w-full" size="lg" onClick={onSave} disabled={saveDisabled || isSaving}>
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={onSave}
+          disabled={readOnly || saveDisabled || isSaving}
+        >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {isSaving ? "Enregistrement..." : "Enregistrer les paramètres"}
         </Button>

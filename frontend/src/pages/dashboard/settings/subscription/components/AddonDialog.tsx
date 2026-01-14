@@ -93,6 +93,7 @@ export function AddonDialog({
   const seatLimitValue =
     typeof seatLimit === "number" && Number.isFinite(seatLimit) ? seatLimit : null
   const isSeatAddon = addon?.addonCategory === "seat"
+  const MAX_PACKS = 5
   const baseSeats =
     isSeatAddon && seatLimitValue !== null && addonValue !== null
       ? seatLimitValue - addonValue * baseQuantity
@@ -105,6 +106,7 @@ export function AddonDialog({
     requiredQuantity !== null ? Math.max(1, requiredQuantity) : 1
   const isBelowMinSeatQuantity =
     isSeatAddon && requiredQuantity !== null && quantity < minSeatQuantity
+  const exceedsMaxSeatRequirement = isSeatAddon && minSeatQuantity > MAX_PACKS
   const seatUsageLabel =
     seatUsageValue !== null
       ? new Intl.NumberFormat("fr-FR").format(seatUsageValue)
@@ -115,7 +117,8 @@ export function AddonDialog({
     if (!Number.isFinite(nextValue)) return
     const floorValue = Math.floor(nextValue)
     const minValue = isSeatAddon && requiredQuantity !== null ? minSeatQuantity : 1
-    onQuantityChange(Math.max(minValue, floorValue))
+    const maxValue = MAX_PACKS
+    onQuantityChange(Math.min(Math.max(minValue, floorValue), maxValue))
   }
   const handleQuantityAdjust = (delta: number) => {
     handleQuantityChange(quantity + delta)
@@ -219,7 +222,7 @@ export function AddonDialog({
                   variant="outline"
                   size="icon"
                   onClick={() => handleQuantityAdjust(1)}
-                  disabled={isBusy}
+                  disabled={isBusy || quantity >= MAX_PACKS}
                 >
                   +
                 </Button>
@@ -230,6 +233,17 @@ export function AddonDialog({
                 {seatUsageLabel
                   ? `Vous avez ${seatUsageLabel} utilisateurs actifs. Supprimez un utilisateur avant de réduire la quantité.`
                   : "Supprimez un utilisateur avant de réduire la quantité."}
+              </p>
+            ) : null}
+            {exceedsMaxSeatRequirement ? (
+              <p className="text-sm text-destructive text-right">
+                La limite est fixée à {MAX_PACKS} packs. Réduisez vos utilisateurs avant
+                d&apos;augmenter la quantité.
+              </p>
+            ) : null}
+            {!exceedsMaxSeatRequirement && quantity >= MAX_PACKS ? (
+              <p className="text-sm text-muted-foreground text-right">
+                Limité à {MAX_PACKS} packs. Contactez le support pour aller plus loin.
               </p>
             ) : null}
 
@@ -268,7 +282,9 @@ export function AddonDialog({
                 <Button
                   type="button"
                   onClick={handlePrimaryAction}
-                  disabled={isBusy || !isActionable || isBelowMinSeatQuantity}
+                  disabled={
+                    isBusy || !isActionable || isBelowMinSeatQuantity || exceedsMaxSeatRequirement
+                  }
                 >
                   {loading ? (
                     <>

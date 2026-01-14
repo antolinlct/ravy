@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import FileUpload06 from "@/components/ui/file-upload-06"
 import { useEstablishment } from "@/context/EstablishmentContext"
+import { useAccess } from "@/components/access/access-control"
 import { useInvoiceAlias } from "../api"
 
 export default function InvoiceUploadCard() {
   const { estId } = useEstablishment()
+  const { role } = useAccess()
+  const isStaff = role === "staff"
   const { aliasEmail, aliasActive } = useInvoiceAlias(estId)
   const [copied, setCopied] = useState(false)
   const [tooltipOpen, setTooltipOpen] = useState(false)
@@ -74,7 +77,7 @@ export default function InvoiceUploadCard() {
                   <p>
                     Transférez vos factures en pièces jointes à cette adresse pour les importer automatiquement :
                   </p>
-                  {!uploaderHasFiles && (
+                  {!uploaderHasFiles && !isStaff && (
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <Input
                         value={
@@ -99,7 +102,7 @@ export default function InvoiceUploadCard() {
                             size="icon"
                             onClick={handleCopy}
                             aria-label="Copier l'adresse email"
-                            disabled={!aliasActive || !aliasEmail}
+                            disabled={isStaff || !aliasActive || !aliasEmail}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
@@ -112,7 +115,7 @@ export default function InvoiceUploadCard() {
               </CardDescription>
             </div>
             <div className="flex flex-1">
-              <FileUpload06 onHasUploadsChange={setUploaderHasFiles} />
+              <FileUpload06 onHasUploadsChange={setUploaderHasFiles} disabled={isStaff} />
             </div>
           </div>
         </div>
