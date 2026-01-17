@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { ChefHat } from "lucide-react"
+import { toast } from "sonner"
 import { useUser } from "@/context/UserContext"
 import { useDashboardHomeData } from "./api"
 import { SummaryCard } from "./components/summary-card"
@@ -19,7 +20,7 @@ const FALLBACK_INVOICE_STATS: InvoiceStatItem[] = [
 export default function DashboardHomePage() {
   const user = useUser()
   const isMobile = useIsMobile()
-  const { data, currentMonthLabel } = useDashboardHomeData()
+  const { data, currentMonthLabel, dismissVariation, dismissAllVariations } = useDashboardHomeData()
 
   const displayName = useMemo(() => {
     const full = user?.fullName?.trim()
@@ -48,7 +49,25 @@ export default function DashboardHomePage() {
         <SummaryCard currentMonth={currentMonthLabel} invoiceStats={invoiceStats} />
 
         <div className="grid gap-4 md:grid-cols-10">
-          <LatestVariationsCard items={data.latestVariations} />
+          <LatestVariationsCard
+            items={data.latestVariations}
+            onDismissVariation={async (masterArticleId) => {
+              const deletedCount = await dismissVariation(masterArticleId)
+              if (deletedCount > 0) {
+                toast.success("Variation supprimée.")
+              } else {
+                toast.message("Aucune variation à supprimer.")
+              }
+            }}
+            onDismissAll={async () => {
+              const deletedCount = await dismissAllVariations()
+              if (deletedCount > 0) {
+                toast.success("Toutes les variations ont été supprimées.")
+              } else {
+                toast.message("Aucune variation à supprimer.")
+              }
+            }}
+          />
           <OptimizedProductsCard
             products={data.optimizedProducts}
             totalMonthlySavings={data.totalMonthlySavings}

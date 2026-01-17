@@ -97,20 +97,40 @@ const buildLatestVariations = (
   masterById: Map<string, MasterArticleRow>,
   supplierById: Map<string, SupplierRow>
 ): LatestVariation[] => {
-  return variations
-    .filter((item) => !item.is_deleted)
+  const latestByMaster = new Map<string, VariationRow>()
+  variations.forEach((item) => {
+    if (item.is_deleted) return
+    const masterId = item.master_article_id
+    if (!masterId) return
+    const existing = latestByMaster.get(masterId)
+    if (!existing) {
+      latestByMaster.set(masterId, item)
+      return
+    }
+    const existingDate = new Date(existing.date).getTime()
+    const nextDate = new Date(item.date).getTime()
+    if (nextDate > existingDate) {
+      latestByMaster.set(masterId, item)
+    }
+  })
+
+  return Array.from(latestByMaster.values())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10)
     .map((item) => {
-      const master = masterById.get(item.master_article_id)
+      const masterId = item.master_article_id
+      const master = masterById.get(masterId)
       const supplierId = master?.supplier_id
       const supplier = supplierId ? supplierById.get(supplierId) : undefined
       const articleName = master?.name || master?.unformatted_name || "Article"
       const supplierName = supplier?.name || "Fournisseur"
       return {
         id: item.id,
+        masterArticleId: masterId,
         article: articleName,
         supplier: supplierName,
+        date: item.date,
+        unitPrice: toNumber(item.new_unit_price),
         changePercent: toNumber(item.percentage) ?? 0,
       }
     })
@@ -439,12 +459,52 @@ export function useDashboardHomeData() {
 
   const currentMonthLabel = useMemo(() => formatMonthLabel(data.reportMonth), [data.reportMonth])
 
+  const dismissVariation = useCallback(
+    async (masterArticleId: string) => {
+      if (!masterArticleId || !estId) return 0
+      const { data } = await api.get<VariationRow[]>("/variations", {
+        params: {
+          establishment_id: estId,
+          limit: 2000,
+        },
+      })
+      const ids =
+        Array.isArray(data)
+          ? data
+              .filter((row) => row.master_article_id === masterArticleId)
+              .map((row) => row.id)
+          : []
+      if (!ids.length) return 0
+      await Promise.all(ids.map((id) => api.patch(`/variations/${id}`, { is_deleted: true })))
+      await reload()
+      return ids.length
+    },
+    [estId, reload]
+  )
+
+  const dismissAllVariations = useCallback(async () => {
+    if (!estId) return 0
+    const { data } = await api.get<VariationRow[]>("/variations", {
+      params: {
+        establishment_id: estId,
+        limit: 2000,
+      },
+    })
+    const ids = Array.isArray(data) ? data.map((row) => row.id) : []
+    if (!ids.length) return 0
+    await Promise.all(ids.map((id) => api.patch(`/variations/${id}`, { is_deleted: true })))
+    await reload()
+    return ids.length
+  }, [estId, reload])
+
   return {
     data,
     isLoading,
     error,
     reload,
     currentMonthLabel,
+    dismissVariation,
+    dismissAllVariations,
   }
 }
 

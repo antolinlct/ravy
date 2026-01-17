@@ -15,6 +15,8 @@ export type VariationRow = {
   master_article_id: string
   date: string
   percentage: number
+  old_unit_price?: number | null
+  new_unit_price?: number | null
   is_deleted?: boolean | null
 }
 
@@ -63,8 +65,11 @@ export type RecipeMarginRow = {
 
 export type LatestVariation = {
   id: string
+  masterArticleId: string
   article: string
   supplier: string
+  date: string
+  unitPrice?: number | null
   changePercent: number
 }
 

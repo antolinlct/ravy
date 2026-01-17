@@ -80,8 +80,14 @@ export function OptimizedProductsCard({
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <CardTitle>Produits à optimiser</CardTitle>
-          <Button variant="link" className="p-0 h-6 text-muted-foreground hover:text-foreground">
-            Voir l&apos;analyse
+          <Button
+            asChild
+            variant="link"
+            className="p-0 h-6 text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/dashboard/analytics/products" state={{ scrollTo: "bottom" }}>
+              Voir l&apos;analyse
+            </Link>
           </Button>
         </div>
         <CardDescription className="mt-1">
@@ -115,7 +121,7 @@ export function OptimizedProductsCard({
                     <div key={item.id} className="w-44 flex-none">
                       <AspectRatio ratio={4 / 5}>
                         <Link
-                          to="/dashboard/analytics/products"
+                          to={`/dashboard/analytics/products/${item.id}`}
                           aria-label={`Voir l'analyse de ${item.name}`}
                           className="block h-full"
                         >

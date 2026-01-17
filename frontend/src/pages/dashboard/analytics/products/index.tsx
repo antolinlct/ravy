@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useEstablishment } from "@/context/EstablishmentContext"
 import ConsultantAvatar from "@/assets/avatar.png"
 import { AccessLockedCard } from "@/components/access/AccessLockedCard"
@@ -20,6 +20,7 @@ import { ProductConsumptionCard } from "./components/ProductConsumptionCard"
 
 export default function ProductAnalyticsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { estId } = useEstablishment()
   const { can } = useAccess()
   const [selectedLabel, setSelectedLabel] = useState<string>("all")
@@ -355,6 +356,19 @@ export default function ProductAnalyticsPage() {
     [masterArticlesById, suppliersById, variations]
   )
 
+  useEffect(() => {
+    const scrollTo = (location.state as { scrollTo?: string } | null)?.scrollTo
+    if (scrollTo !== "bottom") return
+
+    const target = document.getElementById("analytics-products-bottom")
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" })
+    } else {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
+    }
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
+
   if (!can("analytics")) {
     return <AccessLockedCard />
   }
@@ -421,6 +435,7 @@ export default function ProductAnalyticsPage() {
           euroFormatterWith2={euroFormatterWith2}
           diffNumberFormatter={diffNumberFormatter}
         />
+        <div id="analytics-products-bottom" className="h-px" />
       </div>
     </div>
   )

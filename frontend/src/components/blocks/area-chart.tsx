@@ -478,6 +478,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
   const {
     cursor: tooltipCursor,
     content: tooltipContentProp,
+    trigger = "hover",
     ...restTooltipProps
   } = tooltipProps ?? {}
   const resolvedChartConfig = useMemo(
@@ -1187,6 +1188,7 @@ export function AreaChart<TPoint extends AreaChartPoint = AreaChartPoint>({
               <ChartTooltip
                 cursor={resolvedCursor}
                 content={resolvedChartContent}
+                trigger={trigger}
                 {...restTooltipProps}
               />
 

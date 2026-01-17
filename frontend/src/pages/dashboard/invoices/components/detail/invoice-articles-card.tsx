@@ -171,8 +171,8 @@ export default function InvoiceArticlesCard({
           primaryValueFormatter={(v) => formatEuroFromNumber(v)}
           changePercent={changePercent}
           changeFormatter={changeFormatter}
-          positiveChangeClassName={hasChange ? undefined : "text-muted-foreground"}
-          negativeChangeClassName={hasChange ? undefined : "text-muted-foreground"}
+          positiveChangeClassName={hasChange ? "text-red-500" : "text-muted-foreground"}
+          negativeChangeClassName={hasChange ? "text-green-500" : "text-muted-foreground"}
           positiveIcon={hasChange ? undefined : EmptyIcon}
           negativeIcon={hasChange ? undefined : EmptyIcon}
           currency="EUR"

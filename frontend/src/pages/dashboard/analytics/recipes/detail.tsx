@@ -62,18 +62,6 @@ export default function RecipeAnalyticsDetailPage() {
     isLoading: isDetailLoading,
   } = useRecipeDetailData(estId, selectedRecipeId || null, analysisRange.start, analysisRange.end)
 
-  if (!can("analytics")) {
-    return <AccessLockedCard />
-  }
-  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
-  const hasRecipeAccess = planValue
-    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
-    : false
-
-  if (!hasRecipeAccess) {
-    return <RecipePlanPreview />
-  }
-
   const categoryOptions = useMemo(
     () => categories.map((category) => ({ value: category.id, label: category.name })),
     [categories]
@@ -121,10 +109,7 @@ export default function RecipeAnalyticsDetailPage() {
   }, [selectedRecipeId])
 
   useEffect(() => {
-    if (!recipesByCategoryAndSub.length) {
-      setSelectedRecipeId("")
-      return
-    }
+    if (!recipesByCategoryAndSub.length) return
     if (!recipesByCategoryAndSub.some((recipe) => recipe.id === selectedRecipeId)) {
       const nextId = recipesByCategoryAndSub[0].id
       setSelectedRecipeId(nextId)
@@ -258,6 +243,11 @@ export default function RecipeAnalyticsDetailPage() {
   const analysisStartDate = analysisRange.start ?? period?.start ?? null
   const analysisEndDate = analysisRange.end ?? period?.end ?? null
 
+  const planValue = typeof planCode === "string" ? planCode.toUpperCase() : null
+  const hasRecipeAccess = planValue
+    ? planValue === "PLAN_FREE" || planValue === "PLAN_PLAT" || planValue === "PLAN_MENU"
+    : false
+
   const analysisStartLabel = useMemo(() => {
     if (!analysisStartDate) return "--"
     return analysisStartDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
@@ -347,6 +337,13 @@ export default function RecipeAnalyticsDetailPage() {
   useEffect(() => {
     setCostZoomRange({})
   }, [analysisRange.end, analysisRange.start, selectedRecipeId])
+
+  if (!can("analytics")) {
+    return <AccessLockedCard />
+  }
+  if (!hasRecipeAccess) {
+    return <RecipePlanPreview />
+  }
 
   return (
     <div className="space-y-6">
